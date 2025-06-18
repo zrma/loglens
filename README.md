@@ -35,6 +35,36 @@ Tauri v2에서 dialog 플러그인 권한이 필요합니다. `capabilities/defa
 "permissions": ["dialog:default", "dialog:allow-open", "fs:default"]
 ```
 
+## 코드 품질 관리
+
+이 프로젝트는 코드 품질을 유지하기 위해 다음 도구들을 사용합니다:
+
+- **lefthook**: Git 훅 관리 도구
+- **oxlint**: JavaScript/TypeScript 코드 린팅 도구
+- **clippy**: Rust 코드 린팅 도구
+- **rustfmt**: Rust 코드 포맷팅 도구
+
+### 사용 방법
+
+```bash
+# 모든 린팅 실행
+pnpm lint
+
+# JavaScript/TypeScript 린팅만 실행
+pnpm lint:js
+
+# Rust 린팅만 실행
+pnpm lint:rust
+
+# Rust 코드 포맷팅
+pnpm format:rust
+
+# 모든 포맷팅 실행
+pnpm format
+```
+
+Git 커밋 전에 자동으로 린팅이 실행됩니다. 문제가 있는 코드는 커밋되지 않습니다.
+
 ## 라이선스
 
 MIT

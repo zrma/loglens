@@ -1,0 +1,10 @@
+{
+  "extends": ["recommended"],
+  "exclude": ["node_modules", "dist", ".git", "public"],
+  "rules": {
+    "suspicious/no-debugger": "error",
+    "suspicious/no-empty-interface": "error",
+    "style/no-var": "error",
+    "style/no-duplicate-imports": "error"
+  }
+}

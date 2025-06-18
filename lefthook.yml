@@ -1,0 +1,21 @@
+# Lefthook configuration file
+# See https://github.com/evilmartians/lefthook for more information
+
+# Pre-commit hooks
+pre-commit:
+  parallel: true
+  commands:
+    # Run oxlint on JavaScript/TypeScript files
+    oxlint:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm oxlint {staged_files}
+
+    # Run cargo clippy on Rust files
+    clippy:
+      glob: "src-tauri/src/**/*.rs"
+      run: cd src-tauri && cargo clippy -- -D warnings
+
+    # Run rustfmt on Rust files
+    rustfmt:
+      glob: "src-tauri/src/**/*.rs"
+      run: cd src-tauri && cargo fmt --all -- --check

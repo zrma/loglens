@@ -1,0 +1,32 @@
+# Rust formatting configuration
+# See https://rust-lang.github.io/rustfmt/
+
+# Use 4 spaces for indentation
+tab_spaces = 4
+
+# Maximum width of each line
+max_width = 100
+
+# Merge imports
+merge_imports = true
+
+# Format imports
+imports_granularity = "Crate"
+
+# Format comments
+comment_width = 100
+
+# Format code blocks in doc comments
+format_code_in_doc_comments = true
+
+# Format macro invocations
+format_macro_matchers = true
+
+# Format macro bodies
+format_macro_bodies = true
+
+# Reorder impl items
+reorder_impl_items = true
+
+# Use field initialization shorthand when possible
+use_field_init_shorthand = true
