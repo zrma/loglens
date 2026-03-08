@@ -201,16 +201,20 @@ describe("parseLogContent", () => {
 
   it("merges multiple parsed sessions and preserves source metadata", () => {
     const checkoutSession = parseLogContent(SAMPLE_LOG_CONTENT, {
-      id: "/tmp/checkout.log",
-      label: "checkout.log",
-      path: "/tmp/checkout.log",
+      source: {
+        id: "/tmp/checkout.log",
+        label: "checkout.log",
+        path: "/tmp/checkout.log",
+      },
     });
     const authSession = parseLogContent(`
 {"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
     `.trim(), {
-      id: "/tmp/auth.log",
-      label: "auth.log",
-      path: "/tmp/auth.log",
+      source: {
+        id: "/tmp/auth.log",
+        label: "auth.log",
+        path: "/tmp/auth.log",
+      },
     });
 
     const merged = mergeParsedSessions([checkoutSession, authSession]);
@@ -250,6 +254,73 @@ describe("parseLogContent", () => {
       service: "auth-api",
       spanId: "00f067aa0ba902b7",
       traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+    });
+  });
+
+  it("parses zap-style short json keys used by pronaia logs", () => {
+    const session = parseLogContent(`
+run batch service....
+{"L":"INFO","T":"2026-03-04T22:46:55.704+0900","N":"PRONAIA.BATCH","C":"monitoring/server.go:60","M":"Starting metric server on :9085"}
+{"L":"INFO","T":"2026-03-05T10:25:02.461+0900","N":"PRONAIA.BATCH.ACCESS","C":"middleware/logger.go:57","M":"/v1/authenticate","rid":"lL8vrjjr1W-000001","status":200,"method":"POST","path":"/v1/authenticate","latency_ms":9}
+    `.trim());
+
+    expect(session.events).toHaveLength(3);
+    expect(session.events[1]).toMatchObject({
+      level: "info",
+      message: "Starting metric server on :9085",
+      service: "PRONAIA.BATCH",
+      timestampText: "2026-03-04T22:46:55.704+0900",
+    });
+    expect(session.events[2]).toMatchObject({
+      level: "info",
+      message: "/v1/authenticate",
+      requestId: "lL8vrjjr1W-000001",
+      service: "PRONAIA.BATCH.ACCESS",
+      timestampText: "2026-03-05T10:25:02.461+0900",
+    });
+    expect(session.events[2]?.fields.method).toBe("POST");
+    expect(session.events[2]?.fields.path).toBe("/v1/authenticate");
+    expect(session.events[2]?.parseIssues).toEqual([]);
+  });
+
+  it("keeps zap-style short field mapping behind a preset boundary", () => {
+    const session = parseLogContent(`
+{"L":"INFO","T":"2026-03-04T22:46:55.704+0900","N":"PRONAIA.BATCH","M":"Starting metric server on :9085"}
+    `.trim(), {
+      aliasPresetId: "default",
+    });
+
+    expect(session.events[0]).toMatchObject({
+      service: null,
+      requestId: null,
+    });
+    expect(session.events[0]?.message).toContain("\"N\":\"PRONAIA.BATCH\"");
+  });
+
+  it("supports session-specific alias overrides", () => {
+    const session = parseLogContent(`
+{"when":"2026-03-08T12:34:56.000Z","severityText":"ERROR","svcName":"gateway","detail":"custom alias log","flow":"trace-custom-1","unit":"span-custom-1","requestKey":"req-custom-1"}
+    `.trim(), {
+      aliasOverrides: {
+        level: ["severityText"],
+        message: ["detail"],
+        requestId: ["requestKey"],
+        service: ["svcName"],
+        spanId: ["unit"],
+        timestamp: ["when"],
+        traceId: ["flow"],
+      },
+      aliasPresetId: "default",
+    });
+
+    expect(session.events[0]).toMatchObject({
+      level: "error",
+      message: "custom alias log",
+      requestId: "req-custom-1",
+      service: "gateway",
+      spanId: "span-custom-1",
+      timestampText: "2026-03-08T12:34:56.000Z",
+      traceId: "trace-custom-1",
     });
   });
 

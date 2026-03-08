@@ -1,7 +1,15 @@
 import { Activity, AlertCircle, FileJson2, FolderOpen, ListTree, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MetricCard, type MetricCardProps } from "@/features/log-explorer/presentation";
+import type { LogAliasPreset, LogAliasPresetId } from "@/lib/logs/aliases";
 import type { LogSource, ParsedLogSession } from "@/lib/logs/types";
 
 type OverviewSectionProps = {
@@ -17,6 +25,9 @@ type OverviewSectionProps = {
   formatBadges: Array<{ label: string; count: number }>;
   metrics: MetricCardProps[];
   errorMessage: string | null;
+  parserPreset: LogAliasPreset;
+  parserPresetId: LogAliasPresetId;
+  parserPresetOptions: LogAliasPreset[];
   loadProgress: {
     currentSourceIndex: number;
     sourceLabel: string;
@@ -27,6 +38,7 @@ type OverviewSectionProps = {
   } | null;
   onSelectLogFile: () => void;
   onLoadSampleSession: () => void;
+  onParserPresetChange: (value: LogAliasPresetId) => void;
 };
 
 export function OverviewSection({
@@ -42,9 +54,13 @@ export function OverviewSection({
   formatBadges,
   metrics,
   errorMessage,
+  parserPreset,
+  parserPresetId,
+  parserPresetOptions,
   loadProgress,
   onSelectLogFile,
   onLoadSampleSession,
+  onParserPresetChange,
 }: OverviewSectionProps) {
   return (
     <>
@@ -60,11 +76,10 @@ export function OverviewSection({
 
                 <div className="mt-6 space-y-4">
                   <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-foreground md:text-5xl">
-                    문자열 덤프를 넘어서, 이벤트와 trace 단위로 읽는 로그 워크스페이스
+                    로그를 이벤트와 trace로 읽는 워크스페이스
                   </h1>
                   <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-                    이제 LogLens는 로그 라인을 그대로 보여주는 수준을 넘어서, 구조화 필드 추출, trace/span 후보 탐색,
-                    멀티라인 오류 병합, 관련 이벤트 묶음을 한 화면에서 읽을 수 있는 방향으로 넘어갑니다.
+                    구조화 필드, trace/span, 멀티라인 오류를 한 화면에서 확인합니다.
                   </p>
                 </div>
 
@@ -90,6 +105,36 @@ export function OverviewSection({
                   </Button>
                 </div>
 
+                <div className="mt-5 rounded-3xl border border-border/70 bg-white/70 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Parser Preset</p>
+                      <p className="mt-2 text-sm font-medium text-foreground">{parserPreset.description}</p>
+                    </div>
+                    <div className="w-full md:w-[260px]">
+                      <Select
+                        value={parserPresetId}
+                        onValueChange={(value) => onParserPresetChange(value as LogAliasPresetId)}
+                        disabled={Boolean(loadProgress)}
+                      >
+                        <SelectTrigger className="h-11 rounded-2xl border-white/60 bg-white/85">
+                          <SelectValue placeholder="Parser Preset" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {parserPresetOptions.map((preset) => (
+                            <SelectItem key={preset.id} value={preset.id}>
+                              {preset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {session ? "변경하면 현재 세션을 다시 읽습니다." : "다음 로드부터 적용됩니다."}
+                  </p>
+                </div>
+
                 {errorMessage && (
                   <div className="mt-5 flex items-start gap-3 rounded-3xl border border-destructive/20 bg-destructive/5 px-4 py-4 text-sm text-destructive">
                     <AlertCircle className="mt-0.5 size-4 shrink-0" />
@@ -102,7 +147,7 @@ export function OverviewSection({
 
                 {loadProgress && (
                   <div className="mt-5 rounded-3xl border border-primary/15 bg-primary/5 px-4 py-4 text-sm text-foreground">
-                    <p className="font-medium">라인 스트리밍 파싱으로 세션을 준비 중입니다.</p>
+                    <p className="font-medium">세션을 불러오는 중입니다.</p>
                     <p className="mt-1 break-all text-muted-foreground">
                       {loadProgress.totalSources > 1
                         ? `[${loadProgress.currentSourceIndex}/${loadProgress.totalSources}] ${loadProgress.sourceLabel}`
@@ -120,8 +165,8 @@ export function OverviewSection({
               <div className="rounded-[28px] bg-slate-950/96 p-5 text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.28em] text-slate-400">MVP Scope</p>
-                    <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">지원하는 구조화 입력</p>
+                    <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Formats</p>
+                    <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">지원 포맷</p>
                   </div>
                   <div className="flex gap-1.5">
                     <span className="size-2 rounded-full bg-emerald-300" />
@@ -133,17 +178,17 @@ export function OverviewSection({
                 <div className="mt-6 space-y-4">
                   {[
                     {
-                      description: "timestamp, level, service, traceId, spanId, message를 우선 추출합니다.",
+                      description: "timestamp, level, service, trace, message 추출",
                       icon: FileJson2,
                       title: "JSON line",
                     },
                     {
-                      description: "key=value 로그에서 trace/span/request 단서를 최대한 살립니다.",
+                      description: "trace, span, request 후보 추출",
                       icon: ListTree,
                       title: "key=value",
                     },
                     {
-                      description: "멀티라인 stack trace와 plain text는 한 이벤트로 묶어 parse note와 함께 보존합니다.",
+                      description: "멀티라인 오류 병합과 parser note 보존",
                       icon: Activity,
                       title: "plain text",
                     },
@@ -181,7 +226,7 @@ export function OverviewSection({
               </div>
             </div>
             <CardDescription className="pt-2 text-sm leading-6">
-              현재는 하나 이상의 로컬 로그 파일을 묶은 세션 기준으로 필터, span 관계, 상세 이벤트를 함께 읽도록 구성했습니다.
+              현재 세션의 소스와 파서 상태를 요약합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -246,7 +291,7 @@ export function OverviewSection({
             ) : (
               <div className="rounded-[28px] border border-dashed border-border/80 bg-white/70 p-5">
                 <p className="text-sm leading-7 text-muted-foreground">
-                  로그 파일을 열거나 샘플 세션을 불러오면, 여기서 현재 소스와 파서 분류 상태를 확인할 수 있습니다.
+                  세션을 불러오면 소스와 파서 상태가 여기에 표시됩니다.
                 </p>
               </div>
             )}
@@ -258,7 +303,7 @@ export function OverviewSection({
 
             {!sourceLabel && !session && (
               <div className="rounded-3xl border border-dashed border-border/70 bg-white/70 p-4 text-sm leading-6 text-muted-foreground">
-                아직 세션이 없습니다. 파일 또는 샘플 trace를 먼저 불러오세요.
+                아직 세션이 없습니다. 파일이나 샘플을 불러오세요.
               </div>
             )}
           </CardContent>

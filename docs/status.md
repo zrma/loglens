@@ -15,6 +15,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - plain text timestamp prefix 일부
   - multiline stack trace 병합
   - nested JSON correlation field 추출
+  - parser alias preset(`auto`, `default`, `zap-short-json`)
+  - zap-style short key(`T/L/N/M/rid`) 처리
   - `traceparent` 기반 trace/span fallback
 - 이벤트 도메인 모델 정리
   - `timestamp`
@@ -74,6 +76,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 샘플 세션 로드 후 trace/span 흐름 탐색
 - 실제 로그 파일 1개 열기
 - 실제 로그 파일 여러 개를 한 세션으로 열기
+- zap-style JSON access log를 request/service/timestamp 기준으로 읽기
+- parser preset을 바꿔 같은 세션을 다시 읽기
 - 문제 이벤트만 골라 보기
 - 특정 source/service/request/trace 기준으로 좁혀 보기
 - 특정 structured field key/value facet으로 누적 조건 걸기
@@ -92,7 +96,6 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파일 처리 규모가 작음
   - 라인 스트리밍 파싱 뒤에는 전체 이벤트/집계를 여전히 메모리에 유지
   - event stream은 windowed list지만 상세/집계는 점진 계산이 아님
-  - 다중 파일 세션 없음
 - 시각화가 아직 기본형
   - span timeline은 있지만 gantt 수준 상호작용 없음
   - trace 간 비교 없음
@@ -106,6 +109,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 대용량 로그에서 렌더링/메모리 비용이 커질 수 있음
 - 대용량 로그에서 전체 이벤트 배열과 전체 집계는 여전히 메모리에 유지됨
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
+- custom alias override UI는 아직 없음
 - Tauri 실제 런타임 연동은 smoke test가 아니라 수동 확인 비중이 큼
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
