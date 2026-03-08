@@ -13,6 +13,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - key=value
   - plain text timestamp prefix 일부
   - multiline stack trace 병합
+  - nested JSON correlation field 추출
+  - `traceparent` 기반 trace/span fallback
 - 이벤트 도메인 모델 정리
   - `timestamp`
   - `level`
@@ -25,12 +27,14 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 탐색 UI
   - 검색어 필터
   - level/service/trace/request 필터
+  - structured field key/value 필터
   - issue-only 토글
   - 이벤트 목록
   - windowed/virtualized event stream
   - 상세 이벤트 패널
   - parser notes 표시
   - raw block 표시
+  - field key visibility 토글
 - 관계 추적 UI
   - trace group 요약
   - span topology 트리
@@ -43,6 +47,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - parser/analysis smoke test
   - jsdom 기반 App smoke test
   - async line stream parser test
+  - nested JSON / Go panic stack fixture test
 - 번들 최적화
   - `AnalysisTab` lazy load 분리
   - 기존 chunk size warning 제거
@@ -66,6 +71,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 실제 로그 파일 1개 열기
 - 문제 이벤트만 골라 보기
 - 특정 service/request/trace 기준으로 좁혀 보기
+- 특정 structured field key/value 기준으로 좁혀 보기
 - multiline 오류를 하나의 이벤트로 읽기
 - trace 내 span 부모/자식 관계 확인
 - trace 내 span 상대 시간축 확인
@@ -73,7 +79,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 ## 아직 부족한 것
 
 - 로그 포맷 지원 범위가 아직 좁음
-  - nested JSON 정규화
+  - nested JSON 정규화 범위 확대
   - 더 많은 timestamp 포맷
   - 언어별 stack trace 패턴 확대
 - 파일 처리 규모가 작음

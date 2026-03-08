@@ -21,18 +21,29 @@ type SidebarSectionProps = {
   serviceFilter: string | "all";
   traceFilter: string | "all";
   requestFilter: string | "all";
+  fieldKeyFilter: string | "all";
+  fieldValueFilter: string | "all";
   issuesOnly: boolean;
   serviceOptions: FacetCount[];
   traceOptions: string[];
   requestOptions: FacetCount[];
+  fieldKeyOptions: FacetCount[];
+  fieldValueOptions: FacetCount[];
+  fieldLensKeys: FacetCount[];
+  hiddenFieldKeys: string[];
   topTraceGroups: TraceGroup[];
   onSearchTermChange: (value: string) => void;
   onLevelFilterChange: (value: LogLevel | "all") => void;
   onServiceFilterChange: (value: string | "all") => void;
   onTraceFilterChange: (value: string | "all") => void;
   onRequestFilterChange: (value: string | "all") => void;
+  onFieldKeyFilterChange: (value: string | "all") => void;
+  onFieldValueFilterChange: (value: string | "all") => void;
   onIssuesOnlyChange: (value: boolean) => void;
   onResetFilters: () => void;
+  onToggleFieldVisibility: (fieldKey: string) => void;
+  onHideAllFieldVisibility: () => void;
+  onResetFieldVisibility: () => void;
   onSelectTraceGroup: (group: TraceGroup) => void;
 };
 
@@ -43,18 +54,29 @@ export function SidebarSection({
   serviceFilter,
   traceFilter,
   requestFilter,
+  fieldKeyFilter,
+  fieldValueFilter,
   issuesOnly,
   serviceOptions,
   traceOptions,
   requestOptions,
+  fieldKeyOptions,
+  fieldValueOptions,
+  fieldLensKeys,
+  hiddenFieldKeys,
   topTraceGroups,
   onSearchTermChange,
   onLevelFilterChange,
   onServiceFilterChange,
   onTraceFilterChange,
   onRequestFilterChange,
+  onFieldKeyFilterChange,
+  onFieldValueFilterChange,
   onIssuesOnlyChange,
   onResetFilters,
+  onToggleFieldVisibility,
+  onHideAllFieldVisibility,
+  onResetFieldVisibility,
   onSelectTraceGroup,
 }: SidebarSectionProps) {
   return (
@@ -63,14 +85,14 @@ export function SidebarSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">탐색 필터</CardTitle>
           <CardDescription className="leading-6">
-            검색어, level, service, trace, request, issue 토글을 함께 조합해 사건 범위를 좁힙니다.
+            검색어, level, service, trace, request, 필드 필터를 함께 조합해 탐색 범위를 좁힙니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="message, request id, trace id, service명으로 검색"
+              placeholder="메시지, request id, trace id, service명, 필드 값으로 검색"
               value={searchTerm}
               onChange={(event) => onSearchTermChange(event.target.value)}
               disabled={!hasSession}
@@ -126,6 +148,34 @@ export function SidebarSection({
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={fieldKeyFilter} onValueChange={onFieldKeyFilterChange} disabled={!hasSession}>
+              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <SelectValue placeholder="필드 키" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 필드 키</SelectItem>
+                {fieldKeyOptions.map(({ label, count }) => (
+                  <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={fieldValueFilter}
+              onValueChange={onFieldValueFilterChange}
+              disabled={!hasSession || fieldKeyFilter === "all"}
+            >
+              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <SelectValue placeholder="필드 값" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 필드 값</SelectItem>
+                {fieldValueOptions.map(({ label, count }) => (
+                  <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -151,6 +201,74 @@ export function SidebarSection({
               초기화
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-xl tracking-[-0.03em]">Field Lens</CardTitle>
+              <CardDescription className="pt-1 leading-6">
+                자주 등장하는 structured field를 기준으로 표시 여부를 조절합니다.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={onHideAllFieldVisibility}
+                disabled={!hasSession || fieldKeyOptions.length === 0 || hiddenFieldKeys.length >= fieldKeyOptions.length}
+              >
+                전부 숨김
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={onResetFieldVisibility}
+                disabled={!hasSession || hiddenFieldKeys.length === 0}
+              >
+                표시 복원
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {fieldLensKeys.length > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {fieldLensKeys.map(({ label, count }) => {
+                  const isHidden = hiddenFieldKeys.includes(label);
+
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => onToggleFieldVisibility(label)}
+                      disabled={!hasSession}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                        isHidden
+                          ? "border-dashed border-border/70 bg-white/50 text-muted-foreground"
+                          : "border-primary/20 bg-primary/10 text-primary",
+                      )}
+                    >
+                      {label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                추출된 필드 섹션에서 숨길 키를 고를 수 있습니다. 현재 숨김 {hiddenFieldKeys.length}개
+              </p>
+            </>
+          ) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              structured field가 충분히 추출되면 여기서 필드별 표시 토글이 활성화됩니다.
+            </p>
+          )}
         </CardContent>
       </Card>
 

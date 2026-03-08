@@ -64,6 +64,18 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
       return false;
     }
 
+    if (filters.fieldKey !== "all" && !(filters.fieldKey in event.fields)) {
+      return false;
+    }
+
+    if (
+      filters.fieldKey !== "all"
+      && filters.fieldValue !== "all"
+      && event.fields[filters.fieldKey] !== filters.fieldValue
+    ) {
+      return false;
+    }
+
     if (filters.issuesOnly && !isIssueLevel(event.level)) {
       return false;
     }
@@ -80,10 +92,39 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
       event.spanId,
       event.parentSpanId,
       event.requestId,
+      ...Object.keys(event.fields),
+      ...Object.values(event.fields),
     ];
 
     return haystacks.some((value) => value?.toLowerCase().includes(normalizedSearch));
   });
+}
+
+export function buildFieldKeyCounts(events: LogEvent[]) {
+  const counter = new Map<string, number>();
+
+  for (const event of events) {
+    for (const key of Object.keys(event.fields)) {
+      counter.set(key, (counter.get(key) ?? 0) + 1);
+    }
+  }
+
+  return [...counter.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
+export function buildFieldValueCounts(events: LogEvent[], fieldKey: string | "all") {
+  if (fieldKey === "all") {
+    return [];
+  }
+
+  return buildFacetCounts(
+    events
+      .map((event) => event.fields[fieldKey] ?? null)
+      .filter((value): value is string => value !== null),
+    "none",
+  );
 }
 
 export function buildHourlyChartData(events: LogEvent[]) {

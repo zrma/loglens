@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildSpanForest, buildTraceGroups, filterLogEvents } from "@/lib/logs/analysis";
+import {
+  buildFieldKeyCounts,
+  buildFieldValueCounts,
+  buildSpanForest,
+  buildTraceGroups,
+  filterLogEvents,
+} from "@/lib/logs/analysis";
 import { parseLogContent, parseLogLineStream } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
 
@@ -63,6 +69,8 @@ describe("parseLogContent", () => {
       service: "all",
       traceId: "trace-auth-9912",
       requestId: "all",
+      fieldKey: "all",
+      fieldValue: "all",
       issuesOnly: false,
     });
 
@@ -102,5 +110,92 @@ describe("parseLogContent", () => {
     expect(session.events).toHaveLength(2400);
     expect(session.formatCounts.keyvalue).toBe(2400);
     expect(progressMarks).toEqual([600, 1200, 1800, 2400, 2400]);
+  });
+
+  it("filters and facets by arbitrary structured fields", () => {
+    const session = parseLogContent(SAMPLE_LOG_CONTENT);
+    const routeOnly = filterLogEvents(session.events, {
+      searchTerm: "",
+      level: "all",
+      service: "all",
+      traceId: "all",
+      requestId: "all",
+      fieldKey: "route",
+      fieldValue: "/checkout",
+      issuesOnly: false,
+    });
+
+    expect(routeOnly).toHaveLength(1);
+    expect(routeOnly[0]?.traceId).toBe("trace-checkout-4821");
+
+    const fieldSearch = filterLogEvents(session.events, {
+      searchTerm: "stripe",
+      level: "all",
+      service: "all",
+      traceId: "all",
+      requestId: "all",
+      fieldKey: "all",
+      fieldValue: "all",
+      issuesOnly: false,
+    });
+
+    expect(fieldSearch).toHaveLength(1);
+    expect(fieldSearch[0]?.fields.provider).toBe("stripe");
+
+    expect(buildFieldKeyCounts(session.events)).toEqual(expect.arrayContaining([
+      { label: "route", count: 2 },
+      { label: "provider", count: 1 },
+    ]));
+    expect(buildFieldValueCounts(session.events, "route")).toEqual(expect.arrayContaining([
+      { label: "/checkout", count: 1 },
+      { label: "/login", count: 1 },
+    ]));
+  });
+
+  it("extracts nested json fields and falls back to traceparent context", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:34:56.000Z","severity_text":"ERROR","resource":{"service":{"name":"checkout-api"}},"trace":{"id":"trace-nested-1","span_id":"span-nested-1","parent_id":"span-root-0"},"http":{"request":{"id":"req-9"}},"error":{"message":"payment capture failed"}}
+{"timestamp":"2026-03-08T12:34:57.000Z","service":{"name":"auth-api"},"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01","message":"traceparent fallback"}
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      level: "error",
+      message: "payment capture failed",
+      parentSpanId: "span-root-0",
+      requestId: "req-9",
+      service: "checkout-api",
+      spanId: "span-nested-1",
+      traceId: "trace-nested-1",
+    });
+
+    expect(session.events[1]).toMatchObject({
+      message: "traceparent fallback",
+      service: "auth-api",
+      spanId: "00f067aa0ba902b7",
+      traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+    });
+  });
+
+  it("merges go panic stack traces into a single event", () => {
+    const session = parseLogContent(`
+2026-03-08 10:12:11 ERROR payments-api trace_id=trace-go-1 span_id=span-go-root request_id=req-go-1 message="panic while charging card"
+goroutine 19 [running]:
+main.chargeCard()
+\t/app/cmd/server/main.go:42 +0x1af
+2026-03-08 10:12:14 INFO payments-api trace_id=trace-go-1 span_id=span-go-recover request_id=req-go-1 message="worker recovered"
+    `.trim());
+
+    expect(session.events).toHaveLength(2);
+    expect(session.events[0]).toMatchObject({
+      endLineNumber: 4,
+      isMultiLine: true,
+      lineNumber: 1,
+      requestId: "req-go-1",
+      spanId: "span-go-root",
+      traceId: "trace-go-1",
+    });
+    expect(session.events[0]?.rawLine).toContain("goroutine 19 [running]:");
+    expect(session.events[0]?.rawLine).toContain("/app/cmd/server/main.go:42 +0x1af");
+    expect(session.events[0]?.parseIssues.some((issue) => issue.kind === "multiline")).toBe(true);
   });
 });

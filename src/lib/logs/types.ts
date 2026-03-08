@@ -59,6 +59,8 @@ export type LogFilters = {
   service: string | "all";
   traceId: string | "all";
   requestId: string | "all";
+  fieldKey: string | "all";
+  fieldValue: string | "all";
   issuesOnly: boolean;
 };
 

@@ -15,10 +15,14 @@ type EventsTabProps = {
   selectedTraceGroup: TraceGroup | null;
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
+  visibleFieldEntries: Array<[string, string]>;
+  hiddenSelectedFieldKeys: string[];
   onSelectEvent: (eventId: string) => void;
   onApplyTraceFilter: (traceId: string) => void;
   onApplyServiceFilter: (service: string) => void;
   onApplyRequestFilter: (requestId: string) => void;
+  onApplyFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onToggleFieldVisibility: (fieldKey: string) => void;
 };
 
 function flattenSpanNodes(nodes: SpanNode[]): SpanNode[] {
@@ -68,7 +72,7 @@ function SpanTopologyNode({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium tracking-[-0.02em] text-foreground">{node.service ?? "미지정 service"}</span>
+              <span className="font-medium tracking-[-0.02em] text-foreground">{node.service ?? "미지정 서비스"}</span>
               <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                 {node.spanId}
               </span>
@@ -127,15 +131,19 @@ export function EventsTab({
   selectedTraceGroup,
   relatedEvents,
   spanForest,
+  visibleFieldEntries,
+  hiddenSelectedFieldKeys,
   onSelectEvent,
   onApplyTraceFilter,
   onApplyServiceFilter,
   onApplyRequestFilter,
+  onApplyFieldFilter,
+  onToggleFieldVisibility,
 }: EventsTabProps) {
   const timelineNodes = spanForest ? flattenSpanNodes(spanForest.roots) : [];
 
   return (
-    <div className="min-w-0 grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_360px]">
+    <div className="min-w-0 grid gap-6 min-[1820px]:grid-cols-[minmax(0,1.28fr)_340px]">
       <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="border-b border-border/70 pb-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -180,14 +188,14 @@ export function EventsTab({
         </CardContent>
       </Card>
 
-      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none 2xl:sticky 2xl:top-6 2xl:h-[calc(100vh-7rem)] 2xl:self-start">
+      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none min-[1820px]:sticky min-[1820px]:top-6 min-[1820px]:h-[calc(100vh-7rem)] min-[1820px]:self-start">
         <CardHeader className="border-b border-border/70 pb-4">
           <CardTitle className="text-2xl tracking-[-0.04em]">상세 이벤트</CardTitle>
           <CardDescription className="pt-2 leading-6">
             선택한 이벤트의 parse note와 span 관계를 빠르게 따라갈 수 있습니다.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5 p-5 2xl:min-h-0 2xl:flex-1 2xl:overflow-y-auto">
+        <CardContent className="space-y-5 p-5 min-[1820px]:min-h-0 min-[1820px]:flex-1 min-[1820px]:overflow-y-auto">
           {selectedEvent ? (
             <>
               <div className="min-w-0 rounded-[28px] bg-slate-950 px-4 py-4 text-slate-50">
@@ -438,20 +446,66 @@ export function EventsTab({
                       {issue.message}
                     </div>
                   )) : (
-                    <p className="text-sm text-muted-foreground">이 이벤트에는 추가 parser note가 없습니다.</p>
+                    <p className="text-sm text-muted-foreground">이 이벤트에는 추가 파서 메모가 없습니다.</p>
                   )}
                 </div>
               </div>
 
               <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                <p className="font-medium tracking-[-0.02em] text-foreground">추출된 필드</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium tracking-[-0.02em] text-foreground">추출된 필드</p>
+                  <span className="text-xs text-muted-foreground">
+                    {visibleFieldEntries.length} visible
+                    {hiddenSelectedFieldKeys.length > 0 ? ` · ${hiddenSelectedFieldKeys.length} hidden` : ""}
+                  </span>
+                </div>
+                {hiddenSelectedFieldKeys.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {hiddenSelectedFieldKeys.map((fieldKey) => (
+                      <button
+                        key={fieldKey}
+                        type="button"
+                        onClick={() => onToggleFieldVisibility(fieldKey)}
+                        className="rounded-full border border-dashed border-border/70 bg-white px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
+                      >
+                        {fieldKey} 다시 표시
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-4 grid gap-3">
-                  {Object.entries(selectedEvent.fields).slice(0, 12).map(([key, value]) => (
-                    <div key={key} className="grid grid-cols-[110px_minmax(0,1fr)] gap-3 text-sm">
-                      <span className="font-mono text-muted-foreground">{key}</span>
+                  {visibleFieldEntries.length > 0 ? visibleFieldEntries.slice(0, 16).map(([key, value]) => (
+                    <div key={key} className="grid gap-2 rounded-2xl border border-border/60 bg-white/70 p-3 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-muted-foreground">{key}</span>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-full px-3 text-xs"
+                            onClick={() => onApplyFieldFilter(key, value)}
+                          >
+                            필터
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-full px-3 text-xs"
+                            onClick={() => onToggleFieldVisibility(key)}
+                          >
+                            숨김
+                          </Button>
+                        </div>
+                      </div>
                       <span className="break-all font-mono text-foreground">{value}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <p className="text-sm text-muted-foreground">
+                      현재 표시 중인 필드가 없습니다. Field Lens에서 숨김을 복원해 보세요.
+                    </p>
+                  )}
                 </div>
               </div>
 

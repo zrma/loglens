@@ -11,6 +11,8 @@ import {
 } from "@/features/log-explorer/presentation";
 import {
   buildFacetCounts,
+  buildFieldKeyCounts,
+  buildFieldValueCounts,
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
@@ -46,6 +48,9 @@ function App() {
   const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
   const [traceFilter, setTraceFilter] = useState<string | "all">("all");
   const [requestFilter, setRequestFilter] = useState<string | "all">("all");
+  const [fieldKeyFilter, setFieldKeyFilter] = useState<string | "all">("all");
+  const [fieldValueFilter, setFieldValueFilter] = useState<string | "all">("all");
+  const [hiddenFieldKeys, setHiddenFieldKeys] = useState<string[]>([]);
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
@@ -57,6 +62,8 @@ function App() {
     setServiceFilter("all");
     setTraceFilter("all");
     setRequestFilter("all");
+    setFieldKeyFilter("all");
+    setFieldValueFilter("all");
     setIssuesOnly(false);
   }, []);
 
@@ -67,8 +74,10 @@ function App() {
     service: serviceFilter,
     traceId: traceFilter,
     requestId: requestFilter,
+    fieldKey: fieldKeyFilter,
+    fieldValue: fieldValueFilter,
     issuesOnly,
-  }), [deferredSearchTerm, events, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
+  }), [deferredSearchTerm, events, fieldKeyFilter, fieldValueFilter, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
   const levelCounts = useMemo(() => buildLevelCounts(filteredEvents), [filteredEvents]);
@@ -95,6 +104,9 @@ function App() {
     () => buildFacetCounts(events.map((event) => event.requestId), "none"),
     [events],
   );
+  const fieldKeyOptions = useMemo(() => buildFieldKeyCounts(events), [events]);
+  const fieldValueOptions = useMemo(() => buildFieldValueCounts(events, fieldKeyFilter), [events, fieldKeyFilter]);
+  const fieldLensKeys = useMemo(() => fieldKeyOptions.slice(0, 12), [fieldKeyOptions]);
   const traceOptions = useMemo(() => traceGroups.map((group) => group.traceId), [traceGroups]);
   const selectedEvent = useMemo(
     () => filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null,
@@ -141,6 +153,14 @@ function App() {
     () => (sourcePath ? getDirectoryPath(sourcePath) : "샘플 세션"),
     [sourcePath],
   );
+  const visibleFieldEntries = useMemo(
+    () => Object.entries(selectedEvent?.fields ?? {}).filter(([key]) => !hiddenFieldKeys.includes(key)),
+    [hiddenFieldKeys, selectedEvent?.fields],
+  );
+  const hiddenSelectedFieldKeys = useMemo(
+    () => Object.keys(selectedEvent?.fields ?? {}).filter((key) => hiddenFieldKeys.includes(key)),
+    [hiddenFieldKeys, selectedEvent?.fields],
+  );
   const sessionTitle = sourceLabel ?? "No Active Session";
   const metrics: MetricCardProps[] = useMemo(() => [
     {
@@ -151,7 +171,7 @@ function App() {
       value: events.length.toLocaleString(),
     },
     {
-      caption: searchTerm || levelFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || issuesOnly
+      caption: searchTerm || levelFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldKeyFilter !== "all" || fieldValueFilter !== "all" || issuesOnly
         ? "현재 필터가 적용된 결과"
         : "지금 화면에 표시되는 탐색 범위",
       icon: Filter,
@@ -176,6 +196,8 @@ function App() {
   ], [
     events.length,
     filteredEvents.length,
+    fieldKeyFilter,
+    fieldValueFilter,
     issuesOnly,
     levelFilter,
     parserNoteCount,
@@ -191,6 +213,24 @@ function App() {
     () => (selectedEventId ? filteredEvents.some((event) => event.id === selectedEventId) : false),
     [filteredEvents, selectedEventId],
   );
+  const toggleFieldVisibility = useCallback((fieldKey: string) => {
+    setHiddenFieldKeys((current) => (
+      current.includes(fieldKey)
+        ? current.filter((key) => key !== fieldKey)
+        : [...current, fieldKey]
+    ));
+  }, []);
+  const hideAllFieldVisibility = useCallback(() => {
+    setHiddenFieldKeys(fieldKeyOptions.map(({ label }) => label));
+  }, [fieldKeyOptions]);
+  const resetFieldVisibility = useCallback(() => {
+    setHiddenFieldKeys([]);
+  }, []);
+  const applyFieldFilter = useCallback((fieldKey: string, fieldValue: string) => {
+    setFieldKeyFilter(fieldKey);
+    setFieldValueFilter(fieldValue);
+    setActiveTab("events");
+  }, []);
 
   useEffect(() => {
     if (!session) {
@@ -198,9 +238,23 @@ function App() {
     }
 
     resetFilters();
+    setHiddenFieldKeys([]);
     setSelectedEventId(session.events[0]?.id ?? null);
     setActiveTab("events");
   }, [resetFilters, session]);
+
+  useEffect(() => {
+    if (fieldKeyFilter === "all") {
+      if (fieldValueFilter !== "all") {
+        setFieldValueFilter("all");
+      }
+      return;
+    }
+
+    if (fieldValueFilter !== "all" && !fieldValueOptions.some(({ label }) => label === fieldValueFilter)) {
+      setFieldValueFilter("all");
+    }
+  }, [fieldKeyFilter, fieldValueFilter, fieldValueOptions]);
 
   useEffect(() => {
     if (!selectedEventId || !hasSelectedEvent) {
@@ -212,7 +266,7 @@ function App() {
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_12%_10%,rgba(55,160,150,0.18),transparent_34%),radial-gradient(circle_at_88%_2%,rgba(232,153,83,0.2),transparent_26%)]" />
 
-      <main className="relative mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
+      <main className="relative mx-auto flex min-h-screen w-full max-w-[1760px] flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
         <OverviewSection
           session={session}
           sourceLabel={sourceLabel}
@@ -229,7 +283,7 @@ function App() {
           onLoadSampleSession={loadSampleSession}
         />
 
-        <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <section className="grid gap-6 min-[1560px]:grid-cols-[280px_minmax(0,1fr)]">
           <SidebarSection
             hasSession={Boolean(session)}
             searchTerm={searchTerm}
@@ -237,18 +291,29 @@ function App() {
             serviceFilter={serviceFilter}
             traceFilter={traceFilter}
             requestFilter={requestFilter}
+            fieldKeyFilter={fieldKeyFilter}
+            fieldValueFilter={fieldValueFilter}
             issuesOnly={issuesOnly}
             serviceOptions={serviceOptions}
             traceOptions={traceOptions}
             requestOptions={requestOptions}
+            fieldKeyOptions={fieldKeyOptions}
+            fieldValueOptions={fieldValueOptions}
+            fieldLensKeys={fieldLensKeys}
+            hiddenFieldKeys={hiddenFieldKeys}
             topTraceGroups={topTraceGroups}
             onSearchTermChange={setSearchTerm}
             onLevelFilterChange={setLevelFilter}
             onServiceFilterChange={setServiceFilter}
             onTraceFilterChange={setTraceFilter}
             onRequestFilterChange={setRequestFilter}
+            onFieldKeyFilterChange={setFieldKeyFilter}
+            onFieldValueFilterChange={setFieldValueFilter}
             onIssuesOnlyChange={setIssuesOnly}
             onResetFilters={resetFilters}
+            onToggleFieldVisibility={toggleFieldVisibility}
+            onHideAllFieldVisibility={hideAllFieldVisibility}
+            onResetFieldVisibility={resetFieldVisibility}
             onSelectTraceGroup={(group) => {
               setTraceFilter(group.traceId);
               setActiveTab("events");
@@ -262,7 +327,7 @@ function App() {
                 <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Explorer</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">구조화 로그 세션</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  현재는 이벤트 목록, span 관계, parser note, trace 단서를 함께 보여주는 최소 탐색 루프를 제공합니다.
+                  현재는 이벤트 목록, span 관계, 파서 메모, trace 단서를 한 흐름으로 살펴볼 수 있는 최소 탐색 루프를 제공합니다.
                 </p>
               </div>
 
@@ -311,10 +376,14 @@ function App() {
                     selectedTraceGroup={selectedTraceGroup}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
+                    visibleFieldEntries={visibleFieldEntries}
+                    hiddenSelectedFieldKeys={hiddenSelectedFieldKeys}
                     onSelectEvent={setSelectedEventId}
                     onApplyTraceFilter={setTraceFilter}
                     onApplyServiceFilter={setServiceFilter}
                     onApplyRequestFilter={setRequestFilter}
+                    onApplyFieldFilter={applyFieldFilter}
+                    onToggleFieldVisibility={toggleFieldVisibility}
                   />
                 </TabsContent>
 

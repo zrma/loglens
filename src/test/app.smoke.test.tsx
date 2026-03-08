@@ -57,7 +57,7 @@ describe("App smoke", () => {
 
     await act(async () => {
       fireEvent.change(
-        await screen.findByPlaceholderText(/message, request id, trace id, service명으로 검색/i),
+        await screen.findByPlaceholderText(/메시지, request id, trace id, service명, 필드 값으로 검색/i),
         { target: { value: "cache miss" } },
       );
     });

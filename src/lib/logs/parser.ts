@@ -21,23 +21,50 @@ type ParserProgress = {
 const LEVEL_PATTERN = /\b(trace|debug|info|warn(?:ing)?|error|fatal|critical)\b/i;
 const LEVEL_START_PATTERN = /^\s*(?:\[[A-Za-z0-9_.:-]+\]\s+)?(?:trace|debug|info|warn(?:ing)?|error|fatal|critical)\b/i;
 const KV_PATTERN = /([A-Za-z0-9_.@-]+)=("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\S+)/g;
+const TRACEPARENT_PATTERN = /\b[a-f0-9]{2}-([a-f0-9]{32})-([a-f0-9]{16})-[a-f0-9]{2}\b/i;
 const TIMESTAMP_PATTERN =
   /\b\d{4}(?:[-/])\d{2}(?:[-/])\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b/;
 const TIMESTAMP_START_PATTERN =
   /^\s*\[?\d{4}(?:[-/])\d{2}(?:[-/])\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\]?/;
-const TRACE_KEYS = ["traceId", "trace_id", "trace", "otel.trace_id"];
-const SPAN_KEYS = ["spanId", "span_id", "span", "otel.span_id"];
-const PARENT_SPAN_KEYS = ["parentSpanId", "parent_span_id", "parentSpan", "parent"];
-const REQUEST_KEYS = ["requestId", "request_id", "reqId", "req_id", "correlationId", "correlation_id"];
-const SERVICE_KEYS = ["service", "serviceName", "service.name", "svc", "logger", "component", "target"];
-const MESSAGE_KEYS = ["message", "msg", "event", "body"];
-const TIMESTAMP_KEYS = ["timestamp", "@timestamp", "time", "ts", "datetime"];
-const LEVEL_KEYS = ["level", "severity", "lvl", "log.level"];
+const TRACE_KEYS = ["traceId", "trace_id", "trace", "trace.id", "context.trace_id", "dd.trace_id", "otel.trace_id"];
+const TRACEPARENT_KEYS = ["traceparent", "headers.traceparent", "context.traceparent"];
+const SPAN_KEYS = ["spanId", "span_id", "span", "span.id", "trace.span_id", "context.span_id", "dd.span_id", "otel.span_id"];
+const PARENT_SPAN_KEYS = ["parentSpanId", "parent_span_id", "parentSpan", "parent", "parent.id", "trace.parent_id", "span.parent_id"];
+const REQUEST_KEYS = [
+  "requestId",
+  "request_id",
+  "reqId",
+  "req_id",
+  "request.id",
+  "http.request.id",
+  "correlationId",
+  "correlation_id",
+  "correlation.id",
+];
+const SERVICE_KEYS = [
+  "service",
+  "serviceName",
+  "service_name",
+  "service.name",
+  "resource.service.name",
+  "attributes.service.name",
+  "svc",
+  "logger",
+  "component",
+  "target",
+];
+const MESSAGE_KEYS = ["message", "msg", "event", "body", "log", "error.message"];
+const TIMESTAMP_KEYS = ["timestamp", "@timestamp", "time", "ts", "datetime", "event.time", "log.timestamp"];
+const LEVEL_KEYS = ["level", "severity", "severity_text", "lvl", "log.level"];
 const STACK_CONTINUATION_PATTERNS = [
   /^\s+at\b/,
   /^\s*\.\.\. \d+ more\b/i,
   /^\s*Caused by:/i,
   /^\s*Suppressed:/i,
+  /^\s*goroutine \d+ \[[^\]]+\]:$/i,
+  /^\s*(?:panic|fatal error):/i,
+  /^\s*[\w./-]+\.[\w$<>-]+\([^)]*\)$/,
+  /^\s*(?:\t| +)\/?.+:\d+(?: \+0x[0-9a-f]+)?$/i,
   /^\s*Traceback \(most recent call last\):/i,
   /^\s+File ".*", line \d+/,
   /^\s*\^+$/,
@@ -77,6 +104,24 @@ function normalizeLevel(value: string | null | undefined) {
     default:
       return "unknown";
   }
+}
+
+function extractTraceparentContext(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(TRACEPARENT_PATTERN);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, traceId, spanId] = match;
+  return {
+    spanId,
+    traceId,
+  };
 }
 
 function parseTimestamp(value: string | number | null | undefined) {
@@ -246,8 +291,11 @@ function createEvent(
   const timestampText = pickField(fields, TIMESTAMP_KEYS) ?? headerLine.match(TIMESTAMP_PATTERN)?.[0] ?? null;
   const levelText = pickField(fields, LEVEL_KEYS) ?? headerLine.match(LEVEL_PATTERN)?.[0] ?? null;
   const service = pickField(fields, SERVICE_KEYS) ?? deriveServiceFromText(headerLine);
-  const traceId = pickField(fields, TRACE_KEYS);
-  const spanId = pickField(fields, SPAN_KEYS);
+  const traceContext = extractTraceparentContext(
+    pickField(fields, TRACEPARENT_KEYS) ?? headerLine.match(TRACEPARENT_PATTERN)?.[0] ?? null,
+  );
+  const traceId = pickField(fields, TRACE_KEYS) ?? traceContext?.traceId ?? null;
+  const spanId = pickField(fields, SPAN_KEYS) ?? traceContext?.spanId ?? null;
   const parentSpanId = pickField(fields, PARENT_SPAN_KEYS);
   const requestId = pickField(fields, REQUEST_KEYS);
 
