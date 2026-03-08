@@ -94,7 +94,11 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
 }
 
 export function matchesFieldFilters(event: LogEvent, filters: FieldFilter[]) {
-  return filters.every((filter) => event.fields[filter.key] === filter.value);
+  return filters.every((filter) => (
+    filter.operator === "include"
+      ? event.fields[filter.key] === filter.value
+      : event.fields[filter.key] !== filter.value
+  ));
 }
 
 export function buildFieldKeyCounts(events: LogEvent[]) {

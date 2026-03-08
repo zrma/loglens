@@ -22,7 +22,7 @@ type EventsTabProps = {
   onApplyTraceFilter: (traceId: string) => void;
   onApplyServiceFilter: (service: string) => void;
   onApplyRequestFilter: (requestId: string) => void;
-  onAddFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onAddFieldFilter: (fieldKey: string, fieldValue: string, operator?: FieldFilter["operator"]) => void;
   onRemoveFieldFilter: (fieldKey: string) => void;
   onToggleFieldVisibility: (fieldKey: string) => void;
 };
@@ -173,12 +173,17 @@ export function EventsTab({
               <div className="flex flex-wrap gap-2">
                 {activeFieldFilters.map((filter) => (
                   <button
-                    key={`${filter.key}:${filter.value}`}
+                    key={`${filter.key}:${filter.operator}:${filter.value}`}
                     type="button"
                     onClick={() => onRemoveFieldFilter(filter.key)}
-                    className="max-w-full rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition hover:border-primary/30 hover:bg-primary/15"
+                    className={cn(
+                      "max-w-full rounded-full border px-3 py-1 text-xs font-medium transition",
+                      filter.operator === "exclude"
+                        ? "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100"
+                        : "border-primary/20 bg-primary/10 text-primary hover:border-primary/30 hover:bg-primary/15",
+                    )}
                   >
-                    {filter.key} = {filter.value}
+                    {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value}
                   </button>
                 ))}
               </div>
@@ -504,9 +509,18 @@ export function EventsTab({
                             variant="ghost"
                             size="sm"
                             className="h-7 rounded-full px-3 text-xs"
-                            onClick={() => onAddFieldFilter(key, value)}
+                            onClick={() => onAddFieldFilter(key, value, "include")}
                           >
-                            조건 추가
+                            포함
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-full px-3 text-xs text-amber-700 hover:text-amber-800"
+                            onClick={() => onAddFieldFilter(key, value, "exclude")}
+                          >
+                            제외
                           </Button>
                           <Button
                             type="button"

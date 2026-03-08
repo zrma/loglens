@@ -252,10 +252,10 @@ function App() {
   const resetFieldVisibility = useCallback(() => {
     setHiddenFieldKeys([]);
   }, []);
-  const addFieldFilter = useCallback((fieldKey: string, fieldValue: string) => {
+  const addFieldFilter = useCallback((fieldKey: string, fieldValue: string, operator: FieldFilter["operator"] = "include") => {
     setFieldFilters((current) => {
       const next = current.filter((filter) => filter.key !== fieldKey);
-      return [...next, { key: fieldKey, value: fieldValue }];
+      return [...next, { key: fieldKey, value: fieldValue, operator }];
     });
     setFacetFieldKey(fieldKey);
     setActiveTab("events");

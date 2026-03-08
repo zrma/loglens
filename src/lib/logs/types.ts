@@ -56,6 +56,7 @@ export type ParsedLogSession = {
 export type FieldFilter = {
   key: string;
   value: string;
+  operator: "include" | "exclude";
 };
 
 export type LogFilters = {

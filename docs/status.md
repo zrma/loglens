@@ -28,6 +28,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - 검색어 필터
   - level/service/trace/request 필터
   - structured field facet drill-down
+  - structured field 포함/제외 조건
   - 다중 field 조건 조합
   - issue-only 토글
   - 이벤트 목록
@@ -73,6 +74,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 문제 이벤트만 골라 보기
 - 특정 service/request/trace 기준으로 좁혀 보기
 - 특정 structured field key/value facet으로 누적 조건 걸기
+- 특정 structured field 값을 제외 조건으로 빼고 보기
 - multiline 오류를 하나의 이벤트로 읽기
 - trace 내 span 부모/자식 관계 확인
 - trace 내 span 상대 시간축 확인

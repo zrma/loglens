@@ -41,7 +41,7 @@ type SidebarSectionProps = {
   onFacetFieldKeyChange: (value: string | "all") => void;
   onIssuesOnlyChange: (value: boolean) => void;
   onResetFilters: () => void;
-  onAddFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onAddFieldFilter: (fieldKey: string, fieldValue: string, operator?: FieldFilter["operator"]) => void;
   onRemoveFieldFilter: (fieldKey: string) => void;
   onClearFieldFilters: () => void;
   onToggleFieldVisibility: (fieldKey: string) => void;
@@ -211,12 +211,17 @@ export function SidebarSection({
             <div className="flex flex-wrap gap-2">
               {fieldFilters.map((filter) => (
                 <button
-                  key={`${filter.key}:${filter.value}`}
+                  key={`${filter.key}:${filter.operator}:${filter.value}`}
                   type="button"
                   onClick={() => onRemoveFieldFilter(filter.key)}
-                  className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition hover:border-primary/30 hover:bg-primary/15"
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                    filter.operator === "exclude"
+                      ? "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100"
+                      : "border-primary/20 bg-primary/10 text-primary hover:border-primary/30 hover:bg-primary/15",
+                  )}
                 >
-                  {filter.key} = {filter.value} 닫기
+                  {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value} 닫기
                 </button>
               ))}
             </div>
@@ -269,26 +274,52 @@ export function SidebarSection({
                 <div className="flex flex-wrap gap-2">
                   {previewFieldValues.map(({ label, count }) => {
                     const isActive = activeFacetFilter?.value === label;
+                    const isExcluded = isActive && activeFacetFilter?.operator === "exclude";
 
                     return (
-                      <button
+                      <div
                         key={`${facetFieldKey}:${label}`}
-                        type="button"
-                        onClick={() => onAddFieldFilter(facetFieldKey, label)}
-                        disabled={!hasSession}
                         className={cn(
-                          "rounded-2xl border px-3 py-2 text-left text-xs font-medium transition",
+                          "rounded-2xl border px-3 py-3",
                           isActive
-                            ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-border/70 bg-white/80 text-foreground hover:border-primary/20 hover:bg-primary/5",
+                            ? isExcluded
+                              ? "border-amber-200 bg-amber-50"
+                              : "border-primary/30 bg-primary/10"
+                            : "border-border/70 bg-white/80",
                         )}
                       >
-                        <span className="block break-all [overflow-wrap:anywhere]">{label}</span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="block break-all text-xs font-medium text-foreground [overflow-wrap:anywhere]">{label}</span>
                         <span className="mt-1 block text-[11px] text-muted-foreground">{count} events</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 rounded-full px-3 text-xs"
+                          onClick={() => onAddFieldFilter(facetFieldKey, label, "include")}
+                          disabled={!hasSession}
+                        >
+                          포함
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 rounded-full px-3 text-xs text-amber-700 hover:text-amber-800"
+                          onClick={() => onAddFieldFilter(facetFieldKey, label, "exclude")}
+                          disabled={!hasSession}
+                        >
+                          제외
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
                 <p className="text-xs leading-5 text-muted-foreground">
                   같은 field key는 마지막에 누른 value로 교체됩니다.
                   {remainingFieldValueCount > 0 ? ` 상위 ${previewFieldValues.length}개만 표시 중입니다.` : ""}

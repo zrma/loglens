@@ -37,7 +37,7 @@
 - trace 상대 시간축 기준 span timeline 카드
 - 이벤트 스트림 windowed/virtualized 렌더링
 - parser note와 line range 표시
-- Field Facets 기반 field key/value drill-down과 다중 조건 조합
+- Field Facets 기반 field key/value drill-down, 포함/제외 조건, 다중 조건 조합
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
