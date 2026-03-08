@@ -16,6 +16,7 @@ import {
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
+  buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
   getRelatedEvents,
@@ -155,6 +156,10 @@ function App() {
       ? traceGroups.find((group) => group.traceId === selectedEvent.traceId) ?? null
       : null
   ), [selectedEvent?.traceId, traceGroups]);
+  const selectedTraceSourceCoverage = useMemo(
+    () => buildTraceSourceCoverage(events, selectedEvent?.traceId ?? null),
+    [events, selectedEvent?.traceId],
+  );
   const relatedEvents = useMemo(() => getRelatedEvents(events, selectedEvent, 10), [events, selectedEvent]);
   const spanForest = useMemo(
     () => buildSpanForest(events, selectedEvent?.traceId ?? null),
@@ -446,6 +451,7 @@ function App() {
                     traceFilter={traceFilter}
                     selectedEvent={selectedEvent}
                     selectedTraceGroup={selectedTraceGroup}
+                    selectedTraceSourceCoverage={selectedTraceSourceCoverage}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
                     activeFieldFilters={fieldFilters}

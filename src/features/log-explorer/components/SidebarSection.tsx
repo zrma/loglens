@@ -449,6 +449,14 @@ export function SidebarSection({
                 <span className="text-xs text-muted-foreground">{group.eventCount} events</span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
+                {group.sources.slice(0, 2).map((source) => (
+                  <span
+                    key={`${group.traceId}-${source}`}
+                    className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {source}
+                  </span>
+                ))}
                 {group.services.slice(0, 2).map((service) => (
                   <span
                     key={service}

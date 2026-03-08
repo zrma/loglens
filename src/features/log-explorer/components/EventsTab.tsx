@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDuration, formatTimestamp } from "@/lib/logs/analysis";
-import type { FieldFilter, LogEvent, SpanForest, SpanNode, TraceGroup } from "@/lib/logs/types";
+import type {
+  FieldFilter,
+  LogEvent,
+  SpanForest,
+  SpanNode,
+  TraceGroup,
+  TraceSourceCoverage,
+} from "@/lib/logs/types";
 import { cn } from "@/lib/utils";
 import { LevelBadge, formatTraceLabel } from "@/features/log-explorer/presentation";
 import { VirtualizedEventStream } from "@/features/log-explorer/components/VirtualizedEventStream";
@@ -13,6 +20,7 @@ type EventsTabProps = {
   traceFilter: string | "all";
   selectedEvent: LogEvent | null;
   selectedTraceGroup: TraceGroup | null;
+  selectedTraceSourceCoverage: TraceSourceCoverage[];
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
   activeFieldFilters: FieldFilter[];
@@ -133,6 +141,7 @@ export function EventsTab({
   traceFilter,
   selectedEvent,
   selectedTraceGroup,
+  selectedTraceSourceCoverage,
   relatedEvents,
   spanForest,
   activeFieldFilters,
@@ -317,6 +326,61 @@ export function EventsTab({
                   </Button>
                 )}
               </div>
+
+              {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
+                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium tracking-[-0.02em] text-foreground">Source Coverage</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        같은 trace가 여러 파일에 걸쳐 있으면 source별 참여 범위를 빠르게 비교합니다.
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedTraceSourceCoverage.length} sources
+                    </span>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {selectedTraceSourceCoverage.map((source) => (
+                      <div
+                        key={`${source.sourceId}-${selectedEvent.traceId ?? "none"}`}
+                        className="rounded-3xl border border-border/70 bg-white p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="break-all text-sm font-medium text-foreground">{source.sourceLabel}</p>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                              <span>{source.eventCount} events</span>
+                              <span>{source.services.length} services</span>
+                              {source.issueCount > 0 && <span>issue {source.issueCount}</span>}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-full px-3 text-xs"
+                            onClick={() => onApplySourceFilter(source.sourceId)}
+                          >
+                            이 source
+                          </Button>
+                        </div>
+                        {source.services.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {source.services.slice(0, 4).map((service) => (
+                              <span
+                                key={`${source.sourceId}-${service}`}
+                                className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
+                              >
+                                {service}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {spanForest && (
                 <div className="rounded-3xl border border-border/70 bg-white/85 p-4">

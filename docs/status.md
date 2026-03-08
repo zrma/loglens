@@ -40,6 +40,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - field key visibility 토글
 - 관계 추적 UI
   - trace group 요약
+  - trace source coverage
   - span topology 트리
   - span timeline
 - 분석 UI
@@ -80,6 +81,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - multiline 오류를 하나의 이벤트로 읽기
 - trace 내 span 부모/자식 관계 확인
 - trace 내 span 상대 시간축 확인
+- 같은 trace가 여러 source에 걸쳐 있는지 비교하기
 
 ## 아직 부족한 것
 

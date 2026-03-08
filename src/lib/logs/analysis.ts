@@ -6,6 +6,7 @@ import type {
   SpanForest,
   SpanNode,
   TraceGroup,
+  TraceSourceCoverage,
 } from "@/lib/logs/types";
 
 type ChartPoint = {
@@ -88,6 +89,8 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
     const haystacks = [
       event.message,
       event.rawLine,
+      event.sourceLabel,
+      event.sourcePath,
       event.service,
       event.traceId,
       event.spanId,
@@ -199,6 +202,7 @@ export function buildTraceGroups(events: LogEvent[]) {
   const traces: TraceGroup[] = [...groups.entries()].map(([traceId, traceEvents]) => {
     const sorted = [...traceEvents].sort(compareEvents);
     const services = [...new Set(sorted.map((event) => event.service).filter(Boolean))] as string[];
+    const sources = [...new Set(sorted.map((event) => event.sourceLabel))];
     const levels = [...new Set(sorted.map((event) => event.level))];
     const requestIds = [...new Set(sorted.map((event) => event.requestId).filter(Boolean))] as string[];
     const uniqueSpans = new Set(sorted.map((event) => event.spanId).filter(Boolean));
@@ -209,6 +213,7 @@ export function buildTraceGroups(events: LogEvent[]) {
       traceId,
       eventIds: sorted.map((event) => event.id),
       services,
+      sources,
       levels,
       requestIds,
       eventCount: sorted.length,
@@ -230,6 +235,43 @@ export function buildTraceGroups(events: LogEvent[]) {
 
     return left.traceId.localeCompare(right.traceId);
   });
+}
+
+export function buildTraceSourceCoverage(events: LogEvent[], traceId: string | null) {
+  if (!traceId) {
+    return [];
+  }
+
+  const grouped = new Map<string, TraceSourceCoverage>();
+
+  for (const event of events) {
+    if (event.traceId !== traceId) {
+      continue;
+    }
+
+    const current = grouped.get(event.sourceId) ?? {
+      sourceId: event.sourceId,
+      sourceLabel: event.sourceLabel,
+      eventCount: 0,
+      issueCount: 0,
+      services: [],
+    };
+
+    current.eventCount += 1;
+    current.issueCount += isIssueLevel(event.level) ? 1 : 0;
+
+    if (event.service && !current.services.includes(event.service)) {
+      current.services.push(event.service);
+    }
+
+    grouped.set(event.sourceId, current);
+  }
+
+  return [...grouped.values()].sort((left, right) => (
+    right.issueCount - left.issueCount
+    || right.eventCount - left.eventCount
+    || left.sourceLabel.localeCompare(right.sourceLabel)
+  ));
 }
 
 export function getRelatedEvents(events: LogEvent[], selectedEvent: LogEvent | null, limit = 8) {

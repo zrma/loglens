@@ -21,6 +21,7 @@
 - 검색어, level, source, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
+- 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 

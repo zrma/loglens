@@ -3,6 +3,7 @@ import {
   buildFieldKeyCounts,
   buildFieldValueCounts,
   buildSpanForest,
+  buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
 } from "@/lib/logs/analysis";
@@ -218,6 +219,14 @@ describe("parseLogContent", () => {
     expect(merged.events.some((event) => event.sourceLabel === "checkout.log")).toBe(true);
     expect(merged.events.some((event) => event.sourceLabel === "auth.log")).toBe(true);
     expect(merged.events.filter((event) => event.traceId === "trace-checkout-4821")).toHaveLength(7);
+    expect(buildTraceSourceCoverage(merged.events, "trace-checkout-4821")).toEqual([
+      expect.objectContaining({
+        sourceLabel: "checkout.log",
+      }),
+      expect.objectContaining({
+        sourceLabel: "auth.log",
+      }),
+    ]);
   });
 
   it("extracts nested json fields and falls back to traceparent context", () => {

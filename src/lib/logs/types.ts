@@ -86,6 +86,7 @@ export type TraceGroup = {
   traceId: string;
   eventIds: string[];
   services: string[];
+  sources: string[];
   levels: LogLevel[];
   requestIds: string[];
   eventCount: number;
@@ -93,6 +94,14 @@ export type TraceGroup = {
   issueCount: number;
   startMs: number | null;
   endMs: number | null;
+};
+
+export type TraceSourceCoverage = {
+  sourceId: string;
+  sourceLabel: string;
+  eventCount: number;
+  issueCount: number;
+  services: string[];
 };
 
 export type SpanNode = {
