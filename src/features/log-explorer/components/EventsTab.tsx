@@ -50,9 +50,10 @@ function SpanTopologyNode({
   onSelectEvent: (eventId: string) => void;
 }) {
   const barStyle = buildSpanBarStyle(node, selectedTraceGroup);
+  const topologyIndent = Math.min(node.depth, 6) * 18;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" style={{ paddingLeft: `${topologyIndent}px` }}>
       <button
         type="button"
         onClick={() => {
@@ -63,7 +64,6 @@ function SpanTopologyNode({
           }
         }}
         className="w-full rounded-3xl border border-border/70 bg-white/90 p-4 text-left transition hover:border-primary/20 hover:bg-primary/5"
-        style={{ marginLeft: `${node.depth * 18}px` }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -180,14 +180,14 @@ export function EventsTab({
         </CardContent>
       </Card>
 
-      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
+      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none 2xl:sticky 2xl:top-6 2xl:h-[calc(100vh-7rem)] 2xl:self-start">
         <CardHeader className="border-b border-border/70 pb-4">
           <CardTitle className="text-2xl tracking-[-0.04em]">상세 이벤트</CardTitle>
           <CardDescription className="pt-2 leading-6">
             선택한 이벤트의 parse note와 span 관계를 빠르게 따라갈 수 있습니다.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5 p-5">
+        <CardContent className="space-y-5 p-5 2xl:min-h-0 2xl:flex-1 2xl:overflow-y-auto">
           {selectedEvent ? (
             <>
               <div className="min-w-0 rounded-[28px] bg-slate-950 px-4 py-4 text-slate-50">
@@ -348,7 +348,7 @@ export function EventsTab({
                             }}
                             className="grid w-full grid-cols-[132px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-transparent px-2 py-2 text-left transition hover:border-primary/20 hover:bg-primary/5"
                           >
-                            <div className="min-w-0" style={{ paddingLeft: `${node.depth * 12}px` }}>
+                            <div className="min-w-0" style={{ paddingLeft: `${Math.min(node.depth, 6) * 12}px` }}>
                               <p className="truncate text-sm font-medium text-foreground">{node.service ?? node.spanId}</p>
                               <p className="truncate text-[11px] text-muted-foreground">{node.spanId}</p>
                             </div>

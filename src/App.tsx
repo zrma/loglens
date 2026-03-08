@@ -1,16 +1,13 @@
-import { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile, readTextFileLines } from "@tauri-apps/plugin-fs";
+import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, FileText, Filter, FolderOpen, GitBranch, ListTree } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
 import { OverviewSection } from "@/features/log-explorer/components/OverviewSection";
 import { SidebarSection } from "@/features/log-explorer/components/SidebarSection";
+import { useLogSession } from "@/features/log-explorer/hooks/useLogSession";
 import {
   type MetricCardProps,
   getDirectoryPath,
-  getFileName,
 } from "@/features/log-explorer/presentation";
 import {
   buildFacetCounts,
@@ -21,9 +18,7 @@ import {
   filterLogEvents,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
-import { parseLogContent, parseLogLineStream, type ParserProgress } from "@/lib/logs/parser";
-import { SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME } from "@/lib/logs/sample";
-import type { LogLevel, ParsedLogSession } from "@/lib/logs/types";
+import type { LogLevel } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
@@ -36,14 +31,16 @@ const DIAGNOSTIC_LABELS = {
   timestamp_missing: "timestamp 없음",
 } as const;
 
-type LoadProgressState = ParserProgress & {
-  sourceLabel: string;
-};
-
 function App() {
-  const [session, setSession] = useState<ParsedLogSession | null>(null);
-  const [sourceLabel, setSourceLabel] = useState<string | null>(null);
-  const [sourcePath, setSourcePath] = useState<string | null>(null);
+  const {
+    errorMessage,
+    loadProgress,
+    loadSampleSession,
+    selectLogFile,
+    session,
+    sourceLabel,
+    sourcePath,
+  } = useLogSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<LogLevel | "all">("all");
   const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
@@ -52,90 +49,16 @@ function App() {
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [loadProgress, setLoadProgress] = useState<LoadProgressState | null>(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
-  function resetFilters() {
+  const resetFilters = useCallback(() => {
     setSearchTerm("");
     setLevelFilter("all");
     setServiceFilter("all");
     setTraceFilter("all");
     setRequestFilter("all");
     setIssuesOnly(false);
-  }
-
-  function applySession(parsedSession: ParsedLogSession, label: string, path: string | null) {
-    startTransition(() => {
-      setSession(parsedSession);
-      setSourceLabel(label);
-      setSourcePath(path);
-      resetFilters();
-      setSelectedEventId(parsedSession.events[0]?.id ?? null);
-      setActiveTab("events");
-      setErrorMessage(null);
-    });
-  }
-
-  function loadSession(content: string, label: string, path: string | null) {
-    applySession(parseLogContent(content), label, path);
-  }
-
-  async function selectLogFile() {
-    try {
-      const selected = await open({
-        multiple: false,
-        filters: [{
-          name: "Log Files",
-          extensions: ["log", "txt"],
-        }],
-        defaultPath: "~/",
-        directory: false,
-      });
-
-      if (selected && !Array.isArray(selected)) {
-        const nextLabel = getFileName(selected) ?? selected;
-
-        try {
-          await invoke("allow_file_access", { path: selected });
-          setLoadProgress({
-            sourceLabel: nextLabel,
-            lineCount: 0,
-            eventCount: 0,
-            diagnosticCount: 0,
-          });
-
-          try {
-            const lineStream = await readTextFileLines(selected);
-            const parsedSession = await parseLogLineStream(lineStream, {
-              onProgress: (progress) => {
-                setLoadProgress({
-                  sourceLabel: nextLabel,
-                  ...progress,
-                });
-              },
-              reportInterval: 1500,
-            });
-
-            applySession(parsedSession, nextLabel, selected);
-          } catch {
-            const content = await readTextFile(selected);
-            loadSession(content, nextLabel, selected);
-          }
-        } catch (readError) {
-          setErrorMessage(readError instanceof Error ? readError.message : "로그 파일을 읽지 못했습니다.");
-        } finally {
-          setLoadProgress(null);
-        }
-      }
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "로그 파일 선택 중 오류가 발생했습니다.");
-    }
-  }
-
-  function loadSampleSession() {
-    loadSession(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null);
-  }
+  }, []);
 
   const events = useMemo(() => session?.events ?? [], [session]);
   const filteredEvents = useMemo(() => filterLogEvents(events, {
@@ -268,6 +191,16 @@ function App() {
     () => (selectedEventId ? filteredEvents.some((event) => event.id === selectedEventId) : false),
     [filteredEvents, selectedEventId],
   );
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    resetFilters();
+    setSelectedEventId(session.events[0]?.id ?? null);
+    setActiveTab("events");
+  }, [resetFilters, session]);
 
   useEffect(() => {
     if (!selectedEventId || !hasSelectedEvent) {
