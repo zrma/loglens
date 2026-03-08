@@ -1,33 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
     :root {
-        --radius: 0.625rem;
-        --background: oklch(1 0 0);
-        --foreground: oklch(0.129 0.042 264.695);
-        --card: oklch(1 0 0);
-        --card-foreground: oklch(0.129 0.042 264.695);
-        --popover: oklch(1 0 0);
-        --popover-foreground: oklch(0.129 0.042 264.695);
-        --primary: oklch(0.208 0.042 265.755);
-        --primary-foreground: oklch(0.984 0.003 247.858);
-        --secondary: oklch(0.968 0.007 247.896);
-        --secondary-foreground: oklch(0.208 0.042 265.755);
-        --muted: oklch(0.968 0.007 247.896);
-        --muted-foreground: oklch(0.554 0.046 257.417);
-        --accent: oklch(0.968 0.007 247.896);
-        --accent-foreground: oklch(0.208 0.042 265.755);
-        --destructive: oklch(0.577 0.245 27.325);
-        --border: oklch(0.929 0.013 255.508);
-        --input: oklch(0.929 0.013 255.508);
-        --ring: oklch(0.704 0.04 256.788);
-        --chart-1: oklch(0.646 0.222 41.116);
-        --chart-2: oklch(0.6 0.118 184.704);
-        --chart-3: oklch(0.398 0.07 227.392);
-        --chart-4: oklch(0.828 0.189 84.429);
-        --chart-5: oklch(0.769 0.188 70.08);
+        --radius: 1.25rem;
+        --font-sans: "Space Grotesk", "Pretendard Variable", "Pretendard", "Noto Sans KR", sans-serif;
+        --font-mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", monospace;
+        --background: oklch(0.972 0.012 95.8);
+        --foreground: oklch(0.246 0.026 250.2);
+        --card: oklch(0.989 0.008 95.2 / 0.8);
+        --card-foreground: oklch(0.246 0.026 250.2);
+        --popover: oklch(1 0 0 / 0.94);
+        --popover-foreground: oklch(0.246 0.026 250.2);
+        --primary: oklch(0.612 0.118 195.4);
+        --primary-foreground: oklch(0.988 0.004 95.2);
+        --secondary: oklch(0.934 0.021 84.8);
+        --secondary-foreground: oklch(0.287 0.024 252.1);
+        --muted: oklch(0.949 0.011 92.5);
+        --muted-foreground: oklch(0.534 0.035 251.2);
+        --accent: oklch(0.918 0.028 188.4);
+        --accent-foreground: oklch(0.258 0.023 248.8);
+        --destructive: oklch(0.604 0.19 31.2);
+        --border: oklch(0.891 0.015 87.9);
+        --input: oklch(0.891 0.015 87.9);
+        --ring: oklch(0.688 0.086 195.4);
+        --chart-1: oklch(0.677 0.152 195.8);
+        --chart-2: oklch(0.69 0.17 70.5);
+        --chart-3: oklch(0.56 0.11 176.5);
+        --chart-4: oklch(0.58 0.13 25.7);
+        --chart-5: oklch(0.48 0.09 255.1);
         --sidebar: oklch(0.984 0.003 247.858);
         --sidebar-foreground: oklch(0.129 0.042 264.695);
         --sidebar-primary: oklch(0.208 0.042 265.755);
@@ -39,44 +43,80 @@
     }
 
     .dark {
-        --background: oklch(0.129 0.042 264.695);
-        --foreground: oklch(0.984 0.003 247.858);
-        --card: oklch(0.208 0.042 265.755);
-        --card-foreground: oklch(0.984 0.003 247.858);
-        --popover: oklch(0.208 0.042 265.755);
-        --popover-foreground: oklch(0.984 0.003 247.858);
-        --primary: oklch(0.929 0.013 255.508);
-        --primary-foreground: oklch(0.208 0.042 265.755);
-        --secondary: oklch(0.279 0.041 260.031);
-        --secondary-foreground: oklch(0.984 0.003 247.858);
-        --muted: oklch(0.279 0.041 260.031);
-        --muted-foreground: oklch(0.704 0.04 256.788);
-        --accent: oklch(0.279 0.041 260.031);
-        --accent-foreground: oklch(0.984 0.003 247.858);
-        --destructive: oklch(0.704 0.191 22.216);
+        --background: oklch(0.18 0.02 248);
+        --foreground: oklch(0.96 0.004 95.2);
+        --card: oklch(0.22 0.02 248 / 0.84);
+        --card-foreground: oklch(0.96 0.004 95.2);
+        --popover: oklch(0.22 0.02 248 / 0.94);
+        --popover-foreground: oklch(0.96 0.004 95.2);
+        --primary: oklch(0.75 0.11 195);
+        --primary-foreground: oklch(0.2 0.02 248);
+        --secondary: oklch(0.3 0.02 246);
+        --secondary-foreground: oklch(0.96 0.004 95.2);
+        --muted: oklch(0.26 0.02 246);
+        --muted-foreground: oklch(0.76 0.03 246);
+        --accent: oklch(0.28 0.024 196);
+        --accent-foreground: oklch(0.96 0.004 95.2);
+        --destructive: oklch(0.67 0.19 31.2);
         --border: oklch(1 0 0 / 10%);
-        --input: oklch(1 0 0 / 15%);
-        --ring: oklch(0.551 0.027 264.364);
-        --chart-1: oklch(0.488 0.243 264.376);
-        --chart-2: oklch(0.696 0.17 162.48);
-        --chart-3: oklch(0.769 0.188 70.08);
-        --chart-4: oklch(0.627 0.265 303.9);
-        --chart-5: oklch(0.645 0.246 16.439);
-        --sidebar: oklch(0.208 0.042 265.755);
-        --sidebar-foreground: oklch(0.984 0.003 247.858);
-        --sidebar-primary: oklch(0.488 0.243 264.376);
-        --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-        --sidebar-accent: oklch(0.279 0.041 260.031);
-        --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-        --sidebar-border: oklch(1 0 0 / 10%);
-        --sidebar-ring: oklch(0.551 0.027 264.364);
+        --input: oklch(1 0 0 / 12%);
+        --ring: oklch(0.75 0.11 195);
     }
 
     * {
         @apply border-border;
     }
 
+    html {
+        min-height: 100%;
+    }
+
     body {
-        @apply bg-background text-foreground;
+        @apply text-foreground;
+        min-height: 100vh;
+        font-family: var(--font-sans);
+        background:
+            radial-gradient(circle at 12% 10%, oklch(0.86 0.08 184 / 0.35), transparent 28%),
+            radial-gradient(circle at 88% 4%, oklch(0.88 0.08 62 / 0.35), transparent 22%),
+            linear-gradient(180deg, oklch(0.985 0.008 96.1), oklch(0.95 0.012 88));
+        background-attachment: fixed;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+            linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+        background-size: 24px 24px;
+        opacity: 0.32;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 82%);
+    }
+
+    #root {
+        min-height: 100vh;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    code,
+    pre,
+    .font-mono {
+        font-family: var(--font-mono);
+    }
+
+    ::selection {
+        background: oklch(0.72 0.11 195 / 0.35);
+        color: oklch(0.2 0.02 248);
     }
 }
