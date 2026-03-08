@@ -19,7 +19,7 @@
 - 이벤트 목록과 상세 패널을 함께 보여준다.
 - 검색어, level, service, trace, request, issue-only 기준으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
-- trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology를 재구성한다.
+- trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 
@@ -34,12 +34,14 @@
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
 - trace 내부 parent/child span topology 카드
+- trace 상대 시간축 기준 span timeline 카드
 - parser note와 line range 표시
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
 - 선택한 파일만 Tauri 파일 시스템 scope에 동적으로 허용
 - 샘플 trace 세션 로드
 - 파서/trace 분석 smoke test
+- jsdom 기반 App UI smoke test
 
 ### 아직 구현되지 않은 부분
 
@@ -47,7 +49,7 @@
 - 여러 파일 동시 비교
 - span timeline/gantt 수준의 더 정교한 시각화
 - 대용량 로그 대응 최적화
-- UI 스모크 테스트와 더 넓은 fixture 세트
+- 실제 파일 열기 플로우와 필터 상호작용까지 포함한 더 넓은 fixture/test 세트
 
 현재 파서는 JSON line, key=value, plain text timestamp prefix와 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 

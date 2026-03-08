@@ -24,8 +24,9 @@
 5. 검색어, level, service, trace, request, issue-only 기준으로 이벤트를 필터링한다.
 6. `이벤트` 탭에서 구조화된 이벤트 목록과 상세 패널을 보여준다.
 7. 선택한 이벤트에 traceId가 있으면 관련 이벤트 흐름과 span topology를 묶어 보여준다.
-8. parser note와 멀티라인 line range를 상세 패널에서 확인한다.
-9. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
+8. 같은 trace 안의 span을 상대 시간축 timeline으로 보여준다.
+9. parser note와 멀티라인 line range를 상세 패널에서 확인한다.
+10. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
 
 ## 런타임 구조
 
@@ -39,7 +40,7 @@
 - 파일 선택과 샘플 세션 로드
 - 구조화 이벤트 기준 상태 관리
 - 검색어/level/service/trace/request/issue 필터링
-- 선택 이벤트 상세 패널, parser note, span topology 렌더링
+- 선택 이벤트 상세 패널, parser note, span topology, span timeline 렌더링
 - 시간대별 집계 차트와 분포 카드 렌더링
 - 이벤트/분석 탭 전환
 
@@ -79,7 +80,7 @@
 - span 관계 시각화는 기본 트리 수준이고, timeline/gantt 뷰는 아직 없다.
 - 대용량 파일 스트리밍이나 가상 스크롤이 없어 큰 로그 파일에서는 비효율적일 수 있다.
 - parser note는 생겼지만, 포맷별 실패 원인 분류는 아직 거칠다.
-- 테스트는 parser/trace smoke 수준이며 UI 상호작용 테스트는 아직 없다.
+- 테스트는 parser/trace smoke와 최소 UI smoke 수준이며, 실제 파일 열기 플로우 테스트는 아직 없다.
 
 ## 유지보수 관점에서 중요한 사실
 
@@ -92,4 +93,4 @@
 - correlation ID를 포함한 더 풍부한 연결 규칙
 - 큰 파일 대응을 위한 스트리밍/가상화
 - span timeline/gantt 시각화
-- UI 스모크 테스트와 fixture 확장
+- 실제 파일 열기/필터 상호작용을 포함한 UI 테스트와 fixture 확장

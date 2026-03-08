@@ -22,6 +22,10 @@ type EventsTabProps = {
   onApplyRequestFilter: (requestId: string) => void;
 };
 
+function flattenSpanNodes(nodes: SpanNode[]): SpanNode[] {
+  return nodes.flatMap((node) => [node, ...flattenSpanNodes(node.children)]);
+}
+
 function buildSpanBarStyle(node: SpanNode, group: TraceGroup | null) {
   if (node.startMs === null || node.endMs === null || !group || group.startMs === null || group.endMs === null) {
     return null;
@@ -129,6 +133,8 @@ export function EventsTab({
   onApplyServiceFilter,
   onApplyRequestFilter,
 }: EventsTabProps) {
+  const timelineNodes = spanForest ? flattenSpanNodes(spanForest.roots) : [];
+
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_360px]">
       <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
@@ -364,6 +370,81 @@ export function EventsTab({
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {spanForest && selectedTraceGroup && (
+                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium tracking-[-0.02em] text-foreground">Span Timeline</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        trace 시작 시점을 기준으로 각 span의 상대 위치와 겹침을 확인합니다.
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDuration(selectedTraceGroup.startMs, selectedTraceGroup.endMs)}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 rounded-3xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(244,248,247,0.95))] p-4">
+                    <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      <span>Span</span>
+                      <div className="flex items-center justify-between">
+                        <span>{formatTimestamp(selectedTraceGroup.startMs)}</span>
+                        <span>{formatTimestamp(selectedTraceGroup.endMs)}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {timelineNodes.map((node) => {
+                        const barStyle = buildSpanBarStyle(node, selectedTraceGroup);
+
+                        return (
+                          <button
+                            key={`timeline-${node.spanId}`}
+                            type="button"
+                            onClick={() => {
+                              const nextEventId = node.eventIds[0];
+
+                              if (nextEventId) {
+                                onSelectEvent(nextEventId);
+                              }
+                            }}
+                            className="grid w-full grid-cols-[132px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-transparent px-2 py-2 text-left transition hover:border-primary/20 hover:bg-primary/5"
+                          >
+                            <div className="min-w-0" style={{ paddingLeft: `${node.depth * 12}px` }}>
+                              <p className="truncate text-sm font-medium text-foreground">{node.service ?? node.spanId}</p>
+                              <p className="truncate text-[11px] text-muted-foreground">{node.spanId}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="relative h-7 overflow-hidden rounded-full bg-secondary/75">
+                                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.04)_1px,transparent_1px)] [background-size:12.5%_100%]" />
+                                {barStyle && (
+                                  <div
+                                    className={cn(
+                                      "absolute top-1/2 h-4 -translate-y-1/2 rounded-full px-2 text-[10px] font-semibold leading-4 text-white",
+                                      node.issueCount > 0
+                                        ? "bg-[color:var(--chart-4)]"
+                                        : "bg-[color:var(--chart-3)]",
+                                    )}
+                                    style={barStyle}
+                                  >
+                                    <span className="truncate">{node.label}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                <span>{node.eventCount} events</span>
+                                <span>{formatDuration(node.startMs, node.endMs)}</span>
+                                {node.requestIds[0] && <span>{node.requestIds[0]}</span>}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useDeferredValue, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { AlertTriangle, BarChart3, FileText, Filter, FolderOpen, GitBranch, ListTree } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AnalysisTab } from "@/features/log-explorer/components/AnalysisTab";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
 import { OverviewSection } from "@/features/log-explorer/components/OverviewSection";
 import { SidebarSection } from "@/features/log-explorer/components/SidebarSection";
@@ -26,6 +25,11 @@ import { parseLogContent } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME } from "@/lib/logs/sample";
 import type { LogLevel, ParsedLogSession } from "@/lib/logs/types";
 
+const AnalysisTab = lazy(async () => {
+  const module = await import("@/features/log-explorer/components/AnalysisTab");
+  return { default: module.AnalysisTab };
+});
+
 const DIAGNOSTIC_LABELS = {
   invalid_json: "JSON fallback",
   multiline: "multiline 병합",
@@ -45,6 +49,7 @@ function App() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
 
   function resetFilters() {
     setSearchTerm("");
@@ -99,7 +104,7 @@ function App() {
 
   const events = session?.events ?? [];
   const filteredEvents = filterLogEvents(events, {
-    searchTerm,
+    searchTerm: deferredSearchTerm,
     level: levelFilter,
     service: serviceFilter,
     traceId: traceFilter,
@@ -280,7 +285,7 @@ function App() {
                   <EventsTab
                     sessionTitle={sessionTitle}
                     filteredEvents={filteredEvents}
-                    searchTerm={searchTerm}
+                    searchTerm={deferredSearchTerm}
                     traceFilter={traceFilter}
                     selectedEvent={selectedEvent}
                     selectedTraceGroup={selectedTraceGroup}
@@ -294,14 +299,27 @@ function App() {
                 </TabsContent>
 
                 <TabsContent value="analysis" className="mt-4">
-                  <AnalysisTab
-                    hourlyChart={hourlyChart}
-                    levelCounts={levelCounts}
-                    serviceCounts={serviceCounts}
-                    requestCounts={requestCounts}
-                    diagnosticCounts={diagnosticCounts}
-                    filteredTraceGroups={filteredTraceGroups}
-                  />
+                  <Suspense
+                    fallback={(
+                      <div className="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-border/80 bg-white/70 p-8 text-center">
+                        <div>
+                          <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 패널을 준비 중입니다</p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                            차트 모듈을 필요할 때만 로드하도록 분리했습니다.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  >
+                    <AnalysisTab
+                      hourlyChart={hourlyChart}
+                      levelCounts={levelCounts}
+                      serviceCounts={serviceCounts}
+                      requestCounts={requestCounts}
+                      diagnosticCounts={diagnosticCounts}
+                      filteredTraceGroups={filteredTraceGroups}
+                    />
+                  </Suspense>
                 </TabsContent>
               </>
             )}
