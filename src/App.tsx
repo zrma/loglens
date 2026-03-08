@@ -21,7 +21,7 @@ import {
   filterLogEvents,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
-import type { FieldFilter, LogLevel } from "@/lib/logs/types";
+import type { FieldFilter, LogEvent, LogLevel } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
@@ -34,12 +34,23 @@ const DIAGNOSTIC_LABELS = {
   timestamp_missing: "timestamp 없음",
 } as const;
 
+function pickPreferredEventId(events: LogEvent[]) {
+  return events.find((event) => (
+    event.timestampMs !== null
+    && !event.parseIssues.some((issue) => issue.kind === "timestamp_missing")
+  ))?.id ?? events[0]?.id ?? null;
+}
+
 function App() {
   const {
     errorMessage,
     loadProgress,
     loadSampleSession,
+    parserPreset,
+    parserPresetId,
+    parserPresetOptions,
     selectLogFile,
+    setParserPresetId,
     session,
     sourceLabel,
     sourcePath,
@@ -263,7 +274,10 @@ function App() {
     traceFilter,
     tracesInSession,
   ]);
-  const firstFilteredEventId = filteredEvents[0]?.id ?? null;
+  const preferredFilteredEventId = useMemo(
+    () => pickPreferredEventId(filteredEvents),
+    [filteredEvents],
+  );
   const hasSelectedEvent = useMemo(
     () => (selectedEventId ? filteredEvents.some((event) => event.id === selectedEventId) : false),
     [filteredEvents, selectedEventId],
@@ -303,7 +317,7 @@ function App() {
 
     resetFilters();
     setHiddenFieldKeys([]);
-    setSelectedEventId(session.events[0]?.id ?? null);
+    setSelectedEventId(pickPreferredEventId(session.events));
     setActiveTab("events");
   }, [resetFilters, session]);
 
@@ -327,9 +341,9 @@ function App() {
 
   useEffect(() => {
     if (!selectedEventId || !hasSelectedEvent) {
-      setSelectedEventId(firstFilteredEventId);
+      setSelectedEventId(preferredFilteredEventId);
     }
-  }, [firstFilteredEventId, hasSelectedEvent, selectedEventId]);
+  }, [hasSelectedEvent, preferredFilteredEventId, selectedEventId]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -349,9 +363,13 @@ function App() {
           formatBadges={formatBadges}
           metrics={metrics}
           errorMessage={errorMessage}
+          parserPreset={parserPreset}
+          parserPresetId={parserPresetId}
+          parserPresetOptions={parserPresetOptions}
           loadProgress={loadProgress}
           onSelectLogFile={selectLogFile}
           onLoadSampleSession={loadSampleSession}
+          onParserPresetChange={setParserPresetId}
         />
 
         <section className="grid gap-6 min-[1560px]:grid-cols-[280px_minmax(0,1fr)]">
@@ -404,7 +422,7 @@ function App() {
                 <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Explorer</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">구조화 로그 세션</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  현재는 이벤트 목록, span 관계, 파서 메모, trace 단서를 한 흐름으로 살펴볼 수 있는 최소 탐색 루프를 제공합니다.
+                  이벤트, 필드, trace를 한 흐름에서 탐색합니다.
                 </p>
               </div>
 
@@ -429,17 +447,16 @@ function App() {
             {!session ? (
               <div className="flex min-h-[580px] items-center justify-center px-4 py-10">
                 <div className="max-w-xl text-center">
-                  <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <FolderOpen className="size-7" />
-                  </div>
-                  <h3 className="mt-6 text-3xl font-semibold tracking-[-0.05em] text-foreground">
-                    구조화 탐색 세션을 시작해 보세요
-                  </h3>
-                  <p className="mt-4 text-base leading-7 text-muted-foreground">
-                    로그 파일을 열거나 샘플 세션을 불러오면, 문자열 라인이 아닌 이벤트 단위로 정리된 목록과 trace 요약이
-                    여기에 표시됩니다.
-                  </p>
+                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <FolderOpen className="size-7" />
                 </div>
+                <h3 className="mt-6 text-3xl font-semibold tracking-[-0.05em] text-foreground">
+                  로그 세션을 불러오세요
+                </h3>
+                <p className="mt-4 text-base leading-7 text-muted-foreground">
+                  파일을 열면 이벤트 스트림과 trace 요약이 여기에 표시됩니다.
+                </p>
+              </div>
               </div>
             ) : (
               <>
@@ -474,9 +491,9 @@ function App() {
                     fallback={(
                       <div className="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-border/80 bg-white/70 p-8 text-center">
                         <div>
-                          <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 패널을 준비 중입니다</p>
+                          <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 패널 로딩 중</p>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            차트 모듈을 필요할 때만 로드하도록 분리했습니다.
+                            차트 모듈을 필요할 때만 불러옵니다.
                           </p>
                         </div>
                       </div>

@@ -168,7 +168,7 @@ export function EventsTab({
               <div>
                 <CardTitle className="text-2xl tracking-[-0.04em]">이벤트 스트림</CardTitle>
                 <CardDescription className="pt-2 leading-6">
-                  필터 적용 결과 {filteredEvents.length.toLocaleString()}개 이벤트를 표시합니다.
+                  필터 결과 {filteredEvents.length.toLocaleString()}개 이벤트
                 </CardDescription>
               </div>
               <div className="flex min-w-0 flex-wrap gap-2">
@@ -219,7 +219,7 @@ export function EventsTab({
                   필터 조건에 맞는 이벤트가 없습니다
                 </p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  검색어를 넓히거나 trace/service/request 필터를 초기화해 보세요.
+                  검색어나 필터를 조정해 보세요.
                 </p>
               </div>
             </div>
@@ -231,7 +231,7 @@ export function EventsTab({
         <CardHeader className="border-b border-border/70 pb-4">
           <CardTitle className="text-2xl tracking-[-0.04em]">상세 이벤트</CardTitle>
           <CardDescription className="pt-2 leading-6">
-            선택한 이벤트의 parse note와 span 관계를 빠르게 따라갈 수 있습니다.
+            선택 이벤트와 관련 컨텍스트를 보여줍니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 p-5 min-[1820px]:min-h-0 min-[1820px]:flex-1 min-[1820px]:overflow-y-auto">
@@ -333,7 +333,7 @@ export function EventsTab({
                     <div>
                       <p className="font-medium tracking-[-0.02em] text-foreground">Source Coverage</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        같은 trace가 여러 파일에 걸쳐 있으면 source별 참여 범위를 빠르게 비교합니다.
+                        선택한 trace의 파일별 분포입니다.
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -388,7 +388,7 @@ export function EventsTab({
                     <div>
                       <p className="font-medium tracking-[-0.02em] text-foreground">Span Topology</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        trace 내부 parent/child span 관계를 최소 트리 형태로 재구성합니다.
+                        trace span 트리입니다.
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -433,7 +433,7 @@ export function EventsTab({
                     <div>
                       <p className="font-medium tracking-[-0.02em] text-foreground">Span Timeline</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        trace 시작 시점을 기준으로 각 span의 상대 위치와 겹침을 확인합니다.
+                        trace 기준 상대 시간입니다.
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -562,7 +562,7 @@ export function EventsTab({
                       {issue.message}
                     </div>
                   )) : (
-                    <p className="text-sm text-muted-foreground">이 이벤트에는 추가 파서 메모가 없습니다.</p>
+                    <p className="text-sm text-muted-foreground">추가 메모가 없습니다.</p>
                   )}
                 </div>
               </div>
@@ -644,7 +644,7 @@ export function EventsTab({
           ) : (
             <div className="rounded-[28px] border border-dashed border-border/80 bg-white/70 p-5">
               <p className="text-sm leading-7 text-muted-foreground">
-                이벤트를 하나 선택하면 추출된 필드와 관련 trace 흐름을 여기서 보여줍니다.
+                이벤트를 선택하면 세부 정보가 여기에 표시됩니다.
               </p>
             </div>
           )}

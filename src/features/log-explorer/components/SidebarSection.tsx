@@ -101,7 +101,7 @@ export function SidebarSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">탐색 필터</CardTitle>
           <CardDescription className="leading-6">
-            검색어, level, source, service, trace, request를 함께 조합해 탐색 범위를 좁힙니다.
+            검색과 핵심 필터로 범위를 좁힙니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -210,7 +210,7 @@ export function SidebarSection({
             <div>
               <CardTitle className="text-xl tracking-[-0.03em]">Field Facets</CardTitle>
               <CardDescription className="pt-1 leading-6">
-                structured field 값으로 조건을 누적하면서 이벤트를 좁혀 갑니다.
+                필드 값 기준으로 조건을 누적합니다.
               </CardDescription>
             </div>
             <Button
@@ -245,7 +245,7 @@ export function SidebarSection({
             </div>
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              아직 적용된 필드 조건이 없습니다. 아래에서 key를 고른 뒤 value를 눌러 누적해 보세요.
+              활성 필드 조건이 없습니다.
             </p>
           )}
 
@@ -339,18 +339,18 @@ export function SidebarSection({
               })}
             </div>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  같은 field key는 마지막에 누른 value로 교체됩니다.
+                  같은 key는 마지막 선택으로 교체됩니다.
                   {remainingFieldValueCount > 0 ? ` 상위 ${previewFieldValues.length}개만 표시 중입니다.` : ""}
                 </p>
               </div>
             ) : (
               <p className="text-sm leading-6 text-muted-foreground">
-                현재 탐색 범위에서는 선택한 field key에 남아 있는 value가 없습니다.
+                현재 범위에 남아 있는 값이 없습니다.
               </p>
             )
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              자주 쓰는 key를 고르면 아래에서 value facet이 열립니다.
+              key를 고르면 value facet이 열립니다.
             </p>
           )}
         </CardContent>
@@ -362,7 +362,7 @@ export function SidebarSection({
             <div>
               <CardTitle className="text-xl tracking-[-0.03em]">Field Lens</CardTitle>
               <CardDescription className="pt-1 leading-6">
-                추출된 필드 섹션에서 보일 key를 골라 상세 패널 밀도를 조절합니다.
+                상세 패널에 보일 필드를 조절합니다.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -413,12 +413,12 @@ export function SidebarSection({
                 })}
               </div>
               <p className="text-xs leading-5 text-muted-foreground">
-                현재 범위 기준으로 자주 보이는 key만 추려서 표시합니다. 현재 숨김 {hiddenFieldKeys.length}개
+                현재 범위 기준 상위 key만 표시합니다. 숨김 {hiddenFieldKeys.length}개
               </p>
             </>
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              structured field가 충분히 추출되면 여기서 필드별 표시 토글이 활성화됩니다.
+              구조화 필드가 추출되면 여기서 토글할 수 있습니다.
             </p>
           )}
         </CardContent>
@@ -428,7 +428,7 @@ export function SidebarSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Trace Radar</CardTitle>
           <CardDescription className="leading-6">
-            issue가 많거나 이벤트 수가 많은 trace를 우선 보여줍니다.
+            이벤트 수나 이슈가 큰 trace를 먼저 보여줍니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
