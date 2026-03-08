@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile } from "@tauri-apps/plugin-fs";
 import { Button } from "@/components/ui/button";
@@ -9,61 +10,108 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
+type ChartPoint = {
+  hour: string;
+  count: number;
+};
+
+function parseLogTimestamp(line: string): Date | null {
+  const isoLikeMatch = line.match(
+    /\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b/,
+  );
+
+  if (isoLikeMatch) {
+    const normalized = isoLikeMatch[0].includes("T")
+      ? isoLikeMatch[0]
+      : isoLikeMatch[0].replace(" ", "T");
+    const parsed = new Date(normalized);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  const slashSeparatedMatch = line.match(/\b\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}\b/);
+
+  if (slashSeparatedMatch) {
+    const normalized = slashSeparatedMatch[0].replace(/\//g, "-").replace(" ", "T");
+    const parsed = new Date(normalized);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function buildHourlyChartData(lines: string[]) {
+  const counts = Array.from({ length: 24 }, (_, hour) => ({
+    hour: `${hour.toString().padStart(2, "0")}시`,
+    count: 0,
+  }));
+
+  let parsedLineCount = 0;
+
+  for (const line of lines) {
+    const parsedTimestamp = parseLogTimestamp(line);
+
+    if (!parsedTimestamp) {
+      continue;
+    }
+
+    counts[parsedTimestamp.getHours()].count += 1;
+    parsedLineCount += 1;
+  }
+
+  return {
+    data: counts satisfies ChartPoint[],
+    parsedLineCount,
+  };
+}
+
 function App() {
   const [logFile, setLogFile] = useState<string | null>(null);
-  const [logContent, setLogContent] = useState<string>("");
   const [logLines, setLogLines] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("raw");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // 로그 파일 선택 함수
   async function selectLogFile() {
     try {
-      console.log("파일 선택 시작");
       const selected = await open({
         multiple: false,
         filters: [{
           name: "Log Files",
           extensions: ["log", "txt"]
         }],
-        // Tauri v2에서는 권한 관련 설정 추가
         defaultPath: "~/",
         directory: false
       });
 
-      console.log("선택된 파일:", selected);
-
       if (selected && !Array.isArray(selected)) {
         setLogFile(selected);
-        console.log("파일 읽기 시작:", selected);
+
         try {
+          await invoke("allow_file_access", { path: selected });
           const content = await readTextFile(selected);
-          console.log("파일 읽기 완료");
-          setLogContent(content);
+          setErrorMessage(null);
           setLogLines(content.split("\n").filter(line => line.trim() !== ""));
         } catch (readError) {
-          console.error("파일 읽기 오류:", readError);
+          setErrorMessage(readError instanceof Error ? readError.message : "로그 파일을 읽지 못했습니다.");
+          setLogLines([]);
         }
       }
     } catch (error) {
-      console.error("파일 선택 오류:", error);
+      setErrorMessage(error instanceof Error ? error.message : "로그 파일 선택 중 오류가 발생했습니다.");
     }
   }
 
-  // 검색어로 필터링된 로그 라인
   const filteredLogLines = logLines.filter((line: string) =>
     line.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 시간별 로그 개수 데이터 (예시)
-  const getChartData = () => {
-    // 실제 구현에서는 로그 파일의 타임스탬프를 파싱하여 시간별 로그 개수를 계산
-    // 여기서는 간단한 예시 데이터만 반환
-    return Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i}시`,
-      count: Math.floor(Math.random() * 50) + 10
-    }));
-  };
+  const chartData = buildHourlyChartData(filteredLogLines);
 
   return (
     <div className="container mx-auto p-4">
@@ -77,6 +125,9 @@ function App() {
             <Button onClick={selectLogFile}>로그 파일 선택</Button>
             {logFile && <p className="text-sm text-muted-foreground">{logFile}</p>}
           </div>
+          {errorMessage && (
+            <p className="mb-4 text-sm text-destructive">{errorMessage}</p>
+          )}
 
           {logFile && (
             <div className="mt-2">
@@ -105,22 +156,28 @@ function App() {
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[500px] rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[100px]">번호</TableHead>
-                              <TableHead>내용</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredLogLines.map((line, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{index + 1}</TableCell>
-                                <TableCell className="font-mono">{line}</TableCell>
+                        {filteredLogLines.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[100px]">번호</TableHead>
+                                <TableHead>내용</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredLogLines.map((line, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{index + 1}</TableCell>
+                                  <TableCell className="font-mono">{line}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="p-6 text-sm text-muted-foreground">
+                            조건에 맞는 로그 라인이 없습니다.
+                          </div>
+                        )}
                       </ScrollArea>
                     </CardContent>
                   </Card>
@@ -130,29 +187,37 @@ function App() {
                   <Card>
                     <CardHeader>
                       <CardTitle>시간별 로그 발생 빈도</CardTitle>
-                      <CardDescription>24시간 동안의 로그 발생 빈도를 보여줍니다</CardDescription>
+                      <CardDescription>
+                        파싱된 {chartData.parsedLineCount}개 로그 라인의 시간대 분포를 보여줍니다
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart
-                            data={getChartData()}
-                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line
-                              type="monotone"
-                              dataKey="count"
-                              name="로그 개수"
-                              stroke="#8884d8"
-                              activeDot={{ r: 8 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+                        {chartData.parsedLineCount > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                              data={chartData.data}
+                              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="hour" />
+                              <YAxis allowDecimals={false} />
+                              <Tooltip />
+                              <Legend />
+                              <Line
+                                type="monotone"
+                                dataKey="count"
+                                name="로그 개수"
+                                stroke="#8884d8"
+                                activeDot={{ r: 6 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex h-full items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                            인식 가능한 타임스탬프가 없어 시간대 분석을 표시할 수 없습니다.
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

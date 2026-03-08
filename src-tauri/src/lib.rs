@@ -1,9 +1,12 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use std::path::PathBuf;
+
 use tauri_plugin_fs::FsExt;
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn allow_file_access(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    app.fs_scope()
+        .allow_file(PathBuf::from(path))
+        .map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -12,15 +15,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .setup(|app| {
-            // 파일 시스템 접근 권한 설정
-            let fs_scope = app.fs_scope();
-            if let Err(e) = fs_scope.allow_directory("/", true) {
-                eprintln!("Failed to allow directory access: {}", e);
-            }
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![allow_file_access])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
