@@ -111,6 +111,12 @@ pnpm build
 pnpm test
 ```
 
+전체 점검을 한 번에 돌리려면:
+
+```bash
+pnpm check
+```
+
 데스크톱 앱 번들을 만들려면:
 
 ```bash
@@ -120,13 +126,50 @@ pnpm tauri build
 ## 코드 품질 명령
 
 ```bash
+pnpm check
 pnpm lint
 pnpm lint:js
 pnpm lint:rust
 pnpm test
+pnpm test:rust
 pnpm format
 pnpm format:rust
 ```
+
+`pnpm check`는 `lint + test + build + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
+
+## VCS 워크플로
+
+이 저장소는 Git 위에 `jj`를 공존시키는 방식으로 관리합니다. 새 클론에서 `jj`를 쓰려면 먼저 한 번 초기화합니다.
+
+```bash
+jj git init --colocate
+jj bookmark track master --remote origin
+```
+
+그 다음 기본 확인 명령은:
+
+```bash
+jj st
+jj diff
+jj log -n 10
+```
+
+작업 메시지를 붙일 때는:
+
+```bash
+jj describe -m "feat: summary"
+```
+
+원격 `master`를 따라가는 기본 흐름은:
+
+```bash
+jj git fetch --remote origin
+jj bookmark set master -r @
+jj git push --remote origin -b master
+```
+
+로컬 빠른 방어선은 `lefthook pre-commit`, 무거운 검증은 `lefthook pre-push`와 GitHub Actions CI가 맡습니다.
 
 ## 권한과 보안 메모
 
@@ -138,6 +181,7 @@ pnpm format:rust
 
 - 현재 `README`는 "실제 구현된 기능" 기준으로 정리되어 있습니다.
 - 2026-03-08 기준으로 JS audit 취약점은 전이 의존성 override까지 반영해 정리했습니다.
+- 2026-03-09 기준으로 저장소는 `jj git init --colocate` 상태이며, 로컬 훅은 `lefthook`으로 관리합니다.
 - 저장소 안에는 Tauri 기본 템플릿 흔적이 일부 남아 있으며, 대표적으로 [`src/App.css`](./src/App.css)는 현재 엔트리포인트에서 import되지 않습니다.
 
 ## 라이선스

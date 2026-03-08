@@ -115,6 +115,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
 - custom alias override UI는 아직 없음
 - Tauri 실제 런타임 연동은 smoke test가 아니라 수동 확인 비중이 큼
+- `jj`는 clone마다 `jj git init --colocate`를 한 번 해줘야 한다
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
 ## 다음 우선순위
@@ -169,10 +170,10 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 검증 기준
 
-현재 기본 검증 명령은 아래 셋입니다.
+현재 기본 검증 명령은 아래입니다.
 
 ```bash
-pnpm test
-pnpm build
-pnpm lint
+pnpm check
 ```
+
+`pnpm check`는 `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:rust`를 순서대로 실행합니다. `lefthook pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.

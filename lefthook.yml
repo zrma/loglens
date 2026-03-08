@@ -19,3 +19,8 @@ pre-commit:
     rustfmt:
       glob: "src-tauri/src/**/*.rs"
       run: cd src-tauri && cargo fmt --all -- --check
+
+pre-push:
+  commands:
+    check:
+      run: pnpm check
