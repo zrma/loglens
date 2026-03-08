@@ -20,7 +20,7 @@ import {
   filterLogEvents,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
-import type { LogLevel } from "@/lib/logs/types";
+import type { FieldFilter, LogLevel } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
@@ -48,8 +48,8 @@ function App() {
   const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
   const [traceFilter, setTraceFilter] = useState<string | "all">("all");
   const [requestFilter, setRequestFilter] = useState<string | "all">("all");
-  const [fieldKeyFilter, setFieldKeyFilter] = useState<string | "all">("all");
-  const [fieldValueFilter, setFieldValueFilter] = useState<string | "all">("all");
+  const [fieldFilters, setFieldFilters] = useState<FieldFilter[]>([]);
+  const [facetFieldKey, setFacetFieldKey] = useState<string | "all">("all");
   const [hiddenFieldKeys, setHiddenFieldKeys] = useState<string[]>([]);
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -62,22 +62,34 @@ function App() {
     setServiceFilter("all");
     setTraceFilter("all");
     setRequestFilter("all");
-    setFieldKeyFilter("all");
-    setFieldValueFilter("all");
+    setFieldFilters([]);
+    setFacetFieldKey("all");
     setIssuesOnly(false);
   }, []);
 
   const events = useMemo(() => session?.events ?? [], [session]);
-  const filteredEvents = useMemo(() => filterLogEvents(events, {
+  const sharedFilters = useMemo(() => ({
     searchTerm: deferredSearchTerm,
     level: levelFilter,
     service: serviceFilter,
     traceId: traceFilter,
     requestId: requestFilter,
-    fieldKey: fieldKeyFilter,
-    fieldValue: fieldValueFilter,
     issuesOnly,
-  }), [deferredSearchTerm, events, fieldKeyFilter, fieldValueFilter, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
+  }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
+  const scopedEvents = useMemo(() => filterLogEvents(events, {
+    ...sharedFilters,
+    fieldFilters: [],
+  }), [events, sharedFilters]);
+  const fieldFacetContextEvents = useMemo(() => filterLogEvents(events, {
+    ...sharedFilters,
+    fieldFilters: facetFieldKey === "all"
+      ? fieldFilters
+      : fieldFilters.filter((filter) => filter.key !== facetFieldKey),
+  }), [events, facetFieldKey, fieldFilters, sharedFilters]);
+  const filteredEvents = useMemo(() => filterLogEvents(events, {
+    ...sharedFilters,
+    fieldFilters,
+  }), [events, fieldFilters, sharedFilters]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
   const levelCounts = useMemo(() => buildLevelCounts(filteredEvents), [filteredEvents]);
@@ -104,8 +116,23 @@ function App() {
     () => buildFacetCounts(events.map((event) => event.requestId), "none"),
     [events],
   );
-  const fieldKeyOptions = useMemo(() => buildFieldKeyCounts(events), [events]);
-  const fieldValueOptions = useMemo(() => buildFieldValueCounts(events, fieldKeyFilter), [events, fieldKeyFilter]);
+  const fieldKeyOptions = useMemo(() => buildFieldKeyCounts(scopedEvents), [scopedEvents]);
+  const facetFieldKeyOptions = useMemo(() => {
+    const counter = new Map(fieldKeyOptions.map(({ label, count }) => [label, count]));
+
+    for (const filter of fieldFilters) {
+      counter.set(filter.key, counter.get(filter.key) ?? 0);
+    }
+
+    return [...counter.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+  }, [fieldFilters, fieldKeyOptions]);
+  const fieldValueOptions = useMemo(
+    () => buildFieldValueCounts(fieldFacetContextEvents, facetFieldKey),
+    [facetFieldKey, fieldFacetContextEvents],
+  );
+  const fieldFacetKeys = useMemo(() => facetFieldKeyOptions.slice(0, 8), [facetFieldKeyOptions]);
   const fieldLensKeys = useMemo(() => fieldKeyOptions.slice(0, 12), [fieldKeyOptions]);
   const traceOptions = useMemo(() => traceGroups.map((group) => group.traceId), [traceGroups]);
   const selectedEvent = useMemo(
@@ -171,7 +198,7 @@ function App() {
       value: events.length.toLocaleString(),
     },
     {
-      caption: searchTerm || levelFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldKeyFilter !== "all" || fieldValueFilter !== "all" || issuesOnly
+      caption: searchTerm || levelFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || issuesOnly
         ? "현재 필터가 적용된 결과"
         : "지금 화면에 표시되는 탐색 범위",
       icon: Filter,
@@ -195,9 +222,8 @@ function App() {
     },
   ], [
     events.length,
+    fieldFilters.length,
     filteredEvents.length,
-    fieldKeyFilter,
-    fieldValueFilter,
     issuesOnly,
     levelFilter,
     parserNoteCount,
@@ -226,10 +252,19 @@ function App() {
   const resetFieldVisibility = useCallback(() => {
     setHiddenFieldKeys([]);
   }, []);
-  const applyFieldFilter = useCallback((fieldKey: string, fieldValue: string) => {
-    setFieldKeyFilter(fieldKey);
-    setFieldValueFilter(fieldValue);
+  const addFieldFilter = useCallback((fieldKey: string, fieldValue: string) => {
+    setFieldFilters((current) => {
+      const next = current.filter((filter) => filter.key !== fieldKey);
+      return [...next, { key: fieldKey, value: fieldValue }];
+    });
+    setFacetFieldKey(fieldKey);
     setActiveTab("events");
+  }, []);
+  const removeFieldFilter = useCallback((fieldKey: string) => {
+    setFieldFilters((current) => current.filter((filter) => filter.key !== fieldKey));
+  }, []);
+  const clearFieldFilters = useCallback(() => {
+    setFieldFilters([]);
   }, []);
 
   useEffect(() => {
@@ -244,17 +279,22 @@ function App() {
   }, [resetFilters, session]);
 
   useEffect(() => {
-    if (fieldKeyFilter === "all") {
-      if (fieldValueFilter !== "all") {
-        setFieldValueFilter("all");
+    if (facetFieldKeyOptions.length === 0) {
+      if (facetFieldKey !== "all") {
+        setFacetFieldKey(fieldFilters[0]?.key ?? "all");
       }
       return;
     }
 
-    if (fieldValueFilter !== "all" && !fieldValueOptions.some(({ label }) => label === fieldValueFilter)) {
-      setFieldValueFilter("all");
+    if (facetFieldKey === "all") {
+      setFacetFieldKey(fieldFilters[0]?.key ?? facetFieldKeyOptions[0]?.label ?? "all");
+      return;
     }
-  }, [fieldKeyFilter, fieldValueFilter, fieldValueOptions]);
+
+    if (!facetFieldKeyOptions.some(({ label }) => label === facetFieldKey)) {
+      setFacetFieldKey(fieldFilters[0]?.key ?? facetFieldKeyOptions[0]?.label ?? "all");
+    }
+  }, [facetFieldKey, facetFieldKeyOptions, fieldFilters]);
 
   useEffect(() => {
     if (!selectedEventId || !hasSelectedEvent) {
@@ -291,14 +331,15 @@ function App() {
             serviceFilter={serviceFilter}
             traceFilter={traceFilter}
             requestFilter={requestFilter}
-            fieldKeyFilter={fieldKeyFilter}
-            fieldValueFilter={fieldValueFilter}
+            fieldFilters={fieldFilters}
+            facetFieldKey={facetFieldKey}
             issuesOnly={issuesOnly}
             serviceOptions={serviceOptions}
             traceOptions={traceOptions}
             requestOptions={requestOptions}
-            fieldKeyOptions={fieldKeyOptions}
+            fieldKeyOptions={facetFieldKeyOptions}
             fieldValueOptions={fieldValueOptions}
+            fieldFacetKeys={fieldFacetKeys}
             fieldLensKeys={fieldLensKeys}
             hiddenFieldKeys={hiddenFieldKeys}
             topTraceGroups={topTraceGroups}
@@ -307,10 +348,12 @@ function App() {
             onServiceFilterChange={setServiceFilter}
             onTraceFilterChange={setTraceFilter}
             onRequestFilterChange={setRequestFilter}
-            onFieldKeyFilterChange={setFieldKeyFilter}
-            onFieldValueFilterChange={setFieldValueFilter}
+            onFacetFieldKeyChange={setFacetFieldKey}
             onIssuesOnlyChange={setIssuesOnly}
             onResetFilters={resetFilters}
+            onAddFieldFilter={addFieldFilter}
+            onRemoveFieldFilter={removeFieldFilter}
+            onClearFieldFilters={clearFieldFilters}
             onToggleFieldVisibility={toggleFieldVisibility}
             onHideAllFieldVisibility={hideAllFieldVisibility}
             onResetFieldVisibility={resetFieldVisibility}
@@ -376,13 +419,15 @@ function App() {
                     selectedTraceGroup={selectedTraceGroup}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
+                    activeFieldFilters={fieldFilters}
                     visibleFieldEntries={visibleFieldEntries}
                     hiddenSelectedFieldKeys={hiddenSelectedFieldKeys}
                     onSelectEvent={setSelectedEventId}
                     onApplyTraceFilter={setTraceFilter}
                     onApplyServiceFilter={setServiceFilter}
                     onApplyRequestFilter={setRequestFilter}
-                    onApplyFieldFilter={applyFieldFilter}
+                    onAddFieldFilter={addFieldFilter}
+                    onRemoveFieldFilter={removeFieldFilter}
                     onToggleFieldVisibility={toggleFieldVisibility}
                   />
                 </TabsContent>

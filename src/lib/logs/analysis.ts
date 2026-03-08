@@ -1,4 +1,5 @@
 import type {
+  FieldFilter,
   LogEvent,
   LogFilters,
   LogLevel,
@@ -64,15 +65,7 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
       return false;
     }
 
-    if (filters.fieldKey !== "all" && !(filters.fieldKey in event.fields)) {
-      return false;
-    }
-
-    if (
-      filters.fieldKey !== "all"
-      && filters.fieldValue !== "all"
-      && event.fields[filters.fieldKey] !== filters.fieldValue
-    ) {
+    if (!matchesFieldFilters(event, filters.fieldFilters)) {
       return false;
     }
 
@@ -98,6 +91,10 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
 
     return haystacks.some((value) => value?.toLowerCase().includes(normalizedSearch));
   });
+}
+
+export function matchesFieldFilters(event: LogEvent, filters: FieldFilter[]) {
+  return filters.every((filter) => event.fields[filter.key] === filter.value);
 }
 
 export function buildFieldKeyCounts(events: LogEvent[]) {

@@ -10,8 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { LogLevel, TraceGroup } from "@/lib/logs/types";
 import type { FacetCount } from "@/lib/logs/analysis";
+import type { FieldFilter, LogLevel, TraceGroup } from "@/lib/logs/types";
 import { LEVEL_LABELS, formatTraceLabel } from "@/features/log-explorer/presentation";
 
 type SidebarSectionProps = {
@@ -21,14 +21,15 @@ type SidebarSectionProps = {
   serviceFilter: string | "all";
   traceFilter: string | "all";
   requestFilter: string | "all";
-  fieldKeyFilter: string | "all";
-  fieldValueFilter: string | "all";
+  fieldFilters: FieldFilter[];
+  facetFieldKey: string | "all";
   issuesOnly: boolean;
   serviceOptions: FacetCount[];
   traceOptions: string[];
   requestOptions: FacetCount[];
   fieldKeyOptions: FacetCount[];
   fieldValueOptions: FacetCount[];
+  fieldFacetKeys: FacetCount[];
   fieldLensKeys: FacetCount[];
   hiddenFieldKeys: string[];
   topTraceGroups: TraceGroup[];
@@ -37,10 +38,12 @@ type SidebarSectionProps = {
   onServiceFilterChange: (value: string | "all") => void;
   onTraceFilterChange: (value: string | "all") => void;
   onRequestFilterChange: (value: string | "all") => void;
-  onFieldKeyFilterChange: (value: string | "all") => void;
-  onFieldValueFilterChange: (value: string | "all") => void;
+  onFacetFieldKeyChange: (value: string | "all") => void;
   onIssuesOnlyChange: (value: boolean) => void;
   onResetFilters: () => void;
+  onAddFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onRemoveFieldFilter: (fieldKey: string) => void;
+  onClearFieldFilters: () => void;
   onToggleFieldVisibility: (fieldKey: string) => void;
   onHideAllFieldVisibility: () => void;
   onResetFieldVisibility: () => void;
@@ -54,14 +57,15 @@ export function SidebarSection({
   serviceFilter,
   traceFilter,
   requestFilter,
-  fieldKeyFilter,
-  fieldValueFilter,
+  fieldFilters,
+  facetFieldKey,
   issuesOnly,
   serviceOptions,
   traceOptions,
   requestOptions,
   fieldKeyOptions,
   fieldValueOptions,
+  fieldFacetKeys,
   fieldLensKeys,
   hiddenFieldKeys,
   topTraceGroups,
@@ -70,22 +74,28 @@ export function SidebarSection({
   onServiceFilterChange,
   onTraceFilterChange,
   onRequestFilterChange,
-  onFieldKeyFilterChange,
-  onFieldValueFilterChange,
+  onFacetFieldKeyChange,
   onIssuesOnlyChange,
   onResetFilters,
+  onAddFieldFilter,
+  onRemoveFieldFilter,
+  onClearFieldFilters,
   onToggleFieldVisibility,
   onHideAllFieldVisibility,
   onResetFieldVisibility,
   onSelectTraceGroup,
 }: SidebarSectionProps) {
+  const activeFacetFilter = fieldFilters.find((filter) => filter.key === facetFieldKey) ?? null;
+  const previewFieldValues = fieldValueOptions.slice(0, 12);
+  const remainingFieldValueCount = Math.max(fieldValueOptions.length - previewFieldValues.length, 0);
+
   return (
     <div className="space-y-6">
       <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">탐색 필터</CardTitle>
           <CardDescription className="leading-6">
-            검색어, level, service, trace, request, 필드 필터를 함께 조합해 탐색 범위를 좁힙니다.
+            검색어, level, service, trace, request를 함께 조합해 탐색 범위를 좁힙니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -148,34 +158,6 @@ export function SidebarSection({
                 ))}
               </SelectContent>
             </Select>
-
-            <Select value={fieldKeyFilter} onValueChange={onFieldKeyFilterChange} disabled={!hasSession}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="필드 키" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 필드 키</SelectItem>
-                {fieldKeyOptions.map(({ label, count }) => (
-                  <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={fieldValueFilter}
-              onValueChange={onFieldValueFilterChange}
-              disabled={!hasSession || fieldKeyFilter === "all"}
-            >
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="필드 값" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 필드 값</SelectItem>
-                {fieldValueOptions.map(({ label, count }) => (
-                  <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -208,9 +190,130 @@ export function SidebarSection({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <div>
+              <CardTitle className="text-xl tracking-[-0.03em]">Field Facets</CardTitle>
+              <CardDescription className="pt-1 leading-6">
+                structured field 값으로 조건을 누적하면서 이벤트를 좁혀 갑니다.
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+              onClick={onClearFieldFilters}
+              disabled={!hasSession || fieldFilters.length === 0}
+            >
+              조건 해제
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {fieldFilters.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {fieldFilters.map((filter) => (
+                <button
+                  key={`${filter.key}:${filter.value}`}
+                  type="button"
+                  onClick={() => onRemoveFieldFilter(filter.key)}
+                  className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition hover:border-primary/30 hover:bg-primary/15"
+                >
+                  {filter.key} = {filter.value} 닫기
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              아직 적용된 필드 조건이 없습니다. 아래에서 key를 고른 뒤 value를 눌러 누적해 보세요.
+            </p>
+          )}
+
+          <Select value={facetFieldKey} onValueChange={onFacetFieldKeyChange} disabled={!hasSession || fieldKeyOptions.length === 0}>
+            <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectValue placeholder="facet key 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">facet key 선택</SelectItem>
+              {fieldKeyOptions.map(({ label, count }) => (
+                <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {fieldFacetKeys.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {fieldFacetKeys.map(({ label, count }) => {
+                const isActive = facetFieldKey === label;
+
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => onFacetFieldKeyChange(label)}
+                    disabled={!hasSession}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                      isActive
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
+                    )}
+                  >
+                    {label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {facetFieldKey !== "all" ? (
+            previewFieldValues.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {previewFieldValues.map(({ label, count }) => {
+                    const isActive = activeFacetFilter?.value === label;
+
+                    return (
+                      <button
+                        key={`${facetFieldKey}:${label}`}
+                        type="button"
+                        onClick={() => onAddFieldFilter(facetFieldKey, label)}
+                        disabled={!hasSession}
+                        className={cn(
+                          "rounded-2xl border px-3 py-2 text-left text-xs font-medium transition",
+                          isActive
+                            ? "border-primary/30 bg-primary/10 text-primary"
+                            : "border-border/70 bg-white/80 text-foreground hover:border-primary/20 hover:bg-primary/5",
+                        )}
+                      >
+                        <span className="block break-all [overflow-wrap:anywhere]">{label}</span>
+                        <span className="mt-1 block text-[11px] text-muted-foreground">{count} events</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  같은 field key는 마지막에 누른 value로 교체됩니다.
+                  {remainingFieldValueCount > 0 ? ` 상위 ${previewFieldValues.length}개만 표시 중입니다.` : ""}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-muted-foreground">
+                현재 탐색 범위에서는 선택한 field key에 남아 있는 value가 없습니다.
+              </p>
+            )
+          ) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              자주 쓰는 key를 고르면 아래에서 value facet이 열립니다.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
               <CardTitle className="text-xl tracking-[-0.03em]">Field Lens</CardTitle>
               <CardDescription className="pt-1 leading-6">
-                자주 등장하는 structured field를 기준으로 표시 여부를 조절합니다.
+                추출된 필드 섹션에서 보일 key를 골라 상세 패널 밀도를 조절합니다.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -261,7 +364,7 @@ export function SidebarSection({
                 })}
               </div>
               <p className="text-xs leading-5 text-muted-foreground">
-                추출된 필드 섹션에서 숨길 키를 고를 수 있습니다. 현재 숨김 {hiddenFieldKeys.length}개
+                현재 범위 기준으로 자주 보이는 key만 추려서 표시합니다. 현재 숨김 {hiddenFieldKeys.length}개
               </p>
             </>
           ) : (
@@ -322,7 +425,7 @@ export function SidebarSection({
             </button>
           )) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              traceId가 포함된 이벤트가 아직 없습니다.
+              trace id가 추출되면 상위 trace가 이곳에 나타납니다.
             </p>
           )}
         </CardContent>

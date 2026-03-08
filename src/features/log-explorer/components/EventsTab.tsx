@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDuration, formatTimestamp } from "@/lib/logs/analysis";
-import type { LogEvent, SpanForest, SpanNode, TraceGroup } from "@/lib/logs/types";
+import type { FieldFilter, LogEvent, SpanForest, SpanNode, TraceGroup } from "@/lib/logs/types";
 import { cn } from "@/lib/utils";
 import { LevelBadge, formatTraceLabel } from "@/features/log-explorer/presentation";
 import { VirtualizedEventStream } from "@/features/log-explorer/components/VirtualizedEventStream";
@@ -15,13 +15,15 @@ type EventsTabProps = {
   selectedTraceGroup: TraceGroup | null;
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
+  activeFieldFilters: FieldFilter[];
   visibleFieldEntries: Array<[string, string]>;
   hiddenSelectedFieldKeys: string[];
   onSelectEvent: (eventId: string) => void;
   onApplyTraceFilter: (traceId: string) => void;
   onApplyServiceFilter: (service: string) => void;
   onApplyRequestFilter: (requestId: string) => void;
-  onApplyFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onAddFieldFilter: (fieldKey: string, fieldValue: string) => void;
+  onRemoveFieldFilter: (fieldKey: string) => void;
   onToggleFieldVisibility: (fieldKey: string) => void;
 };
 
@@ -131,13 +133,15 @@ export function EventsTab({
   selectedTraceGroup,
   relatedEvents,
   spanForest,
+  activeFieldFilters,
   visibleFieldEntries,
   hiddenSelectedFieldKeys,
   onSelectEvent,
   onApplyTraceFilter,
   onApplyServiceFilter,
   onApplyRequestFilter,
-  onApplyFieldFilter,
+  onAddFieldFilter,
+  onRemoveFieldFilter,
   onToggleFieldVisibility,
 }: EventsTabProps) {
   const timelineNodes = spanForest ? flattenSpanNodes(spanForest.roots) : [];
@@ -146,23 +150,39 @@ export function EventsTab({
     <div className="min-w-0 grid gap-6 min-[1820px]:grid-cols-[minmax(0,1.28fr)_340px]">
       <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="border-b border-border/70 pb-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle className="text-2xl tracking-[-0.04em]">이벤트 스트림</CardTitle>
-              <CardDescription className="pt-2 leading-6">
-                필터 적용 결과 {filteredEvents.length.toLocaleString()}개 이벤트를 표시합니다.
-              </CardDescription>
-            </div>
-            <div className="flex min-w-0 flex-wrap gap-2">
-              <span className="max-w-full truncate rounded-full border border-border/80 bg-secondary/55 px-3 py-1 text-xs font-medium text-secondary-foreground">
-                source: {sessionTitle}
-              </span>
-              {traceFilter !== "all" && (
-                <span className="max-w-full truncate rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  trace: {formatTraceLabel(traceFilter)}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <CardTitle className="text-2xl tracking-[-0.04em]">이벤트 스트림</CardTitle>
+                <CardDescription className="pt-2 leading-6">
+                  필터 적용 결과 {filteredEvents.length.toLocaleString()}개 이벤트를 표시합니다.
+                </CardDescription>
+              </div>
+              <div className="flex min-w-0 flex-wrap gap-2">
+                <span className="max-w-full truncate rounded-full border border-border/80 bg-secondary/55 px-3 py-1 text-xs font-medium text-secondary-foreground">
+                  source: {sessionTitle}
                 </span>
-              )}
+                {traceFilter !== "all" && (
+                  <span className="max-w-full truncate rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                    trace: {formatTraceLabel(traceFilter)}
+                  </span>
+                )}
+              </div>
             </div>
+            {activeFieldFilters.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {activeFieldFilters.map((filter) => (
+                  <button
+                    key={`${filter.key}:${filter.value}`}
+                    type="button"
+                    onClick={() => onRemoveFieldFilter(filter.key)}
+                    className="max-w-full rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition hover:border-primary/30 hover:bg-primary/15"
+                  >
+                    {filter.key} = {filter.value}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -484,9 +504,9 @@ export function EventsTab({
                             variant="ghost"
                             size="sm"
                             className="h-7 rounded-full px-3 text-xs"
-                            onClick={() => onApplyFieldFilter(key, value)}
+                            onClick={() => onAddFieldFilter(key, value)}
                           >
-                            필터
+                            조건 추가
                           </Button>
                           <Button
                             type="button"

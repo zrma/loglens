@@ -69,8 +69,7 @@ describe("parseLogContent", () => {
       service: "all",
       traceId: "trace-auth-9912",
       requestId: "all",
-      fieldKey: "all",
-      fieldValue: "all",
+      fieldFilters: [],
       issuesOnly: false,
     });
 
@@ -120,8 +119,7 @@ describe("parseLogContent", () => {
       service: "all",
       traceId: "all",
       requestId: "all",
-      fieldKey: "route",
-      fieldValue: "/checkout",
+      fieldFilters: [{ key: "route", value: "/checkout" }],
       issuesOnly: false,
     });
 
@@ -134,8 +132,7 @@ describe("parseLogContent", () => {
       service: "all",
       traceId: "all",
       requestId: "all",
-      fieldKey: "all",
-      fieldValue: "all",
+      fieldFilters: [],
       issuesOnly: false,
     });
 
@@ -150,6 +147,30 @@ describe("parseLogContent", () => {
       { label: "/checkout", count: 1 },
       { label: "/login", count: 1 },
     ]));
+  });
+
+  it("combines multiple structured field filters with and semantics", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T10:15:03.441Z","level":"error","service":"payments-api","trace_id":"trace-checkout-4821","span_id":"span-pay-1","request_id":"req-77","message":"payment provider timeout","route":"/checkout","provider":"stripe"}
+{"timestamp":"2026-03-08T10:15:05.441Z","level":"info","service":"payments-api","trace_id":"trace-checkout-4821","span_id":"span-pay-2","request_id":"req-77","message":"fallback provider engaged","route":"/checkout","provider":"adyen"}
+{"timestamp":"2026-03-08T10:15:07.441Z","level":"info","service":"edge-gateway","trace_id":"trace-auth-9912","span_id":"span-auth-1","request_id":"req-81","message":"login request","route":"/login","provider":"internal"}
+    `.trim());
+    const filtered = filterLogEvents(session.events, {
+      searchTerm: "",
+      level: "all",
+      service: "all",
+      traceId: "all",
+      requestId: "all",
+      fieldFilters: [
+        { key: "route", value: "/checkout" },
+        { key: "provider", value: "stripe" },
+      ],
+      issuesOnly: false,
+    });
+
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.fields.route).toBe("/checkout");
+    expect(filtered[0]?.fields.provider).toBe("stripe");
   });
 
   it("extracts nested json fields and falls back to traceparent context", () => {

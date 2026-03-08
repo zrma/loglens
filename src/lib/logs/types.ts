@@ -53,14 +53,18 @@ export type ParsedLogSession = {
   diagnostics: ParseDiagnostic[];
 };
 
+export type FieldFilter = {
+  key: string;
+  value: string;
+};
+
 export type LogFilters = {
   searchTerm: string;
   level: LogLevel | "all";
   service: string | "all";
   traceId: string | "all";
   requestId: string | "all";
-  fieldKey: string | "all";
-  fieldValue: string | "all";
+  fieldFilters: FieldFilter[];
   issuesOnly: boolean;
 };
 

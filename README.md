@@ -17,7 +17,7 @@
 - Tauri 파일 선택 다이얼로그로 로그 파일 1개를 연다.
 - 선택한 텍스트 로그를 구조화 이벤트로 파싱한다.
 - 이벤트 목록과 상세 패널을 함께 보여준다.
-- 검색어, level, service, trace, request, issue-only 기준으로 이벤트를 필터링한다.
+- 검색어, level, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
@@ -30,13 +30,14 @@
 - `.log`, `.txt` 파일 단일 선택
 - 라인 스트리밍 기반 로컬 파일 읽기
 - 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, `traceparent` fallback, multiline stack trace 병합)
-- 검색어, level, service, trace, request, structured field key/value, issue-only 기반 필터링
+- 검색어, level, service, trace, request, structured field facet, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
 - trace 내부 parent/child span topology 카드
 - trace 상대 시간축 기준 span timeline 카드
 - 이벤트 스트림 windowed/virtualized 렌더링
 - parser note와 line range 표시
+- Field Facets 기반 field key/value drill-down과 다중 조건 조합
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
