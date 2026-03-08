@@ -36,12 +36,15 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - issue-only 토글
   - 이벤트 목록
   - windowed/virtualized event stream
+  - event stream column 토글
+  - structured field column pinning
   - 상세 이벤트 패널
   - parser notes 표시
   - raw block 표시
   - field key visibility 토글
 - 관계 추적 UI
   - trace group 요약
+  - derived flow group 요약
   - trace source coverage
   - span topology 트리
   - span timeline
@@ -86,6 +89,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - trace 내 span 부모/자식 관계 확인
 - trace 내 span 상대 시간축 확인
 - 같은 trace가 여러 source에 걸쳐 있는지 비교하기
+- trace가 없어도 route/resource/request 기준으로 REST 흐름 묶어 보기
 
 ## 아직 부족한 것
 

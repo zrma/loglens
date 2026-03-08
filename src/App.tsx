@@ -4,6 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
 import { OverviewSection } from "@/features/log-explorer/components/OverviewSection";
 import { SidebarSection } from "@/features/log-explorer/components/SidebarSection";
+import {
+  buildEventStreamColumns,
+  DEFAULT_EVENT_STREAM_COLUMNS,
+  normalizeBuiltinEventStreamColumns,
+  type EventStreamBuiltinColumnId,
+} from "@/features/log-explorer/event-stream-columns";
 import { useLogSession } from "@/features/log-explorer/hooks/useLogSession";
 import {
   type MetricCardProps,
@@ -11,6 +17,7 @@ import {
 } from "@/features/log-explorer/presentation";
 import {
   buildFacetCounts,
+  buildDerivedFlowGroups,
   buildFieldKeyCounts,
   buildFieldValueCounts,
   buildHourlyChartData,
@@ -19,6 +26,7 @@ import {
   buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
+  getDerivedFlowGroupForEvent,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
 import type { FieldFilter, LogEvent, LogLevel } from "@/lib/logs/types";
@@ -64,6 +72,8 @@ function App() {
   const [fieldFilters, setFieldFilters] = useState<FieldFilter[]>([]);
   const [facetFieldKey, setFacetFieldKey] = useState<string | "all">("all");
   const [hiddenFieldKeys, setHiddenFieldKeys] = useState<string[]>([]);
+  const [eventStreamBuiltinColumns, setEventStreamBuiltinColumns] = useState<EventStreamBuiltinColumnId[]>([...DEFAULT_EVENT_STREAM_COLUMNS]);
+  const [pinnedEventFieldColumns, setPinnedEventFieldColumns] = useState<string[]>([]);
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
@@ -105,8 +115,11 @@ function App() {
     ...sharedFilters,
     fieldFilters,
   }), [events, fieldFilters, sharedFilters]);
+  const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
+  const derivedFlowGroups = useMemo(() => buildDerivedFlowGroups(events), [events]);
+  const filteredDerivedFlowGroups = useMemo(() => buildDerivedFlowGroups(filteredEvents), [filteredEvents]);
   const levelCounts = useMemo(() => buildLevelCounts(filteredEvents), [filteredEvents]);
   const serviceCounts = useMemo(
     () => buildFacetCounts(filteredEvents.map((event) => event.service), "미지정"),
@@ -139,6 +152,7 @@ function App() {
     () => buildFacetCounts(events.map((event) => event.requestId), "none"),
     [events],
   );
+  const sessionFieldKeyOptions = useMemo(() => buildFieldKeyCounts(events), [events]);
   const fieldKeyOptions = useMemo(() => buildFieldKeyCounts(scopedEvents), [scopedEvents]);
   const facetFieldKeyOptions = useMemo(() => {
     const counter = new Map(fieldKeyOptions.map(({ label, count }) => [label, count]));
@@ -157,6 +171,11 @@ function App() {
   );
   const fieldFacetKeys = useMemo(() => facetFieldKeyOptions.slice(0, 8), [facetFieldKeyOptions]);
   const fieldLensKeys = useMemo(() => fieldKeyOptions.slice(0, 12), [fieldKeyOptions]);
+  const eventColumnFieldOptions = useMemo(() => sessionFieldKeyOptions.slice(0, 10), [sessionFieldKeyOptions]);
+  const eventStreamColumns = useMemo(
+    () => buildEventStreamColumns(eventStreamBuiltinColumns, pinnedEventFieldColumns),
+    [eventStreamBuiltinColumns, pinnedEventFieldColumns],
+  );
   const traceOptions = useMemo(() => traceGroups.map((group) => group.traceId), [traceGroups]);
   const selectedEvent = useMemo(
     () => filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null,
@@ -171,7 +190,24 @@ function App() {
     () => buildTraceSourceCoverage(events, selectedEvent?.traceId ?? null),
     [events, selectedEvent?.traceId],
   );
-  const relatedEvents = useMemo(() => getRelatedEvents(events, selectedEvent, 10), [events, selectedEvent]);
+  const selectedDerivedFlowGroup = useMemo(
+    () => getDerivedFlowGroupForEvent(derivedFlowGroups, selectedEvent),
+    [derivedFlowGroups, selectedEvent],
+  );
+  const relatedEvents = useMemo(() => {
+    if (!selectedEvent) {
+      return [];
+    }
+
+    if (!selectedEvent.traceId && selectedDerivedFlowGroup) {
+      return selectedDerivedFlowGroup.eventIds
+        .map((eventId) => eventsById.get(eventId))
+        .filter((event): event is LogEvent => Boolean(event))
+        .slice(0, 10);
+    }
+
+    return getRelatedEvents(events, selectedEvent, 10);
+  }, [events, eventsById, selectedDerivedFlowGroup, selectedEvent]);
   const spanForest = useMemo(
     () => buildSpanForest(events, selectedEvent?.traceId ?? null),
     [events, selectedEvent?.traceId],
@@ -179,6 +215,10 @@ function App() {
   const topTraceGroups = useMemo(
     () => (traceFilter === "all" ? traceGroups : filteredTraceGroups).slice(0, 6),
     [filteredTraceGroups, traceFilter, traceGroups],
+  );
+  const topDerivedFlowGroups = useMemo(
+    () => filteredDerivedFlowGroups.slice(0, 6),
+    [filteredDerivedFlowGroups],
   );
   const servicesInSession = useMemo(
     () => new Set(events.map((event) => event.service).filter(Boolean)).size,
@@ -309,6 +349,25 @@ function App() {
   const clearFieldFilters = useCallback(() => {
     setFieldFilters([]);
   }, []);
+  const toggleBuiltinEventColumn = useCallback((columnId: EventStreamBuiltinColumnId) => {
+    setEventStreamBuiltinColumns((current) => normalizeBuiltinEventStreamColumns(
+      current.includes(columnId)
+        ? current.filter((value) => value !== columnId)
+        : [...current, columnId],
+      pinnedEventFieldColumns,
+    ));
+  }, [pinnedEventFieldColumns]);
+  const toggleEventFieldColumn = useCallback((fieldKey: string) => {
+    setPinnedEventFieldColumns((current) => (
+      current.includes(fieldKey)
+        ? current.filter((value) => value !== fieldKey)
+        : [...current, fieldKey]
+    ));
+  }, []);
+  const resetEventColumns = useCallback(() => {
+    setEventStreamBuiltinColumns([...DEFAULT_EVENT_STREAM_COLUMNS]);
+    setPinnedEventFieldColumns([]);
+  }, []);
 
   useEffect(() => {
     if (!session) {
@@ -344,6 +403,12 @@ function App() {
       setSelectedEventId(preferredFilteredEventId);
     }
   }, [hasSelectedEvent, preferredFilteredEventId, selectedEventId]);
+
+  useEffect(() => {
+    const availableFieldKeys = new Set(sessionFieldKeyOptions.map(({ label }) => label));
+
+    setPinnedEventFieldColumns((current) => current.filter((fieldKey) => availableFieldKeys.has(fieldKey)));
+  }, [sessionFieldKeyOptions]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -393,7 +458,11 @@ function App() {
             fieldFacetKeys={fieldFacetKeys}
             fieldLensKeys={fieldLensKeys}
             hiddenFieldKeys={hiddenFieldKeys}
+            eventStreamBuiltinColumns={eventStreamBuiltinColumns}
+            pinnedEventFieldColumns={pinnedEventFieldColumns}
+            eventColumnFieldOptions={eventColumnFieldOptions}
             topTraceGroups={topTraceGroups}
+            topDerivedFlowGroups={topDerivedFlowGroups}
             onSearchTermChange={setSearchTerm}
             onLevelFilterChange={setLevelFilter}
             onSourceFilterChange={setSourceFilter}
@@ -409,8 +478,15 @@ function App() {
             onToggleFieldVisibility={toggleFieldVisibility}
             onHideAllFieldVisibility={hideAllFieldVisibility}
             onResetFieldVisibility={resetFieldVisibility}
+            onToggleBuiltinEventColumn={toggleBuiltinEventColumn}
+            onToggleEventFieldColumn={toggleEventFieldColumn}
+            onResetEventColumns={resetEventColumns}
             onSelectTraceGroup={(group) => {
               setTraceFilter(group.traceId);
+              setActiveTab("events");
+              setSelectedEventId(group.eventIds[0] ?? null);
+            }}
+            onSelectDerivedFlowGroup={(group) => {
               setActiveTab("events");
               setSelectedEventId(group.eventIds[0] ?? null);
             }}
@@ -469,9 +545,11 @@ function App() {
                     selectedEvent={selectedEvent}
                     selectedTraceGroup={selectedTraceGroup}
                     selectedTraceSourceCoverage={selectedTraceSourceCoverage}
+                    selectedDerivedFlowGroup={selectedDerivedFlowGroup}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
                     activeFieldFilters={fieldFilters}
+                    eventStreamColumns={eventStreamColumns}
                     showSourceContext={showSourceContext}
                     visibleFieldEntries={visibleFieldEntries}
                     hiddenSelectedFieldKeys={hiddenSelectedFieldKeys}

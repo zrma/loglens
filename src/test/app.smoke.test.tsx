@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
@@ -66,6 +66,30 @@ describe("App smoke", () => {
     expect(screen.getByText(/trace span 트리입니다/i)).toBeInTheDocument();
     expect(await screen.findByText(/4줄을 하나의 이벤트로 병합했습니다/i)).toBeInTheDocument();
     expect(screen.getAllByText(/span-auth-root/i).length).toBeGreaterThan(0);
+  });
+
+  it("lets users add source and field columns to the event stream", async () => {
+    render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /샘플 trace 세션 로드/i }));
+    });
+
+    const eventStream = await screen.findByRole("listbox", { name: /로그 이벤트 스트림/i });
+
+    expect(within(eventStream).queryByText("Source")).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Source 컬럼/i }));
+    });
+
+    expect(within(eventStream).getByText("Source")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /request_id 필드 컬럼/i }));
+    });
+
+    expect(within(eventStream).getByText("request_id")).toBeInTheDocument();
   });
 
   it("streams selected files line by line and merges them into one session", async () => {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildDerivedFlowGroups,
   buildFieldKeyCounts,
   buildFieldValueCounts,
   buildSpanForest,
+  getDerivedFlowGroupForEvent,
   buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
@@ -322,6 +324,28 @@ run batch service....
       timestampText: "2026-03-08T12:34:56.000Z",
       traceId: "trace-custom-1",
     });
+  });
+
+  it("builds derived flows for restful create and follow-up events without explicit trace ids", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:00:00.000Z","level":"info","service":"api-gateway","message":"transcribe created","method":"POST","path":"/v1/transcribe","transcription_id":"tr-9812"}
+{"timestamp":"2026-03-08T12:00:02.000Z","level":"info","service":"worker","message":"job picked up","method":"GET","path":"/v1/transcribe/tr-9812","status":"running"}
+{"timestamp":"2026-03-08T12:00:04.000Z","level":"info","service":"worker","message":"job completed","method":"PATCH","path":"/v1/transcribe/tr-9812","status":"completed"}
+    `.trim());
+
+    const flows = buildDerivedFlowGroups(session.events);
+
+    expect(flows).toHaveLength(1);
+    expect(flows[0]).toMatchObject({
+      correlationKind: "resource",
+      correlationValue: "tr-9812",
+      eventCount: 3,
+      family: "/v1/transcribe",
+      methods: ["POST", "GET", "PATCH"],
+      resourceId: "tr-9812",
+      routes: ["/v1/transcribe", "/v1/transcribe/:id"],
+    });
+    expect(getDerivedFlowGroupForEvent(flows, session.events[1] ?? null)?.flowKey).toBe(flows[0]?.flowKey);
   });
 
   it("merges go panic stack traces into a single event", () => {

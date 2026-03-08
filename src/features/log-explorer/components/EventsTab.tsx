@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDuration, formatTimestamp } from "@/lib/logs/analysis";
 import type {
+  DerivedFlowGroup,
   FieldFilter,
   LogEvent,
   SpanForest,
@@ -12,6 +13,7 @@ import type {
 import { cn } from "@/lib/utils";
 import { LevelBadge, formatTraceLabel } from "@/features/log-explorer/presentation";
 import { VirtualizedEventStream } from "@/features/log-explorer/components/VirtualizedEventStream";
+import type { EventStreamColumn } from "@/features/log-explorer/event-stream-columns";
 
 type EventsTabProps = {
   sessionTitle: string;
@@ -21,9 +23,11 @@ type EventsTabProps = {
   selectedEvent: LogEvent | null;
   selectedTraceGroup: TraceGroup | null;
   selectedTraceSourceCoverage: TraceSourceCoverage[];
+  selectedDerivedFlowGroup: DerivedFlowGroup | null;
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
   activeFieldFilters: FieldFilter[];
+  eventStreamColumns: EventStreamColumn[];
   showSourceContext: boolean;
   visibleFieldEntries: Array<[string, string]>;
   hiddenSelectedFieldKeys: string[];
@@ -142,9 +146,11 @@ export function EventsTab({
   selectedEvent,
   selectedTraceGroup,
   selectedTraceSourceCoverage,
+  selectedDerivedFlowGroup,
   relatedEvents,
   spanForest,
   activeFieldFilters,
+  eventStreamColumns,
   showSourceContext,
   visibleFieldEntries,
   hiddenSelectedFieldKeys,
@@ -206,6 +212,7 @@ export function EventsTab({
         <CardContent className="p-0">
           {filteredEvents.length > 0 ? (
             <VirtualizedEventStream
+              columns={eventStreamColumns}
               events={filteredEvents}
               searchTerm={searchTerm}
               selectedEventId={selectedEvent?.id ?? null}
@@ -325,7 +332,75 @@ export function EventsTab({
                     이 request만 보기
                   </Button>
                 )}
+                {selectedDerivedFlowGroup && (
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => {
+                      const nextEventId = selectedDerivedFlowGroup.eventIds[0];
+
+                      if (nextEventId) {
+                        onSelectEvent(nextEventId);
+                      }
+                    }}
+                  >
+                    이 flow로 이동
+                  </Button>
+                )}
               </div>
+
+              {selectedDerivedFlowGroup && (
+                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium tracking-[-0.02em] text-foreground">Derived Flow</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        route와 resource/request 단서로 묶은 흐름입니다.
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedDerivedFlowGroup.eventCount} events
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border/60 bg-white p-3">
+                      <p className="text-sm text-muted-foreground">family</p>
+                      <p className="mt-2 break-all text-sm font-medium text-foreground">
+                        {selectedDerivedFlowGroup.family}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border/60 bg-white p-3">
+                      <p className="text-sm text-muted-foreground">correlation</p>
+                      <p className="mt-2 break-all text-sm font-medium text-foreground">
+                        {selectedDerivedFlowGroup.correlationKind} {selectedDerivedFlowGroup.correlationValue}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedDerivedFlowGroup.methods.map((method) => (
+                      <span
+                        key={`${selectedDerivedFlowGroup.flowKey}-${method}`}
+                        className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
+                      >
+                        {method}
+                      </span>
+                    ))}
+                    {selectedDerivedFlowGroup.routes.map((route) => (
+                      <span
+                        key={`${selectedDerivedFlowGroup.flowKey}-${route}`}
+                        className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                      >
+                        {route}
+                      </span>
+                    ))}
+                    {selectedDerivedFlowGroup.resourceId && (
+                      <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                        resource {selectedDerivedFlowGroup.resourceId}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
                 <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
@@ -505,7 +580,7 @@ export function EventsTab({
               <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium tracking-[-0.02em] text-foreground">
-                    {selectedEvent.traceId ? "관련 trace 흐름" : "주변 이벤트"}
+                    {selectedEvent.traceId ? "관련 trace 흐름" : selectedDerivedFlowGroup ? "관련 flow 이벤트" : "주변 이벤트"}
                   </p>
                   {selectedTraceGroup && (
                     <span className="text-xs text-muted-foreground">

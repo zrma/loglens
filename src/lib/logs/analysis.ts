@@ -1,4 +1,6 @@
 import type {
+  DerivedFlowCorrelationKind,
+  DerivedFlowGroup,
   FieldFilter,
   LogEvent,
   LogFilters,
@@ -25,6 +27,49 @@ type MutableSpanNode = Omit<SpanNode, "children" | "depth" | "requestIds"> & {
 };
 
 const LEVEL_ORDER: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
+const HTTP_METHOD_PATTERN = /\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/i;
+const PATH_PATTERN = /(\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+)/;
+const ROUTE_FIELD_KEYS = [
+  "route",
+  "path",
+  "url.path",
+  "request.path",
+  "http.route",
+  "http.target",
+  "http.path",
+  "endpoint",
+];
+const METHOD_FIELD_KEYS = [
+  "method",
+  "http.method",
+  "request.method",
+  "req.method",
+  "verb",
+];
+const RESOURCE_ID_FIELD_CANDIDATE_PATTERNS = [
+  /^id$/i,
+  /(?:resource|entity|object|item|job|task|transcri(?:be|bing|ption)|document|record|operation)[._-]?id$/i,
+  /(?:resource|entity|object|item|job|task|transcri(?:be|bing|ption)|document|record|operation)\.id$/i,
+];
+const RESOURCE_ID_EXCLUDE_PATTERNS = [
+  /trace/i,
+  /span/i,
+  /request/i,
+  /correlation/i,
+  /session/i,
+  /user/i,
+  /parent/i,
+];
+
+type DerivedFlowHint = {
+  family: string | null;
+  method: string | null;
+  normalizedRoute: string | null;
+  rawRoute: string | null;
+  resourceId: string | null;
+  correlationKind: DerivedFlowCorrelationKind | null;
+  correlationValue: string | null;
+};
 
 function levelRank(level: LogLevel) {
   const index = LEVEL_ORDER.indexOf(level);
@@ -176,6 +221,186 @@ export function buildFacetCounts(values: Array<string | null | undefined>, empty
     .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
 }
 
+function pickCandidateField(event: LogEvent, candidates: string[]) {
+  for (const candidate of candidates) {
+    const value = event.fields[candidate];
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function sanitizeRouteValue(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const stripped = trimmed
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .replace(/[?#].*$/, "");
+
+  return stripped.startsWith("/") ? stripped : null;
+}
+
+function looksLikeResourceSegment(segment: string) {
+  return /^\d+$/.test(segment)
+    || /^[a-f0-9]{8,}$/i.test(segment)
+    || /^[0-9a-f]{8}-[0-9a-f-]{8,}$/i.test(segment)
+    || (/^[A-Za-z]{1,6}-[A-Za-z0-9-]{3,}$/i.test(segment) && /[0-9]/.test(segment))
+    || (segment.length >= 8 && /[0-9]/.test(segment) && /[A-Za-z]/.test(segment));
+}
+
+function normalizeRoutePath(route: string | null) {
+  if (!route) {
+    return null;
+  }
+
+  const segments = route
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => {
+      if (/^v\d+$/i.test(segment)) {
+        return segment.toLowerCase();
+      }
+
+      return looksLikeResourceSegment(segment) ? ":id" : segment;
+    });
+
+  return segments.length > 0 ? `/${segments.join("/")}` : route;
+}
+
+function deriveRouteFamily(normalizedRoute: string | null) {
+  if (!normalizedRoute) {
+    return null;
+  }
+
+  const segments = normalizedRoute.split("/").filter(Boolean);
+
+  if (segments[segments.length - 1] === ":id") {
+    const familySegments = segments.slice(0, -1);
+    return familySegments.length > 0 ? `/${familySegments.join("/")}` : normalizedRoute;
+  }
+
+  return normalizedRoute;
+}
+
+function extractRouteAndMethod(event: LogEvent) {
+  const fieldRoute = sanitizeRouteValue(pickCandidateField(event, ROUTE_FIELD_KEYS));
+  const fieldMethod = pickCandidateField(event, METHOD_FIELD_KEYS)?.toUpperCase() ?? null;
+  const messageMethod = event.message.match(HTTP_METHOD_PATTERN)?.[1]?.toUpperCase() ?? null;
+  const messagePath = sanitizeRouteValue(event.message.match(PATH_PATTERN)?.[1] ?? null);
+
+  return {
+    method: fieldMethod ?? messageMethod,
+    route: fieldRoute ?? messagePath,
+  };
+}
+
+function extractResourceIdFromRoute(route: string | null, normalizedRoute: string | null) {
+  if (!route || !normalizedRoute) {
+    return null;
+  }
+
+  const rawSegments = route.split("/").filter(Boolean);
+  const normalizedSegments = normalizedRoute.split("/").filter(Boolean);
+
+  for (let index = normalizedSegments.length - 1; index >= 0; index -= 1) {
+    if (normalizedSegments[index] === ":id") {
+      return rawSegments[index] ?? null;
+    }
+  }
+
+  return null;
+}
+
+function extractResourceIdFromFields(event: LogEvent) {
+  for (const [key, value] of Object.entries(event.fields)) {
+    if (!value || RESOURCE_ID_EXCLUDE_PATTERNS.some((pattern) => pattern.test(key))) {
+      continue;
+    }
+
+    if (RESOURCE_ID_FIELD_CANDIDATE_PATTERNS.some((pattern) => pattern.test(key))) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function deriveFlowHint(event: LogEvent): DerivedFlowHint {
+  const { method, route } = extractRouteAndMethod(event);
+  const normalizedRoute = normalizeRoutePath(route);
+  const family = deriveRouteFamily(normalizedRoute);
+  const resourceId = extractResourceIdFromRoute(route, normalizedRoute) ?? extractResourceIdFromFields(event);
+
+  if (!family) {
+    return {
+      correlationKind: null,
+      correlationValue: null,
+      family: null,
+      method,
+      normalizedRoute,
+      rawRoute: route,
+      resourceId,
+    };
+  }
+
+  if (resourceId) {
+    return {
+      correlationKind: "resource",
+      correlationValue: resourceId,
+      family,
+      method,
+      normalizedRoute,
+      rawRoute: route,
+      resourceId,
+    };
+  }
+
+  if (event.requestId) {
+    return {
+      correlationKind: "request",
+      correlationValue: event.requestId,
+      family,
+      method,
+      normalizedRoute,
+      rawRoute: route,
+      resourceId: null,
+    };
+  }
+
+  if (event.traceId) {
+    return {
+      correlationKind: "trace",
+      correlationValue: event.traceId,
+      family,
+      method,
+      normalizedRoute,
+      rawRoute: route,
+      resourceId: null,
+    };
+  }
+
+  return {
+    correlationKind: null,
+    correlationValue: null,
+    family,
+    method,
+    normalizedRoute,
+    rawRoute: route,
+    resourceId,
+  };
+}
+
 export function buildLevelCounts(events: LogEvent[]) {
   const counts = buildFacetCounts(events.map((event) => event.level), "unknown");
 
@@ -235,6 +460,80 @@ export function buildTraceGroups(events: LogEvent[]) {
 
     return left.traceId.localeCompare(right.traceId);
   });
+}
+
+export function buildDerivedFlowGroups(events: LogEvent[]) {
+  const groups = new Map<string, DerivedFlowGroup>();
+
+  for (const event of events) {
+    const hint = deriveFlowHint(event);
+
+    if (!hint.family || !hint.correlationKind || !hint.correlationValue) {
+      continue;
+    }
+
+    const flowKey = `${hint.family}::${hint.correlationKind}:${hint.correlationValue}`;
+    const current = groups.get(flowKey) ?? {
+      correlationKind: hint.correlationKind,
+      correlationValue: hint.correlationValue,
+      eventCount: 0,
+      eventIds: [],
+      family: hint.family,
+      flowKey,
+      issueCount: 0,
+      methods: [],
+      resourceId: hint.resourceId,
+      routes: [],
+      services: [],
+      sources: [],
+      startMs: null,
+      endMs: null,
+    };
+
+    current.eventCount += 1;
+    current.eventIds.push(event.id);
+    current.issueCount += isIssueLevel(event.level) ? 1 : 0;
+
+    if (hint.method && !current.methods.includes(hint.method)) {
+      current.methods.push(hint.method);
+    }
+
+    if (hint.normalizedRoute && !current.routes.includes(hint.normalizedRoute)) {
+      current.routes.push(hint.normalizedRoute);
+    }
+
+    if (event.service && !current.services.includes(event.service)) {
+      current.services.push(event.service);
+    }
+
+    if (!current.sources.includes(event.sourceLabel)) {
+      current.sources.push(event.sourceLabel);
+    }
+
+    if (event.timestampMs !== null) {
+      current.startMs = current.startMs === null ? event.timestampMs : Math.min(current.startMs, event.timestampMs);
+      current.endMs = current.endMs === null ? event.timestampMs : Math.max(current.endMs, event.timestampMs);
+    }
+
+    groups.set(flowKey, current);
+  }
+
+  return [...groups.values()]
+    .filter((group) => group.eventCount > 1)
+    .sort((left, right) => (
+      right.issueCount - left.issueCount
+      || right.eventCount - left.eventCount
+      || left.family.localeCompare(right.family)
+      || left.correlationValue.localeCompare(right.correlationValue)
+    ));
+}
+
+export function getDerivedFlowGroupForEvent(groups: DerivedFlowGroup[], selectedEvent: LogEvent | null) {
+  if (!selectedEvent) {
+    return null;
+  }
+
+  return groups.find((group) => group.eventIds.includes(selectedEvent.id)) ?? null;
 }
 
 export function buildTraceSourceCoverage(events: LogEvent[], traceId: string | null) {

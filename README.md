@@ -19,9 +19,11 @@
 - parser preset을 바꿔 같은 세션을 다른 alias 규칙으로 다시 읽을 수 있다.
 - 여러 파일을 하나의 세션으로 병합하고 source 단위로 구분한다.
 - 이벤트 목록과 상세 패널을 함께 보여준다.
+- 이벤트 스트림 컬럼을 바꾸고 structured field를 컬럼으로 고정할 수 있다.
 - 검색어, level, source, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
+- trace가 없더라도 route/resource/request 단서로 derived flow를 묶어 본다.
 - 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
@@ -39,7 +41,10 @@
 - 관련 trace 이벤트 묶음 표시
 - trace 내부 parent/child span topology 카드
 - trace 상대 시간축 기준 span timeline 카드
+- route/resource/request 기반 derived flow 그룹
 - 이벤트 스트림 windowed/virtualized 렌더링
+- 이벤트 스트림 builtin/source/request/trace 컬럼 토글
+- structured field column pinning
 - parser note와 line range 표시
 - Field Facets 기반 field key/value drill-down, 포함/제외 조건, 다중 조건 조합
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
