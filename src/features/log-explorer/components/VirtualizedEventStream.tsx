@@ -11,8 +11,9 @@ type VirtualizedEventStreamProps = {
   onSelectEvent: (eventId: string) => void;
 };
 
-const EVENT_ROW_HEIGHT = 118;
+const EVENT_ROW_HEIGHT = 152;
 const OVERSCAN = 6;
+const EVENT_GRID_COLUMNS = "grid-cols-[96px_88px_112px_minmax(0,1fr)] xl:grid-cols-[120px_110px_140px_minmax(0,1fr)]";
 
 export function VirtualizedEventStream({
   events,
@@ -86,8 +87,8 @@ export function VirtualizedEventStream({
   const totalHeight = Math.max(events.length * EVENT_ROW_HEIGHT, viewportHeight);
 
   return (
-    <div className="flex h-[620px] flex-col">
-      <div className="grid grid-cols-[120px_110px_140px_minmax(0,1fr)] border-b border-border/70 bg-white/95 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex h-[640px] min-h-0 flex-col">
+      <div className={cn("grid shrink-0 border-b border-border/70 bg-white/95 text-xs uppercase tracking-[0.18em] text-muted-foreground", EVENT_GRID_COLUMNS)}>
         <div className="px-4 py-3">Time</div>
         <div className="px-4 py-3">Level</div>
         <div className="px-4 py-3">Service</div>
@@ -96,7 +97,9 @@ export function VirtualizedEventStream({
 
       <div
         ref={viewportRef}
-        className="relative h-[568px] overflow-y-auto"
+        className="relative min-h-0 flex-1 overflow-auto"
+        role="listbox"
+        aria-label="로그 이벤트 스트림"
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <div className="relative" style={{ height: `${totalHeight}px` }}>
@@ -109,16 +112,19 @@ export function VirtualizedEventStream({
                 key={event.id}
                 type="button"
                 onClick={() => onSelectEvent(event.id)}
-                className="absolute inset-x-0 text-left"
+                role="option"
+                aria-selected={selectedEventId === event.id}
+                className="absolute inset-x-0 overflow-hidden border-b border-border/60 text-left"
                 style={{ top: `${top}px`, height: `${EVENT_ROW_HEIGHT}px` }}
               >
                 <div
                   className={cn(
-                    "grid h-full grid-cols-[120px_110px_140px_minmax(0,1fr)] border-b border-border/60 px-0 align-top transition-colors hover:bg-primary/5",
-                    selectedEventId === event.id && "bg-primary/5",
+                    "grid h-full items-start overflow-hidden px-0 transition-colors hover:bg-primary/5",
+                    EVENT_GRID_COLUMNS,
+                    selectedEventId === event.id ? "bg-primary/8" : "bg-white/70",
                   )}
                 >
-                  <div className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                  <div className="overflow-hidden px-4 py-3 font-mono text-xs text-muted-foreground">
                     <div>{formatTimestamp(event.timestampMs)}</div>
                     <div className="mt-1 text-[11px]">
                       #{event.lineNumber}
@@ -126,31 +132,33 @@ export function VirtualizedEventStream({
                     </div>
                   </div>
 
-                  <div className="px-4 py-3">
+                  <div className="overflow-hidden px-4 py-3">
                     <LevelBadge level={event.level} />
                   </div>
 
-                  <div className="px-4 py-3 text-sm text-foreground">
-                    {event.service ?? <span className="text-muted-foreground">미지정</span>}
+                  <div className="min-w-0 overflow-hidden px-4 py-3 text-sm text-foreground">
+                    {event.service
+                      ? <span className="block truncate">{event.service}</span>
+                      : <span className="block truncate text-muted-foreground">미지정</span>}
                   </div>
 
-                  <div className="space-y-2 px-4 py-3">
-                    <p className="font-mono text-[13px] leading-5 text-foreground [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                  <div className="flex min-w-0 flex-col gap-2 overflow-hidden px-4 py-3">
+                    <p className="min-w-0 overflow-hidden font-mono text-[13px] leading-5 text-foreground break-all [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">
                       {highlightText(event.message, searchTerm)}
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
                       {event.isMultiLine && (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                        <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
                           multiline
                         </span>
                       )}
                       {event.traceId && (
-                        <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                        <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                           trace {formatTraceLabel(event.traceId)}
                         </span>
                       )}
                       {event.requestId && (
-                        <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                        <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                           req {event.requestId}
                         </span>
                       )}

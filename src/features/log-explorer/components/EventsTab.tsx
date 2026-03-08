@@ -135,8 +135,8 @@ export function EventsTab({
   const timelineNodes = spanForest ? flattenSpanNodes(spanForest.roots) : [];
 
   return (
-    <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_360px]">
-      <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+    <div className="min-w-0 grid gap-6 2xl:grid-cols-[minmax(0,1.15fr)_360px]">
+      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="border-b border-border/70 pb-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -145,12 +145,12 @@ export function EventsTab({
                 필터 적용 결과 {filteredEvents.length.toLocaleString()}개 이벤트를 표시합니다.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-border/80 bg-secondary/55 px-3 py-1 text-xs font-medium text-secondary-foreground">
+            <div className="flex min-w-0 flex-wrap gap-2">
+              <span className="max-w-full truncate rounded-full border border-border/80 bg-secondary/55 px-3 py-1 text-xs font-medium text-secondary-foreground">
                 source: {sessionTitle}
               </span>
               {traceFilter !== "all" && (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <span className="max-w-full truncate rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   trace: {formatTraceLabel(traceFilter)}
                 </span>
               )}
@@ -180,7 +180,7 @@ export function EventsTab({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="border-b border-border/70 pb-4">
           <CardTitle className="text-2xl tracking-[-0.04em]">상세 이벤트</CardTitle>
           <CardDescription className="pt-2 leading-6">
@@ -190,9 +190,9 @@ export function EventsTab({
         <CardContent className="space-y-5 p-5">
           {selectedEvent ? (
             <>
-              <div className="rounded-[28px] bg-slate-950 px-4 py-4 text-slate-50">
+              <div className="min-w-0 rounded-[28px] bg-slate-950 px-4 py-4 text-slate-50">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Selected Event</p>
                     <p className="mt-2 break-all text-lg font-semibold tracking-[-0.03em]">
                       {selectedEvent.service ?? "미지정 서비스"}
@@ -200,7 +200,7 @@ export function EventsTab({
                   </div>
                   <LevelBadge level={selectedEvent.level} />
                 </div>
-                <p className="mt-4 font-mono text-sm leading-6 text-slate-200">
+                <p className="mt-4 font-mono text-sm leading-6 text-slate-200 break-all [overflow-wrap:anywhere]">
                   {selectedEvent.message}
                 </p>
               </div>
@@ -297,7 +297,7 @@ export function EventsTab({
                             key={event.id}
                             type="button"
                             onClick={() => onSelectEvent(event.id)}
-                            className="block w-full rounded-2xl border border-border/70 bg-secondary/40 px-3 py-3 text-left text-sm leading-6 text-muted-foreground"
+                            className="block w-full rounded-2xl border border-border/70 bg-secondary/40 px-3 py-3 text-left text-sm leading-6 text-muted-foreground break-all [overflow-wrap:anywhere]"
                           >
                             {event.service ?? "미지정"} · {event.message}
                           </button>
@@ -411,14 +411,14 @@ export function EventsTab({
                         <span className="text-xs text-muted-foreground">{formatTimestamp(event.timestampMs)}</span>
                         <LevelBadge level={event.level} />
                       </div>
-                      <p className="mt-2 text-sm font-medium text-foreground">
+                      <p className="mt-2 break-all text-sm font-medium text-foreground [overflow-wrap:anywhere]">
                         {event.service ?? "미지정"}
                       </p>
-                      <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
+                      <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground break-all [overflow-wrap:anywhere]">
                         {event.message}
                       </p>
                       {(event.spanId || event.parentSpanId) && (
-                        <p className="mt-2 text-[11px] text-muted-foreground">
+                        <p className="mt-2 break-all text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                           span {event.spanId ?? "없음"} / parent {event.parentSpanId ?? "없음"}
                         </p>
                       )}

@@ -1,4 +1,4 @@
-import { Suspense, lazy, startTransition, useDeferredValue, useEffect, useState } from "react";
+import { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, readTextFileLines } from "@tauri-apps/plugin-fs";
@@ -137,55 +137,89 @@ function App() {
     loadSession(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null);
   }
 
-  const events = session?.events ?? [];
-  const filteredEvents = filterLogEvents(events, {
+  const events = useMemo(() => session?.events ?? [], [session]);
+  const filteredEvents = useMemo(() => filterLogEvents(events, {
     searchTerm: deferredSearchTerm,
     level: levelFilter,
     service: serviceFilter,
     traceId: traceFilter,
     requestId: requestFilter,
     issuesOnly,
-  });
-  const traceGroups = buildTraceGroups(events);
-  const filteredTraceGroups = buildTraceGroups(filteredEvents);
-  const levelCounts = buildLevelCounts(filteredEvents);
-  const serviceCounts = buildFacetCounts(filteredEvents.map((event) => event.service), "미지정");
-  const requestCounts = buildFacetCounts(
+  }), [deferredSearchTerm, events, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
+  const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
+  const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
+  const levelCounts = useMemo(() => buildLevelCounts(filteredEvents), [filteredEvents]);
+  const serviceCounts = useMemo(
+    () => buildFacetCounts(filteredEvents.map((event) => event.service), "미지정"),
+    [filteredEvents],
+  );
+  const requestCounts = useMemo(() => buildFacetCounts(
     filteredEvents
       .map((event) => event.requestId)
       .filter((requestId): requestId is string => Boolean(requestId)),
     "none",
-  );
-  const diagnosticCounts = buildFacetCounts(
+  ), [filteredEvents]);
+  const diagnosticCounts = useMemo(() => buildFacetCounts(
     session?.diagnostics.map((diagnostic) => DIAGNOSTIC_LABELS[diagnostic.kind]) ?? [],
     "없음",
+  ), [session]);
+  const hourlyChart = useMemo(() => buildHourlyChartData(filteredEvents), [filteredEvents]);
+  const serviceOptions = useMemo(
+    () => buildFacetCounts(events.map((event) => event.service), "미지정"),
+    [events],
   );
-  const hourlyChart = buildHourlyChartData(filteredEvents);
-  const serviceOptions = buildFacetCounts(events.map((event) => event.service), "미지정");
-  const requestOptions = buildFacetCounts(events.map((event) => event.requestId), "none");
-  const traceOptions = traceGroups.map((group) => group.traceId);
-  const selectedEvent = filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null;
-  const selectedTraceGroup = selectedEvent?.traceId
-    ? traceGroups.find((group) => group.traceId === selectedEvent.traceId) ?? null
-    : null;
-  const relatedEvents = getRelatedEvents(events, selectedEvent, 10);
-  const spanForest = buildSpanForest(events, selectedEvent?.traceId ?? null);
-  const topTraceGroups = (traceFilter === "all" ? traceGroups : filteredTraceGroups).slice(0, 6);
-  const servicesInSession = new Set(events.map((event) => event.service).filter(Boolean)).size;
+  const requestOptions = useMemo(
+    () => buildFacetCounts(events.map((event) => event.requestId), "none"),
+    [events],
+  );
+  const traceOptions = useMemo(() => traceGroups.map((group) => group.traceId), [traceGroups]);
+  const selectedEvent = useMemo(
+    () => filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null,
+    [filteredEvents, selectedEventId],
+  );
+  const selectedTraceGroup = useMemo(() => (
+    selectedEvent?.traceId
+      ? traceGroups.find((group) => group.traceId === selectedEvent.traceId) ?? null
+      : null
+  ), [selectedEvent?.traceId, traceGroups]);
+  const relatedEvents = useMemo(() => getRelatedEvents(events, selectedEvent, 10), [events, selectedEvent]);
+  const spanForest = useMemo(
+    () => buildSpanForest(events, selectedEvent?.traceId ?? null),
+    [events, selectedEvent?.traceId],
+  );
+  const topTraceGroups = useMemo(
+    () => (traceFilter === "all" ? traceGroups : filteredTraceGroups).slice(0, 6),
+    [filteredTraceGroups, traceFilter, traceGroups],
+  );
+  const servicesInSession = useMemo(
+    () => new Set(events.map((event) => event.service).filter(Boolean)).size,
+    [events],
+  );
   const tracesInSession = traceGroups.length;
-  const multilineCount = events.filter((event) => event.isMultiLine).length;
+  const multilineCount = useMemo(
+    () => events.filter((event) => event.isMultiLine).length,
+    [events],
+  );
   const parserNoteCount = session?.diagnostics.length ?? 0;
-  const errorCount = events.filter((event) => event.level === "error" || event.level === "fatal").length;
-  const formatBadges = session
-    ? [
-      { label: "JSON", count: session.formatCounts.json },
-      { label: "KV", count: session.formatCounts.keyvalue },
-      { label: "PLAIN", count: session.formatCounts.plain },
-    ]
-    : [];
-  const sourceLocation = sourcePath ? getDirectoryPath(sourcePath) : "샘플 세션";
+  const errorCount = useMemo(
+    () => events.filter((event) => event.level === "error" || event.level === "fatal").length,
+    [events],
+  );
+  const formatBadges = useMemo(() => (
+    session
+      ? [
+        { label: "JSON", count: session.formatCounts.json },
+        { label: "KV", count: session.formatCounts.keyvalue },
+        { label: "PLAIN", count: session.formatCounts.plain },
+      ]
+      : []
+  ), [session]);
+  const sourceLocation = useMemo(
+    () => (sourcePath ? getDirectoryPath(sourcePath) : "샘플 세션"),
+    [sourcePath],
+  );
   const sessionTitle = sourceLabel ?? "No Active Session";
-  const metrics: MetricCardProps[] = [
+  const metrics: MetricCardProps[] = useMemo(() => [
     {
       caption: sourceLabel ? "현재 세션 전체 이벤트 수" : "파일 또는 샘플 세션을 불러오면 집계됩니다",
       icon: FileText,
@@ -216,13 +250,30 @@ function App() {
       title: "Parser Notes",
       value: parserNoteCount.toLocaleString(),
     },
-  ];
+  ], [
+    events.length,
+    filteredEvents.length,
+    issuesOnly,
+    levelFilter,
+    parserNoteCount,
+    requestFilter,
+    searchTerm,
+    serviceFilter,
+    sourceLabel,
+    traceFilter,
+    tracesInSession,
+  ]);
+  const firstFilteredEventId = filteredEvents[0]?.id ?? null;
+  const hasSelectedEvent = useMemo(
+    () => (selectedEventId ? filteredEvents.some((event) => event.id === selectedEventId) : false),
+    [filteredEvents, selectedEventId],
+  );
 
   useEffect(() => {
-    if (!selectedEventId || !filteredEvents.some((event) => event.id === selectedEventId)) {
-      setSelectedEventId(filteredEvents[0]?.id ?? null);
+    if (!selectedEventId || !hasSelectedEvent) {
+      setSelectedEventId(firstFilteredEventId);
     }
-  }, [filteredEvents, selectedEventId]);
+  }, [firstFilteredEventId, hasSelectedEvent, selectedEventId]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -272,7 +323,7 @@ function App() {
             }}
           />
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="rounded-[30px] border border-white/60 bg-white/72 p-4 shadow-[0_28px_90px_-48px_rgba(11,37,53,0.55)] backdrop-blur-xl">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 rounded-[30px] border border-white/60 bg-white/72 p-4 shadow-[0_28px_90px_-48px_rgba(11,37,53,0.55)] backdrop-blur-xl">
             <div className="flex flex-col gap-4 border-b border-border/70 pb-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Explorer</p>
