@@ -15,6 +15,12 @@ type OverviewSectionProps = {
   formatBadges: Array<{ label: string; count: number }>;
   metrics: MetricCardProps[];
   errorMessage: string | null;
+  loadProgress: {
+    sourceLabel: string;
+    lineCount: number;
+    eventCount: number;
+    diagnosticCount: number;
+  } | null;
   onSelectLogFile: () => void;
   onLoadSampleSession: () => void;
 };
@@ -30,6 +36,7 @@ export function OverviewSection({
   formatBadges,
   metrics,
   errorMessage,
+  loadProgress,
   onSelectLogFile,
   onLoadSampleSession,
 }: OverviewSectionProps) {
@@ -59,15 +66,17 @@ export function OverviewSection({
                   <Button
                     size="lg"
                     onClick={onSelectLogFile}
+                    disabled={Boolean(loadProgress)}
                     className="h-12 rounded-full px-6 text-[15px] font-semibold shadow-lg shadow-primary/20"
                   >
                     <FolderOpen className="size-4" />
-                    로그 파일 열기
+                    {loadProgress ? "로그 파싱 중" : "로그 파일 열기"}
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
                     onClick={onLoadSampleSession}
+                    disabled={Boolean(loadProgress)}
                     className="h-12 rounded-full border-white/70 bg-white/80 px-6 text-[15px] font-semibold"
                   >
                     <FileJson2 className="size-4" />
@@ -81,6 +90,18 @@ export function OverviewSection({
                     <div>
                       <p className="font-medium">파일을 불러오는 중 문제가 발생했습니다.</p>
                       <p className="mt-1 break-all leading-6">{errorMessage}</p>
+                    </div>
+                  </div>
+                )}
+
+                {loadProgress && (
+                  <div className="mt-5 rounded-3xl border border-primary/15 bg-primary/5 px-4 py-4 text-sm text-foreground">
+                    <p className="font-medium">라인 스트리밍 파싱으로 세션을 준비 중입니다.</p>
+                    <p className="mt-1 break-all text-muted-foreground">{loadProgress.sourceLabel}</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>{loadProgress.lineCount.toLocaleString()} lines</span>
+                      <span>{loadProgress.eventCount.toLocaleString()} events</span>
+                      <span>{loadProgress.diagnosticCount.toLocaleString()} notes</span>
                     </div>
                   </div>
                 )}

@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDuration, formatTimestamp } from "@/lib/logs/analysis";
 import type { LogEvent, SpanForest, SpanNode, TraceGroup } from "@/lib/logs/types";
 import { cn } from "@/lib/utils";
-import { LevelBadge, formatTraceLabel, highlightText } from "@/features/log-explorer/presentation";
+import { LevelBadge, formatTraceLabel } from "@/features/log-explorer/presentation";
+import { VirtualizedEventStream } from "@/features/log-explorer/components/VirtualizedEventStream";
 
 type EventsTabProps = {
   sessionTitle: string;
@@ -159,89 +158,25 @@ export function EventsTab({
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <ScrollArea className="h-[620px]">
-            {filteredEvents.length > 0 ? (
-              <Table className="table-fixed">
-                <TableHeader className="bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-                  <TableRow className="border-border/70 hover:bg-transparent">
-                    <TableHead className="sticky top-0 z-10 w-[120px] bg-white/95 px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Time
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 w-[110px] bg-white/95 px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Level
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 w-[140px] bg-white/95 px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Service
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-white/95 px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                      Message
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEvents.map((event) => (
-                    <TableRow
-                      key={event.id}
-                      className={cn(
-                        "cursor-pointer border-border/60 align-top hover:bg-primary/5",
-                        selectedEvent?.id === event.id && "bg-primary/5",
-                      )}
-                      onClick={() => onSelectEvent(event.id)}
-                    >
-                      <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                        <div>{formatTimestamp(event.timestampMs)}</div>
-                        <div className="mt-1 text-[11px]">
-                          #{event.lineNumber}
-                          {event.endLineNumber > event.lineNumber ? `-${event.endLineNumber}` : ""}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-3">
-                        <LevelBadge level={event.level} />
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-sm text-foreground">
-                        {event.service ?? <span className="text-muted-foreground">미지정</span>}
-                      </TableCell>
-                      <TableCell className="px-4 py-3">
-                        <div className="space-y-2">
-                          <p className="font-mono text-[13px] leading-6 whitespace-pre-wrap break-all text-foreground">
-                            {highlightText(event.message, searchTerm)}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {event.isMultiLine && (
-                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
-                                multiline
-                              </span>
-                            )}
-                            {event.traceId && (
-                              <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
-                                trace {formatTraceLabel(event.traceId)}
-                              </span>
-                            )}
-                            {event.requestId && (
-                              <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                                req {event.requestId}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="flex h-full items-center justify-center p-10">
-                <div className="max-w-md text-center">
-                  <p className="text-lg font-medium tracking-[-0.03em] text-foreground">
-                    필터 조건에 맞는 이벤트가 없습니다
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    검색어를 넓히거나 trace/service/request 필터를 초기화해 보세요.
-                  </p>
-                </div>
+          {filteredEvents.length > 0 ? (
+            <VirtualizedEventStream
+              events={filteredEvents}
+              searchTerm={searchTerm}
+              selectedEventId={selectedEvent?.id ?? null}
+              onSelectEvent={onSelectEvent}
+            />
+          ) : (
+            <div className="flex h-[620px] items-center justify-center p-10">
+              <div className="max-w-md text-center">
+                <p className="text-lg font-medium tracking-[-0.03em] text-foreground">
+                  필터 조건에 맞는 이벤트가 없습니다
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  검색어를 넓히거나 trace/service/request 필터를 초기화해 보세요.
+                </p>
               </div>
-            )}
-          </ScrollArea>
+            </div>
+          )}
         </CardContent>
       </Card>
 

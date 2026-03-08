@@ -28,13 +28,14 @@
 ### 구현된 기능
 
 - `.log`, `.txt` 파일 단일 선택
-- 로컬 파일 읽기
+- 라인 스트리밍 기반 로컬 파일 읽기
 - 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, multiline stack trace 병합)
 - 검색어, level, service, trace, request, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
 - trace 내부 parent/child span topology 카드
 - trace 상대 시간축 기준 span timeline 카드
+- 이벤트 스트림 windowed/virtualized 렌더링
 - parser note와 line range 표시
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
@@ -50,6 +51,8 @@
 - span timeline/gantt 수준의 더 정교한 시각화
 - 대용량 로그 대응 최적화
 - 실제 파일 열기 플로우와 필터 상호작용까지 포함한 더 넓은 fixture/test 세트
+
+현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
 
 현재 파서는 JSON line, key=value, plain text timestamp prefix와 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 

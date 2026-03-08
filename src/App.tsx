@@ -1,7 +1,7 @@
-import { Suspense, lazy, useDeferredValue, useEffect, useState } from "react";
+import { Suspense, lazy, startTransition, useDeferredValue, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile } from "@tauri-apps/plugin-fs";
+import { readTextFile, readTextFileLines } from "@tauri-apps/plugin-fs";
 import { AlertTriangle, BarChart3, FileText, Filter, FolderOpen, GitBranch, ListTree } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
@@ -21,7 +21,7 @@ import {
   filterLogEvents,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
-import { parseLogContent } from "@/lib/logs/parser";
+import { parseLogContent, parseLogLineStream, type ParserProgress } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME } from "@/lib/logs/sample";
 import type { LogLevel, ParsedLogSession } from "@/lib/logs/types";
 
@@ -36,6 +36,10 @@ const DIAGNOSTIC_LABELS = {
   timestamp_missing: "timestamp 없음",
 } as const;
 
+type LoadProgressState = ParserProgress & {
+  sourceLabel: string;
+};
+
 function App() {
   const [session, setSession] = useState<ParsedLogSession | null>(null);
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
@@ -49,6 +53,7 @@ function App() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadProgress, setLoadProgress] = useState<LoadProgressState | null>(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   function resetFilters() {
@@ -60,16 +65,20 @@ function App() {
     setIssuesOnly(false);
   }
 
-  function loadSession(content: string, label: string, path: string | null) {
-    const parsedSession = parseLogContent(content);
+  function applySession(parsedSession: ParsedLogSession, label: string, path: string | null) {
+    startTransition(() => {
+      setSession(parsedSession);
+      setSourceLabel(label);
+      setSourcePath(path);
+      resetFilters();
+      setSelectedEventId(parsedSession.events[0]?.id ?? null);
+      setActiveTab("events");
+      setErrorMessage(null);
+    });
+  }
 
-    setSession(parsedSession);
-    setSourceLabel(label);
-    setSourcePath(path);
-    resetFilters();
-    setSelectedEventId(parsedSession.events[0]?.id ?? null);
-    setActiveTab("events");
-    setErrorMessage(null);
+  function loadSession(content: string, label: string, path: string | null) {
+    applySession(parseLogContent(content), label, path);
   }
 
   async function selectLogFile() {
@@ -85,12 +94,38 @@ function App() {
       });
 
       if (selected && !Array.isArray(selected)) {
+        const nextLabel = getFileName(selected) ?? selected;
+
         try {
           await invoke("allow_file_access", { path: selected });
-          const content = await readTextFile(selected);
-          loadSession(content, getFileName(selected) ?? selected, selected);
+          setLoadProgress({
+            sourceLabel: nextLabel,
+            lineCount: 0,
+            eventCount: 0,
+            diagnosticCount: 0,
+          });
+
+          try {
+            const lineStream = await readTextFileLines(selected);
+            const parsedSession = await parseLogLineStream(lineStream, {
+              onProgress: (progress) => {
+                setLoadProgress({
+                  sourceLabel: nextLabel,
+                  ...progress,
+                });
+              },
+              reportInterval: 1500,
+            });
+
+            applySession(parsedSession, nextLabel, selected);
+          } catch {
+            const content = await readTextFile(selected);
+            loadSession(content, nextLabel, selected);
+          }
         } catch (readError) {
           setErrorMessage(readError instanceof Error ? readError.message : "로그 파일을 읽지 못했습니다.");
+        } finally {
+          setLoadProgress(null);
         }
       }
     } catch (error) {
@@ -205,6 +240,7 @@ function App() {
           formatBadges={formatBadges}
           metrics={metrics}
           errorMessage={errorMessage}
+          loadProgress={loadProgress}
           onSelectLogFile={selectLogFile}
           onLoadSampleSession={loadSampleSession}
         />

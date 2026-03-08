@@ -1,6 +1,5 @@
 import type {
   LogEvent,
-  ParseDiagnostic,
   ParseIssue,
   ParsedLogFormat,
   ParsedLogSession,
@@ -11,6 +10,12 @@ type RawRecord = {
   endLineNumber: number;
   lines: string[];
   text: string;
+};
+
+type ParserProgress = {
+  lineCount: number;
+  eventCount: number;
+  diagnosticCount: number;
 };
 
 const LEVEL_PATTERN = /\b(trace|debug|info|warn(?:ing)?|error|fatal|critical)\b/i;
@@ -395,8 +400,45 @@ function isContinuationLine(line: string, currentLines: string[]) {
 }
 
 function splitLogRecords(content: string) {
-  const lines = content.split(/\r?\n/).map((line) => line.trimEnd());
   const records: RawRecord[] = [];
+  const accumulator = createRecordAccumulator((record) => records.push(record));
+
+  content.split(/\r?\n/).forEach((line, index) => {
+    accumulator.pushLine(line, index + 1);
+  });
+
+  accumulator.finish();
+  return records;
+}
+
+function createEmptySession(): ParsedLogSession {
+  return {
+    events: [],
+    formatCounts: {
+      json: 0,
+      keyvalue: 0,
+      plain: 0,
+    },
+    diagnostics: [],
+  };
+}
+
+function appendEventToSession(session: ParsedLogSession, event: LogEvent) {
+  session.events.push(event);
+  session.formatCounts[event.format] += 1;
+
+  for (const issue of event.parseIssues) {
+    session.diagnostics.push({
+      id: `${event.id}-${issue.kind}`,
+      kind: issue.kind,
+      lineNumber: event.lineNumber,
+      endLineNumber: event.endLineNumber,
+      message: issue.message,
+    });
+  }
+}
+
+function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
   let startLineNumber = 0;
   let currentLines: string[] = [];
 
@@ -405,7 +447,7 @@ function splitLogRecords(content: string) {
       return;
     }
 
-    records.push({
+    onRecord({
       startLineNumber,
       endLineNumber: startLineNumber + currentLines.length - 1,
       lines: [...currentLines],
@@ -415,8 +457,8 @@ function splitLogRecords(content: string) {
     startLineNumber = 0;
   }
 
-  lines.forEach((line, index) => {
-    const lineNumber = index + 1;
+  function pushLine(rawLine: string, lineNumber: number) {
+    const line = rawLine.trimEnd();
 
     if (!line.trim()) {
       if (currentLines.length > 0 && currentLooksLikeStack(currentLines)) {
@@ -447,28 +489,22 @@ function splitLogRecords(content: string) {
     flushRecord();
     startLineNumber = lineNumber;
     currentLines = [line];
-  });
-
-  flushRecord();
-  return records;
-}
-
-function collectDiagnostics(events: LogEvent[]) {
-  const diagnostics: ParseDiagnostic[] = [];
-
-  for (const event of events) {
-    for (const issue of event.parseIssues) {
-      diagnostics.push({
-        id: `${event.id}-${issue.kind}`,
-        kind: issue.kind,
-        lineNumber: event.lineNumber,
-        endLineNumber: event.endLineNumber,
-        message: issue.message,
-      });
-    }
   }
 
-  return diagnostics;
+  return {
+    finish: flushRecord,
+    pushLine,
+  };
+}
+
+function buildSessionFromRecords(records: RawRecord[]) {
+  const session = createEmptySession();
+
+  for (const record of records) {
+    appendEventToSession(session, parseLogRecord(record));
+  }
+
+  return session;
 }
 
 function parseLogRecord(record: RawRecord) {
@@ -489,21 +525,44 @@ export function parseLogLine(rawLine: string, lineNumber: number) {
 }
 
 export function parseLogContent(content: string): ParsedLogSession {
-  const records = splitLogRecords(content);
-  const events = records.map(parseLogRecord);
-  const formatCounts: Record<ParsedLogFormat, number> = {
-    json: 0,
-    keyvalue: 0,
-    plain: 0,
-  };
+  return buildSessionFromRecords(splitLogRecords(content));
+}
 
-  for (const event of events) {
-    formatCounts[event.format] += 1;
+export async function parseLogLineStream(
+  lines: AsyncIterable<string>,
+  options: {
+    onProgress?: (progress: ParserProgress) => void;
+    reportInterval?: number;
+  } = {},
+): Promise<ParsedLogSession> {
+  const session = createEmptySession();
+  const accumulator = createRecordAccumulator((record) => {
+    appendEventToSession(session, parseLogRecord(record));
+  });
+  const reportInterval = options.reportInterval ?? 1000;
+  let lineCount = 0;
+
+  for await (const line of lines) {
+    lineCount += 1;
+    accumulator.pushLine(line, lineCount);
+
+    if (options.onProgress && lineCount % reportInterval === 0) {
+      options.onProgress({
+        lineCount,
+        eventCount: session.events.length,
+        diagnosticCount: session.diagnostics.length,
+      });
+    }
   }
 
-  return {
-    events,
-    formatCounts,
-    diagnostics: collectDiagnostics(events),
-  };
+  accumulator.finish();
+  options.onProgress?.({
+    lineCount,
+    eventCount: session.events.length,
+    diagnosticCount: session.diagnostics.length,
+  });
+
+  return session;
 }
+
+export type { ParserProgress };

@@ -27,6 +27,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - level/service/trace/request 필터
   - issue-only 토글
   - 이벤트 목록
+  - windowed/virtualized event stream
   - 상세 이벤트 패널
   - parser notes 표시
   - raw block 표시
@@ -41,9 +42,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 테스트
   - parser/analysis smoke test
   - jsdom 기반 App smoke test
+  - async line stream parser test
 - 번들 최적화
   - `AnalysisTab` lazy load 분리
   - 기존 chunk size warning 제거
+- 파일 로드 최적화
+  - `readTextFileLines()` 기반 라인 스트리밍 파싱
+  - 파싱 진행 상태 표시
 
 ## 현재 구현 수준
 
@@ -72,20 +77,21 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - 더 많은 timestamp 포맷
   - 언어별 stack trace 패턴 확대
 - 파일 처리 규모가 작음
-  - 전체 파일 메모리 로드
-  - 가상 스크롤 없음
+  - 라인 스트리밍 파싱 뒤에는 전체 이벤트/집계를 여전히 메모리에 유지
+  - event stream은 windowed list지만 상세/집계는 점진 계산이 아님
   - 다중 파일 세션 없음
 - 시각화가 아직 기본형
   - span timeline은 있지만 gantt 수준 상호작용 없음
   - trace 간 비교 없음
 - 테스트 범위가 아직 얕음
-  - 실제 파일 열기 플로우 미검증
+  - 실제 파일 열기 플로우는 mock smoke test 수준만 있음
   - 필터 상호작용 시나리오 부족
   - 대용량 fixture 없음
 
 ## 현재 리스크
 
 - 대용량 로그에서 렌더링/메모리 비용이 커질 수 있음
+- 대용량 로그에서 전체 이벤트 배열과 전체 집계는 여전히 메모리에 유지됨
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
 - Tauri 실제 런타임 연동은 smoke test가 아니라 수동 확인 비중이 큼
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
@@ -94,8 +100,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ### 1. 대용량 파일 대응
 
-- 이벤트 테이블 가상 스크롤
-- 파일 스트리밍/청크 파싱
+- 현재 windowed list와 라인 스트리밍 파서를 실제 큰 fixture 기준으로 튜닝
+- 파일 스트리밍 이후 단계의 집계/필터 메모리 비용 절감
 - 세션 크기 커질 때 필터/집계 비용 줄이기
 
 ### 2. 파서 신뢰성 강화

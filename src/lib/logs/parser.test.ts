@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildSpanForest, buildTraceGroups, filterLogEvents } from "@/lib/logs/analysis";
-import { parseLogContent } from "@/lib/logs/parser";
+import { parseLogContent, parseLogLineStream } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
+
+async function* generateLargeLogLines(count: number) {
+  for (let index = 0; index < count; index += 1) {
+    yield `2026-03-08 12:${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")} INFO api-service trace_id=trace-${Math.floor(index / 5)} span_id=span-${index} request_id=req-${Math.floor(index / 5)} message="processed item ${index}"`;
+  }
+}
 
 describe("parseLogContent", () => {
   it("extracts structured fields from mixed log formats", () => {
@@ -82,5 +88,19 @@ describe("parseLogContent", () => {
       "span-fallback",
       "span-mail",
     ]));
+  });
+
+  it("parses large logs from an async line stream and reports progress", async () => {
+    const progressMarks: number[] = [];
+    const session = await parseLogLineStream(generateLargeLogLines(2400), {
+      reportInterval: 600,
+      onProgress: (progress) => {
+        progressMarks.push(progress.lineCount);
+      },
+    });
+
+    expect(session.events).toHaveLength(2400);
+    expect(session.formatCounts.keyvalue).toBe(2400);
+    expect(progressMarks).toEqual([600, 1200, 1800, 2400, 2400]);
   });
 });
