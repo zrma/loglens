@@ -104,6 +104,28 @@ export type TraceSourceCoverage = {
   services: string[];
 };
 
+export type DerivedFlowCorrelationKind =
+  | "resource"
+  | "request"
+  | "trace";
+
+export type DerivedFlowGroup = {
+  flowKey: string;
+  family: string;
+  routes: string[];
+  methods: string[];
+  resourceId: string | null;
+  correlationKind: DerivedFlowCorrelationKind;
+  correlationValue: string;
+  services: string[];
+  sources: string[];
+  eventIds: string[];
+  eventCount: number;
+  issueCount: number;
+  startMs: number | null;
+  endMs: number | null;
+};
+
 export type SpanNode = {
   spanId: string;
   parentSpanId: string | null;

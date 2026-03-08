@@ -11,7 +11,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { FacetCount } from "@/lib/logs/analysis";
-import type { FieldFilter, LogLevel, TraceGroup } from "@/lib/logs/types";
+import { formatDuration } from "@/lib/logs/analysis";
+import type { DerivedFlowGroup, FieldFilter, LogLevel, TraceGroup } from "@/lib/logs/types";
+import {
+  EVENT_STREAM_BUILTIN_COLUMNS,
+  type EventStreamBuiltinColumnId,
+} from "@/features/log-explorer/event-stream-columns";
 import { LEVEL_LABELS, formatTraceLabel } from "@/features/log-explorer/presentation";
 
 type SidebarSectionProps = {
@@ -34,6 +39,10 @@ type SidebarSectionProps = {
   fieldFacetKeys: FacetCount[];
   fieldLensKeys: FacetCount[];
   hiddenFieldKeys: string[];
+  eventStreamBuiltinColumns: EventStreamBuiltinColumnId[];
+  pinnedEventFieldColumns: string[];
+  eventColumnFieldOptions: FacetCount[];
+  topDerivedFlowGroups: DerivedFlowGroup[];
   topTraceGroups: TraceGroup[];
   onSearchTermChange: (value: string) => void;
   onLevelFilterChange: (value: LogLevel | "all") => void;
@@ -50,6 +59,10 @@ type SidebarSectionProps = {
   onToggleFieldVisibility: (fieldKey: string) => void;
   onHideAllFieldVisibility: () => void;
   onResetFieldVisibility: () => void;
+  onToggleBuiltinEventColumn: (columnId: EventStreamBuiltinColumnId) => void;
+  onToggleEventFieldColumn: (fieldKey: string) => void;
+  onResetEventColumns: () => void;
+  onSelectDerivedFlowGroup: (group: DerivedFlowGroup) => void;
   onSelectTraceGroup: (group: TraceGroup) => void;
 };
 
@@ -73,6 +86,10 @@ export function SidebarSection({
   fieldFacetKeys,
   fieldLensKeys,
   hiddenFieldKeys,
+  eventStreamBuiltinColumns,
+  pinnedEventFieldColumns,
+  eventColumnFieldOptions,
+  topDerivedFlowGroups,
   topTraceGroups,
   onSearchTermChange,
   onLevelFilterChange,
@@ -89,6 +106,10 @@ export function SidebarSection({
   onToggleFieldVisibility,
   onHideAllFieldVisibility,
   onResetFieldVisibility,
+  onToggleBuiltinEventColumn,
+  onToggleEventFieldColumn,
+  onResetEventColumns,
+  onSelectDerivedFlowGroup,
   onSelectTraceGroup,
 }: SidebarSectionProps) {
   const activeFacetFilter = fieldFilters.find((filter) => filter.key === facetFieldKey) ?? null;
@@ -200,6 +221,96 @@ export function SidebarSection({
               <Filter className="size-4" />
               초기화
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-xl tracking-[-0.03em]">Event Columns</CardTitle>
+              <CardDescription className="pt-1 leading-6">
+                스트림에 표시할 컬럼을 고릅니다.
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+              onClick={onResetEventColumns}
+              disabled={!hasSession}
+            >
+              기본값
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Built-in</p>
+            <div className="flex flex-wrap gap-2">
+              {EVENT_STREAM_BUILTIN_COLUMNS.map((column) => {
+                const isActive = eventStreamBuiltinColumns.includes(column.id);
+
+                return (
+                  <button
+                    key={column.id}
+                    type="button"
+                    aria-label={`${column.label} 컬럼`}
+                    aria-pressed={isActive}
+                    onClick={() => onToggleBuiltinEventColumn(column.id)}
+                    disabled={!hasSession}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                      isActive
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
+                    )}
+                  >
+                    {column.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pinned Fields</p>
+            {eventColumnFieldOptions.length > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {eventColumnFieldOptions.map(({ label, count }) => {
+                    const isActive = pinnedEventFieldColumns.includes(label);
+
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        aria-label={`${label} 필드 컬럼`}
+                        aria-pressed={isActive}
+                        onClick={() => onToggleEventFieldColumn(label)}
+                        disabled={!hasSession}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                          isActive
+                            ? "border-primary/20 bg-primary/10 text-primary"
+                            : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
+                        )}
+                      >
+                        {label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  구조화 필드를 컬럼으로 고정합니다.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm leading-6 text-muted-foreground">
+                구조화 필드가 추출되면 여기서 컬럼으로 고정할 수 있습니다.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -483,6 +594,55 @@ export function SidebarSection({
           )) : (
             <p className="text-sm leading-6 text-muted-foreground">
               trace id가 추출되면 상위 trace가 이곳에 나타납니다.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl tracking-[-0.03em]">Derived Flows</CardTitle>
+          <CardDescription className="leading-6">
+            route와 resource/request 단서로 묶은 흐름입니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {topDerivedFlowGroups.length > 0 ? topDerivedFlowGroups.map((group) => (
+            <button
+              key={group.flowKey}
+              type="button"
+              onClick={() => onSelectDerivedFlowGroup(group)}
+              className="w-full rounded-3xl border border-border/70 bg-white/80 p-4 text-left transition-all hover:border-primary/20 hover:bg-primary/5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium tracking-[-0.02em] text-foreground">{group.family}</p>
+                <span className="text-xs text-muted-foreground">{group.eventCount} events</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                  {group.correlationKind} {group.correlationValue}
+                </span>
+                {group.methods.map((method) => (
+                  <span
+                    key={`${group.flowKey}-${method}`}
+                    className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {method}
+                  </span>
+                ))}
+                {group.issueCount > 0 && (
+                  <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
+                    issue {group.issueCount}
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                {group.routes.join(", ") || group.family} · {formatDuration(group.startMs, group.endMs)}
+              </p>
+            </button>
+          )) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              route와 resource 단서가 추출되면 흐름 묶음이 여기에 나타납니다.
             </p>
           )}
         </CardContent>
