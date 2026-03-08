@@ -80,6 +80,8 @@
 
 제품 방향과 후속 작업은 [`docs/roadmap.md`](./docs/roadmap.md)에서 정리합니다.
 
+현재 구현 상태와 다음 우선순위를 한 장으로 보려면 [`docs/status.md`](./docs/status.md)를 참고하세요.
+
 ## 실행
 
 ```bash
