@@ -8,6 +8,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - Tauri 기반 데스크톱 셸과 Vite/React 프런트엔드 부트스트랩
 - 선택한 `.log`/`.txt` 파일만 접근 허용하는 파일 열기 플로우
+- 여러 `.log`/`.txt` 파일을 하나의 세션으로 병합하는 로딩 플로우
 - 구조화 로그 파서
   - JSON line
   - key=value
@@ -26,7 +27,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - `requestId`
 - 탐색 UI
   - 검색어 필터
-  - level/service/trace/request 필터
+  - level/source/service/trace/request 필터
   - structured field facet drill-down
   - structured field 포함/제외 조건
   - 다중 field 조건 조합
@@ -71,8 +72,9 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - 샘플 세션 로드 후 trace/span 흐름 탐색
 - 실제 로그 파일 1개 열기
+- 실제 로그 파일 여러 개를 한 세션으로 열기
 - 문제 이벤트만 골라 보기
-- 특정 service/request/trace 기준으로 좁혀 보기
+- 특정 source/service/request/trace 기준으로 좁혀 보기
 - 특정 structured field key/value facet으로 누적 조건 걸기
 - 특정 structured field 값을 제외 조건으로 빼고 보기
 - multiline 오류를 하나의 이벤트로 읽기
@@ -116,9 +118,9 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ### 2. 다중 파일 및 관계 추적 고도화
 
-- 여러 로그 파일을 한 세션에서 묶기
-- trace/request/correlation 기준 cross-file correlation
-- 현재 facet 조건을 파일 경계 넘어 유지하기
+- 여러 로그 파일을 더 안정적으로 정렬/클러스터링하기
+- trace/request/correlation 기준 cross-file correlation UX 강화
+- 현재 facet 조건을 파일 경계 넘어 유지하고 저장하기
 
 ### 3. 대용량 파일 대응
 

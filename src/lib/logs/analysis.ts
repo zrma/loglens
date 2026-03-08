@@ -38,6 +38,10 @@ export function compareEvents(left: LogEvent, right: LogEvent) {
     return leftTime - rightTime;
   }
 
+  if (left.sourceLabel !== right.sourceLabel) {
+    return left.sourceLabel.localeCompare(right.sourceLabel);
+  }
+
   return left.lineNumber - right.lineNumber;
 }
 
@@ -50,6 +54,10 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
 
   return events.filter((event) => {
     if (filters.level !== "all" && event.level !== filters.level) {
+      return false;
+    }
+
+    if (filters.source !== "all" && event.sourceId !== filters.source) {
       return false;
     }
 

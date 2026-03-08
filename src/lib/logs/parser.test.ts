@@ -6,7 +6,7 @@ import {
   buildTraceGroups,
   filterLogEvents,
 } from "@/lib/logs/analysis";
-import { parseLogContent, parseLogLineStream } from "@/lib/logs/parser";
+import { mergeParsedSessions, parseLogContent, parseLogLineStream } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
 
 async function* generateLargeLogLines(count: number) {
@@ -66,6 +66,7 @@ describe("parseLogContent", () => {
     const filtered = filterLogEvents(session.events, {
       searchTerm: "",
       level: "all",
+      source: "all",
       service: "all",
       traceId: "trace-auth-9912",
       requestId: "all",
@@ -116,6 +117,7 @@ describe("parseLogContent", () => {
     const routeOnly = filterLogEvents(session.events, {
       searchTerm: "",
       level: "all",
+      source: "all",
       service: "all",
       traceId: "all",
       requestId: "all",
@@ -129,6 +131,7 @@ describe("parseLogContent", () => {
     const fieldSearch = filterLogEvents(session.events, {
       searchTerm: "stripe",
       level: "all",
+      source: "all",
       service: "all",
       traceId: "all",
       requestId: "all",
@@ -158,6 +161,7 @@ describe("parseLogContent", () => {
     const filtered = filterLogEvents(session.events, {
       searchTerm: "",
       level: "all",
+      source: "all",
       service: "all",
       traceId: "all",
       requestId: "all",
@@ -182,6 +186,7 @@ describe("parseLogContent", () => {
     const filtered = filterLogEvents(session.events, {
       searchTerm: "",
       level: "all",
+      source: "all",
       service: "all",
       traceId: "all",
       requestId: "all",
@@ -191,6 +196,28 @@ describe("parseLogContent", () => {
 
     expect(filtered).toHaveLength(2);
     expect(filtered.every((event) => event.fields.provider !== "stripe")).toBe(true);
+  });
+
+  it("merges multiple parsed sessions and preserves source metadata", () => {
+    const checkoutSession = parseLogContent(SAMPLE_LOG_CONTENT, {
+      id: "/tmp/checkout.log",
+      label: "checkout.log",
+      path: "/tmp/checkout.log",
+    });
+    const authSession = parseLogContent(`
+{"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
+    `.trim(), {
+      id: "/tmp/auth.log",
+      label: "auth.log",
+      path: "/tmp/auth.log",
+    });
+
+    const merged = mergeParsedSessions([checkoutSession, authSession]);
+
+    expect(merged.sources.map((source) => source.label)).toEqual(["checkout.log", "auth.log"]);
+    expect(merged.events.some((event) => event.sourceLabel === "checkout.log")).toBe(true);
+    expect(merged.events.some((event) => event.sourceLabel === "auth.log")).toBe(true);
+    expect(merged.events.filter((event) => event.traceId === "trace-checkout-4821")).toHaveLength(7);
   });
 
   it("extracts nested json fields and falls back to traceparent context", () => {

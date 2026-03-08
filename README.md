@@ -14,10 +14,11 @@
 
 ## 이 저장소가 하는 일
 
-- Tauri 파일 선택 다이얼로그로 로그 파일 1개를 연다.
+- Tauri 파일 선택 다이얼로그로 로그 파일 하나 이상을 연다.
 - 선택한 텍스트 로그를 구조화 이벤트로 파싱한다.
+- 여러 파일을 하나의 세션으로 병합하고 source 단위로 구분한다.
 - 이벤트 목록과 상세 패널을 함께 보여준다.
-- 검색어, level, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
+- 검색어, level, source, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
@@ -27,8 +28,9 @@
 
 ### 구현된 기능
 
-- `.log`, `.txt` 파일 단일 선택
+- `.log`, `.txt` 파일 다중 선택
 - 라인 스트리밍 기반 로컬 파일 읽기
+- 다중 파일 병합 세션과 source 표시/필터
 - 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, `traceparent` fallback, multiline stack trace 병합)
 - 검색어, level, service, trace, request, structured field facet, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
@@ -49,7 +51,7 @@
 ### 아직 구현되지 않은 부분
 
 - 다양한 로그 포맷과 nested JSON에 대한 더 넓은 정규화
-- 여러 파일 동시 비교
+- 여러 파일 동시 비교를 더 깊게 지원하는 세션 관리
 - span timeline/gantt 수준의 더 정교한 시각화
 - 대용량 로그 대응 최적화
 - 실제 파일 열기 플로우와 필터 상호작용까지 포함한 더 넓은 fixture/test 세트

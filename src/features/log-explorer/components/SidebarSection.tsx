@@ -18,12 +18,14 @@ type SidebarSectionProps = {
   hasSession: boolean;
   searchTerm: string;
   levelFilter: LogLevel | "all";
+  sourceFilter: string | "all";
   serviceFilter: string | "all";
   traceFilter: string | "all";
   requestFilter: string | "all";
   fieldFilters: FieldFilter[];
   facetFieldKey: string | "all";
   issuesOnly: boolean;
+  sourceOptions: Array<{ value: string; label: string; count: number }>;
   serviceOptions: FacetCount[];
   traceOptions: string[];
   requestOptions: FacetCount[];
@@ -35,6 +37,7 @@ type SidebarSectionProps = {
   topTraceGroups: TraceGroup[];
   onSearchTermChange: (value: string) => void;
   onLevelFilterChange: (value: LogLevel | "all") => void;
+  onSourceFilterChange: (value: string | "all") => void;
   onServiceFilterChange: (value: string | "all") => void;
   onTraceFilterChange: (value: string | "all") => void;
   onRequestFilterChange: (value: string | "all") => void;
@@ -54,12 +57,14 @@ export function SidebarSection({
   hasSession,
   searchTerm,
   levelFilter,
+  sourceFilter,
   serviceFilter,
   traceFilter,
   requestFilter,
   fieldFilters,
   facetFieldKey,
   issuesOnly,
+  sourceOptions,
   serviceOptions,
   traceOptions,
   requestOptions,
@@ -71,6 +76,7 @@ export function SidebarSection({
   topTraceGroups,
   onSearchTermChange,
   onLevelFilterChange,
+  onSourceFilterChange,
   onServiceFilterChange,
   onTraceFilterChange,
   onRequestFilterChange,
@@ -95,7 +101,7 @@ export function SidebarSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">탐색 필터</CardTitle>
           <CardDescription className="leading-6">
-            검색어, level, service, trace, request를 함께 조합해 탐색 범위를 좁힙니다.
+            검색어, level, source, service, trace, request를 함께 조합해 탐색 범위를 좁힙니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -119,6 +125,18 @@ export function SidebarSection({
                 <SelectItem value="all">모든 level</SelectItem>
                 {Object.entries(LEVEL_LABELS).map(([value, label]) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sourceFilter} onValueChange={onSourceFilterChange} disabled={!hasSession || sourceOptions.length === 0}>
+              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 source</SelectItem>
+                {sourceOptions.map(({ value, label, count }) => (
+                  <SelectItem key={value} value={value}>{label} ({count})</SelectItem>
                 ))}
               </SelectContent>
             </Select>

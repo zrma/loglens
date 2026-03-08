@@ -45,6 +45,7 @@ function App() {
   } = useLogSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<LogLevel | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<string | "all">("all");
   const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
   const [traceFilter, setTraceFilter] = useState<string | "all">("all");
   const [requestFilter, setRequestFilter] = useState<string | "all">("all");
@@ -59,6 +60,7 @@ function App() {
   const resetFilters = useCallback(() => {
     setSearchTerm("");
     setLevelFilter("all");
+    setSourceFilter("all");
     setServiceFilter("all");
     setTraceFilter("all");
     setRequestFilter("all");
@@ -71,11 +73,12 @@ function App() {
   const sharedFilters = useMemo(() => ({
     searchTerm: deferredSearchTerm,
     level: levelFilter,
+    source: sourceFilter,
     service: serviceFilter,
     traceId: traceFilter,
     requestId: requestFilter,
     issuesOnly,
-  }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, traceFilter]);
+  }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, sourceFilter, traceFilter]);
   const scopedEvents = useMemo(() => filterLogEvents(events, {
     ...sharedFilters,
     fieldFilters: [],
@@ -111,6 +114,14 @@ function App() {
   const serviceOptions = useMemo(
     () => buildFacetCounts(events.map((event) => event.service), "미지정"),
     [events],
+  );
+  const sourceOptions = useMemo(
+    () => (session?.sources ?? []).map((source) => ({
+      count: source.eventCount,
+      label: source.label,
+      value: source.id,
+    })),
+    [session],
   );
   const requestOptions = useMemo(
     () => buildFacetCounts(events.map((event) => event.requestId), "none"),
@@ -177,8 +188,18 @@ function App() {
       : []
   ), [session]);
   const sourceLocation = useMemo(
-    () => (sourcePath ? getDirectoryPath(sourcePath) : "샘플 세션"),
-    [sourcePath],
+    () => {
+      if (sourcePath) {
+        return getDirectoryPath(sourcePath);
+      }
+
+      if ((session?.sources.length ?? 0) > 1) {
+        return `${session?.sources.length ?? 0}개 파일에서 병합한 세션`;
+      }
+
+      return "샘플 세션";
+    },
+    [session?.sources.length, sourcePath],
   );
   const visibleFieldEntries = useMemo(
     () => Object.entries(selectedEvent?.fields ?? {}).filter(([key]) => !hiddenFieldKeys.includes(key)),
@@ -189,6 +210,8 @@ function App() {
     [hiddenFieldKeys, selectedEvent?.fields],
   );
   const sessionTitle = sourceLabel ?? "No Active Session";
+  const sourceCount = session?.sources.length ?? 0;
+  const showSourceContext = sourceCount > 1;
   const metrics: MetricCardProps[] = useMemo(() => [
     {
       caption: sourceLabel ? "현재 세션 전체 이벤트 수" : "파일 또는 샘플 세션을 불러오면 집계됩니다",
@@ -198,7 +221,7 @@ function App() {
       value: events.length.toLocaleString(),
     },
     {
-      caption: searchTerm || levelFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || issuesOnly
+      caption: searchTerm || levelFilter !== "all" || sourceFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || issuesOnly
         ? "현재 필터가 적용된 결과"
         : "지금 화면에 표시되는 탐색 범위",
       icon: Filter,
@@ -231,6 +254,7 @@ function App() {
     searchTerm,
     serviceFilter,
     sourceLabel,
+    sourceFilter,
     traceFilter,
     tracesInSession,
   ]);
@@ -312,6 +336,8 @@ function App() {
           sourceLabel={sourceLabel}
           sourceLocation={sourceLocation}
           sessionTitle={sessionTitle}
+          sources={session?.sources ?? []}
+          sourceCount={sourceCount}
           servicesInSession={servicesInSession}
           errorCount={errorCount}
           multilineCount={multilineCount}
@@ -328,12 +354,14 @@ function App() {
             hasSession={Boolean(session)}
             searchTerm={searchTerm}
             levelFilter={levelFilter}
+            sourceFilter={sourceFilter}
             serviceFilter={serviceFilter}
             traceFilter={traceFilter}
             requestFilter={requestFilter}
             fieldFilters={fieldFilters}
             facetFieldKey={facetFieldKey}
             issuesOnly={issuesOnly}
+            sourceOptions={sourceOptions}
             serviceOptions={serviceOptions}
             traceOptions={traceOptions}
             requestOptions={requestOptions}
@@ -345,6 +373,7 @@ function App() {
             topTraceGroups={topTraceGroups}
             onSearchTermChange={setSearchTerm}
             onLevelFilterChange={setLevelFilter}
+            onSourceFilterChange={setSourceFilter}
             onServiceFilterChange={setServiceFilter}
             onTraceFilterChange={setTraceFilter}
             onRequestFilterChange={setRequestFilter}
@@ -420,10 +449,12 @@ function App() {
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
                     activeFieldFilters={fieldFilters}
+                    showSourceContext={showSourceContext}
                     visibleFieldEntries={visibleFieldEntries}
                     hiddenSelectedFieldKeys={hiddenSelectedFieldKeys}
                     onSelectEvent={setSelectedEventId}
                     onApplyTraceFilter={setTraceFilter}
+                    onApplySourceFilter={setSourceFilter}
                     onApplyServiceFilter={setServiceFilter}
                     onApplyRequestFilter={setRequestFilter}
                     onAddFieldFilter={addFieldFilter}

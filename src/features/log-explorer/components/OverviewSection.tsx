@@ -2,13 +2,15 @@ import { Activity, AlertCircle, FileJson2, FolderOpen, ListTree, ShieldCheck, Sp
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard, type MetricCardProps } from "@/features/log-explorer/presentation";
-import type { ParsedLogSession } from "@/lib/logs/types";
+import type { LogSource, ParsedLogSession } from "@/lib/logs/types";
 
 type OverviewSectionProps = {
   session: ParsedLogSession | null;
   sourceLabel: string | null;
   sourceLocation: string | null;
   sessionTitle: string;
+  sources: LogSource[];
+  sourceCount: number;
   servicesInSession: number;
   errorCount: number;
   multilineCount: number;
@@ -16,7 +18,9 @@ type OverviewSectionProps = {
   metrics: MetricCardProps[];
   errorMessage: string | null;
   loadProgress: {
+    currentSourceIndex: number;
     sourceLabel: string;
+    totalSources: number;
     lineCount: number;
     eventCount: number;
     diagnosticCount: number;
@@ -30,6 +34,8 @@ export function OverviewSection({
   sourceLabel,
   sourceLocation,
   sessionTitle,
+  sources,
+  sourceCount,
   servicesInSession,
   errorCount,
   multilineCount,
@@ -97,7 +103,11 @@ export function OverviewSection({
                 {loadProgress && (
                   <div className="mt-5 rounded-3xl border border-primary/15 bg-primary/5 px-4 py-4 text-sm text-foreground">
                     <p className="font-medium">라인 스트리밍 파싱으로 세션을 준비 중입니다.</p>
-                    <p className="mt-1 break-all text-muted-foreground">{loadProgress.sourceLabel}</p>
+                    <p className="mt-1 break-all text-muted-foreground">
+                      {loadProgress.totalSources > 1
+                        ? `[${loadProgress.currentSourceIndex}/${loadProgress.totalSources}] ${loadProgress.sourceLabel}`
+                        : loadProgress.sourceLabel}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span>{loadProgress.lineCount.toLocaleString()} lines</span>
                       <span>{loadProgress.eventCount.toLocaleString()} events</span>
@@ -171,7 +181,7 @@ export function OverviewSection({
               </div>
             </div>
             <CardDescription className="pt-2 text-sm leading-6">
-              현재는 단일 세션 기준으로 필터, span 관계, 상세 이벤트를 함께 읽도록 구성했습니다.
+              현재는 하나 이상의 로컬 로그 파일을 묶은 세션 기준으로 필터, span 관계, 상세 이벤트를 함께 읽도록 구성했습니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -185,6 +195,10 @@ export function OverviewSection({
 
                 <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                   <div className="rounded-3xl border border-border/70 bg-white/75 p-4">
+                    <p className="text-sm text-muted-foreground">소스 파일</p>
+                    <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{sourceCount.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-3xl border border-border/70 bg-white/75 p-4">
                     <p className="text-sm text-muted-foreground">서비스 수</p>
                     <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{servicesInSession.toLocaleString()}</p>
                   </div>
@@ -197,6 +211,23 @@ export function OverviewSection({
                     <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">{multilineCount.toLocaleString()}</p>
                   </div>
                 </div>
+
+                {sources.length > 1 && (
+                  <div className="rounded-3xl border border-border/70 bg-white/75 p-4">
+                    <p className="text-sm text-muted-foreground">세션 소스</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {sources.slice(0, 8).map((source) => (
+                        <span
+                          key={source.id}
+                          className="rounded-full border border-border/70 bg-white px-3 py-1 text-xs font-medium text-muted-foreground"
+                          title={source.path ?? source.label}
+                        >
+                          {source.label} · {source.eventCount}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="rounded-3xl border border-border/70 bg-white/75 p-4">
                   <p className="text-sm text-muted-foreground">파서 분류</p>

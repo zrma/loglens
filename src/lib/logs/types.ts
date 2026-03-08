@@ -27,10 +27,21 @@ export type ParseDiagnostic = {
   message: string;
 };
 
+export type LogSource = {
+  id: string;
+  label: string;
+  path: string | null;
+  eventCount: number;
+  diagnosticCount: number;
+};
+
 export type LogEvent = {
   id: string;
   lineNumber: number;
   endLineNumber: number;
+  sourceId: string;
+  sourceLabel: string;
+  sourcePath: string | null;
   rawLine: string;
   format: ParsedLogFormat;
   timestampMs: number | null;
@@ -51,6 +62,7 @@ export type ParsedLogSession = {
   events: LogEvent[];
   formatCounts: Record<ParsedLogFormat, number>;
   diagnostics: ParseDiagnostic[];
+  sources: LogSource[];
 };
 
 export type FieldFilter = {
@@ -62,6 +74,7 @@ export type FieldFilter = {
 export type LogFilters = {
   searchTerm: string;
   level: LogLevel | "all";
+  source: string | "all";
   service: string | "all";
   traceId: string | "all";
   requestId: string | "all";

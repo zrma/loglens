@@ -1,5 +1,6 @@
 import type {
   LogEvent,
+  LogSource,
   ParseIssue,
   ParsedLogFormat,
   ParsedLogSession,
@@ -16,6 +17,12 @@ type ParserProgress = {
   lineCount: number;
   eventCount: number;
   diagnosticCount: number;
+};
+
+type ParseSourceMeta = {
+  id: string;
+  label: string;
+  path: string | null;
 };
 
 const LEVEL_PATTERN = /\b(trace|debug|info|warn(?:ing)?|error|fatal|critical)\b/i;
@@ -284,6 +291,7 @@ function createEvent(
   format: ParsedLogFormat,
   fields: Record<string, string>,
   baseIssues: ParseIssue[] = [],
+  source: ParseSourceMeta = { id: "session", label: "session", path: null },
 ): LogEvent {
   const headerLine = record.lines[0] ?? record.text;
   const issues = [...baseIssues];
@@ -308,9 +316,12 @@ function createEvent(
   }
 
   return {
-    id: `line-${record.startLineNumber}`,
+    id: `${source.id}:line-${record.startLineNumber}`,
     lineNumber: record.startLineNumber,
     endLineNumber: record.endLineNumber,
+    sourceId: source.id,
+    sourceLabel: source.label,
+    sourcePath: source.path,
     rawLine: record.text,
     format,
     timestampMs: parseTimestamp(timestampText),
@@ -328,7 +339,7 @@ function createEvent(
   };
 }
 
-function parseJsonEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
+function parseJsonEvent(record: RawRecord, inheritedIssues: ParseIssue[], source?: ParseSourceMeta) {
   const firstLine = record.lines[0]?.trimStart() ?? "";
 
   if (!firstLine.startsWith("{")) {
@@ -343,7 +354,7 @@ function parseJsonEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
     }
 
     const fields = flattenObject(parsed);
-    return createEvent(record, "json", fields, inheritedIssues);
+    return createEvent(record, "json", fields, inheritedIssues, source);
   } catch {
     inheritedIssues.push(
       createIssue("invalid_json", "JSON으로 보이는 입력을 파싱하지 못해 다른 포맷으로 fallback 했습니다."),
@@ -352,7 +363,7 @@ function parseJsonEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
   }
 }
 
-function parseKeyValueEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
+function parseKeyValueEvent(record: RawRecord, inheritedIssues: ParseIssue[], source?: ParseSourceMeta) {
   const headerLine = record.lines[0] ?? record.text;
   const fields = parseKeyValueFields(headerLine);
 
@@ -370,10 +381,10 @@ function parseKeyValueEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
     fields.level = levelMatch[0];
   }
 
-  return createEvent(record, "keyvalue", fields, inheritedIssues);
+  return createEvent(record, "keyvalue", fields, inheritedIssues, source);
 }
 
-function parsePlainEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
+function parsePlainEvent(record: RawRecord, inheritedIssues: ParseIssue[], source?: ParseSourceMeta) {
   const headerLine = record.lines[0] ?? record.text;
   const fields: Record<string, string> = {};
   const timestampMatch = headerLine.match(TIMESTAMP_PATTERN);
@@ -412,7 +423,7 @@ function parsePlainEvent(record: RawRecord, inheritedIssues: ParseIssue[]) {
     fields.service = service;
   }
 
-  return createEvent(record, "plain", fields, inheritedIssues);
+  return createEvent(record, "plain", fields, inheritedIssues, source);
 }
 
 function currentLooksLikeStack(lines: string[]) {
@@ -459,7 +470,7 @@ function splitLogRecords(content: string) {
   return records;
 }
 
-function createEmptySession(): ParsedLogSession {
+function createEmptySession(sources: LogSource[] = []): ParsedLogSession {
   return {
     events: [],
     formatCounts: {
@@ -468,6 +479,7 @@ function createEmptySession(): ParsedLogSession {
       plain: 0,
     },
     diagnostics: [],
+    sources,
   };
 }
 
@@ -545,22 +557,33 @@ function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
   };
 }
 
-function buildSessionFromRecords(records: RawRecord[]) {
-  const session = createEmptySession();
+function buildSessionFromRecords(records: RawRecord[], source?: ParseSourceMeta) {
+  const session = createEmptySession(source ? [{
+    id: source.id,
+    label: source.label,
+    path: source.path,
+    eventCount: 0,
+    diagnosticCount: 0,
+  }] : []);
 
   for (const record of records) {
-    appendEventToSession(session, parseLogRecord(record));
+    appendEventToSession(session, parseLogRecord(record, source));
+  }
+
+  if (source) {
+    session.sources[0].eventCount = session.events.length;
+    session.sources[0].diagnosticCount = session.diagnostics.length;
   }
 
   return session;
 }
 
-function parseLogRecord(record: RawRecord) {
+function parseLogRecord(record: RawRecord, source?: ParseSourceMeta) {
   const inheritedIssues: ParseIssue[] = [];
 
-  return parseJsonEvent(record, inheritedIssues)
-    ?? parseKeyValueEvent(record, inheritedIssues)
-    ?? parsePlainEvent(record, inheritedIssues);
+  return parseJsonEvent(record, inheritedIssues, source)
+    ?? parseKeyValueEvent(record, inheritedIssues, source)
+    ?? parsePlainEvent(record, inheritedIssues, source);
 }
 
 export function parseLogLine(rawLine: string, lineNumber: number) {
@@ -572,8 +595,8 @@ export function parseLogLine(rawLine: string, lineNumber: number) {
   });
 }
 
-export function parseLogContent(content: string): ParsedLogSession {
-  return buildSessionFromRecords(splitLogRecords(content));
+export function parseLogContent(content: string, source?: ParseSourceMeta): ParsedLogSession {
+  return buildSessionFromRecords(splitLogRecords(content), source);
 }
 
 export async function parseLogLineStream(
@@ -581,11 +604,18 @@ export async function parseLogLineStream(
   options: {
     onProgress?: (progress: ParserProgress) => void;
     reportInterval?: number;
+    source?: ParseSourceMeta;
   } = {},
 ): Promise<ParsedLogSession> {
-  const session = createEmptySession();
+  const session = createEmptySession(options.source ? [{
+    id: options.source.id,
+    label: options.source.label,
+    path: options.source.path,
+    eventCount: 0,
+    diagnosticCount: 0,
+  }] : []);
   const accumulator = createRecordAccumulator((record) => {
-    appendEventToSession(session, parseLogRecord(record));
+    appendEventToSession(session, parseLogRecord(record, options.source));
   });
   const reportInterval = options.reportInterval ?? 1000;
   let lineCount = 0;
@@ -610,7 +640,53 @@ export async function parseLogLineStream(
     diagnosticCount: session.diagnostics.length,
   });
 
+  if (session.sources[0]) {
+    session.sources[0].eventCount = session.events.length;
+    session.sources[0].diagnosticCount = session.diagnostics.length;
+  }
+
   return session;
+}
+
+function compareMergedEvents(left: LogEvent, right: LogEvent) {
+  const leftTime = left.timestampMs ?? Number.MAX_SAFE_INTEGER;
+  const rightTime = right.timestampMs ?? Number.MAX_SAFE_INTEGER;
+
+  if (leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  if (left.sourceLabel !== right.sourceLabel) {
+    return left.sourceLabel.localeCompare(right.sourceLabel);
+  }
+
+  if (left.lineNumber !== right.lineNumber) {
+    return left.lineNumber - right.lineNumber;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
+export function mergeParsedSessions(sessions: ParsedLogSession[]): ParsedLogSession {
+  const merged = createEmptySession();
+
+  for (const session of sessions) {
+    merged.events.push(...session.events);
+    merged.diagnostics.push(...session.diagnostics);
+    merged.sources.push(...session.sources);
+    merged.formatCounts.json += session.formatCounts.json;
+    merged.formatCounts.keyvalue += session.formatCounts.keyvalue;
+    merged.formatCounts.plain += session.formatCounts.plain;
+  }
+
+  merged.events.sort(compareMergedEvents);
+  merged.diagnostics.sort((left, right) => (
+    left.lineNumber - right.lineNumber
+    || left.endLineNumber - right.endLineNumber
+    || left.id.localeCompare(right.id)
+  ));
+
+  return merged;
 }
 
 export type { ParserProgress };

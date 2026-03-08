@@ -68,10 +68,14 @@ describe("App smoke", () => {
     expect(screen.getAllByText(/span-auth-root/i).length).toBeGreaterThan(0);
   });
 
-  it("streams a selected file line by line and renders the parsed session", async () => {
-    tauriMocks.openMock.mockResolvedValue("/tmp/checkout.log");
+  it("streams selected files line by line and merges them into one session", async () => {
+    tauriMocks.openMock.mockResolvedValue(["/tmp/checkout.log", "/tmp/auth.log"]);
     tauriMocks.invokeMock.mockResolvedValue(undefined);
-    tauriMocks.readTextFileLinesMock.mockResolvedValue(linesFromText(SAMPLE_LOG_CONTENT));
+    tauriMocks.readTextFileLinesMock
+      .mockResolvedValueOnce(linesFromText(SAMPLE_LOG_CONTENT))
+      .mockResolvedValueOnce(linesFromText(`
+{"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
+      `.trim()));
 
     render(<App />);
 
@@ -81,8 +85,11 @@ describe("App smoke", () => {
 
     await waitFor(() => {
       expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledWith("/tmp/checkout.log");
+      expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledWith("/tmp/auth.log");
     });
+    expect((await screen.findAllByText(/2개 파일 세션/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/checkout\.log/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/auth\.log/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/이벤트 스트림/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/trace-checkout-4821/i)).length).toBeGreaterThan(0);
   });

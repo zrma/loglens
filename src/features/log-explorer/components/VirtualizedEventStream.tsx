@@ -8,6 +8,7 @@ type VirtualizedEventStreamProps = {
   events: LogEvent[];
   searchTerm: string;
   selectedEventId: string | null;
+  showSourceContext: boolean;
   onSelectEvent: (eventId: string) => void;
 };
 
@@ -19,6 +20,7 @@ export function VirtualizedEventStream({
   events,
   searchTerm,
   selectedEventId,
+  showSourceContext,
   onSelectEvent,
 }: VirtualizedEventStreamProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -160,6 +162,11 @@ export function VirtualizedEventStream({
                       {event.requestId && (
                         <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                           req {event.requestId}
+                        </span>
+                      )}
+                      {showSourceContext && (
+                        <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                          src {event.sourceLabel}
                         </span>
                       )}
                     </div>

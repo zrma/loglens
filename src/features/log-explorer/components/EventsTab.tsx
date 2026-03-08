@@ -16,10 +16,12 @@ type EventsTabProps = {
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
   activeFieldFilters: FieldFilter[];
+  showSourceContext: boolean;
   visibleFieldEntries: Array<[string, string]>;
   hiddenSelectedFieldKeys: string[];
   onSelectEvent: (eventId: string) => void;
   onApplyTraceFilter: (traceId: string) => void;
+  onApplySourceFilter: (sourceId: string | "all") => void;
   onApplyServiceFilter: (service: string) => void;
   onApplyRequestFilter: (requestId: string) => void;
   onAddFieldFilter: (fieldKey: string, fieldValue: string, operator?: FieldFilter["operator"]) => void;
@@ -134,10 +136,12 @@ export function EventsTab({
   relatedEvents,
   spanForest,
   activeFieldFilters,
+  showSourceContext,
   visibleFieldEntries,
   hiddenSelectedFieldKeys,
   onSelectEvent,
   onApplyTraceFilter,
+  onApplySourceFilter,
   onApplyServiceFilter,
   onApplyRequestFilter,
   onAddFieldFilter,
@@ -196,6 +200,7 @@ export function EventsTab({
               events={filteredEvents}
               searchTerm={searchTerm}
               selectedEventId={selectedEvent?.id ?? null}
+              showSourceContext={showSourceContext}
               onSelectEvent={onSelectEvent}
             />
           ) : (
@@ -239,6 +244,14 @@ export function EventsTab({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
+                {showSourceContext && (
+                  <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
+                    <p className="text-sm text-muted-foreground">source</p>
+                    <p className="mt-2 break-all text-sm font-medium text-foreground">
+                      {selectedEvent.sourceLabel}
+                    </p>
+                  </div>
+                )}
                 <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
                   <p className="text-sm text-muted-foreground">trace</p>
                   <p className="mt-2 break-all text-sm font-medium text-foreground">
@@ -267,6 +280,15 @@ export function EventsTab({
               </div>
 
               <div className="flex flex-wrap gap-2">
+                {showSourceContext && (
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => onApplySourceFilter(selectedEvent.sourceId)}
+                  >
+                    이 source만 보기
+                  </Button>
+                )}
                 {selectedEvent.traceId && (
                   <Button
                     variant="outline"
@@ -447,6 +469,11 @@ export function EventsTab({
                       <p className="mt-2 break-all text-sm font-medium text-foreground [overflow-wrap:anywhere]">
                         {event.service ?? "미지정"}
                       </p>
+                      {showSourceContext && (
+                        <p className="mt-1 break-all text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
+                          source {event.sourceLabel}
+                        </p>
+                      )}
                       <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground break-all [overflow-wrap:anywhere]">
                         {event.message}
                       </p>
