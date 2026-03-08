@@ -1,4 +1,11 @@
-import type { LogEvent, LogFilters, LogLevel, TraceGroup } from "@/lib/logs/types";
+import type {
+  LogEvent,
+  LogFilters,
+  LogLevel,
+  SpanForest,
+  SpanNode,
+  TraceGroup,
+} from "@/lib/logs/types";
 
 type ChartPoint = {
   hour: string;
@@ -10,7 +17,19 @@ type FacetCount = {
   count: number;
 };
 
-function compareEvents(left: LogEvent, right: LogEvent) {
+type MutableSpanNode = Omit<SpanNode, "children" | "depth" | "requestIds"> & {
+  childIds: string[];
+  requestIds: Set<string>;
+};
+
+const LEVEL_ORDER: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
+
+function levelRank(level: LogLevel) {
+  const index = LEVEL_ORDER.indexOf(level);
+  return index === -1 ? LEVEL_ORDER.length : index;
+}
+
+export function compareEvents(left: LogEvent, right: LogEvent) {
   const leftTime = left.timestampMs ?? Number.MAX_SAFE_INTEGER;
   const rightTime = right.timestampMs ?? Number.MAX_SAFE_INTEGER;
 
@@ -19,6 +38,10 @@ function compareEvents(left: LogEvent, right: LogEvent) {
   }
 
   return left.lineNumber - right.lineNumber;
+}
+
+export function isIssueLevel(level: LogLevel) {
+  return level === "error" || level === "fatal";
 }
 
 export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
@@ -34,6 +57,14 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
     }
 
     if (filters.traceId !== "all" && (event.traceId ?? "untracked") !== filters.traceId) {
+      return false;
+    }
+
+    if (filters.requestId !== "all" && (event.requestId ?? "none") !== filters.requestId) {
+      return false;
+    }
+
+    if (filters.issuesOnly && !isIssueLevel(event.level)) {
       return false;
     }
 
@@ -93,12 +124,11 @@ export function buildFacetCounts(values: Array<string | null | undefined>, empty
 }
 
 export function buildLevelCounts(events: LogEvent[]) {
-  const order: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
   const counts = buildFacetCounts(events.map((event) => event.level), "unknown");
 
   return counts.sort((left, right) => {
-    const leftIndex = order.indexOf(left.label as LogLevel);
-    const rightIndex = order.indexOf(right.label as LogLevel);
+    const leftIndex = LEVEL_ORDER.indexOf(left.label as LogLevel);
+    const rightIndex = LEVEL_ORDER.indexOf(right.label as LogLevel);
     return leftIndex - rightIndex;
   });
 }
@@ -120,15 +150,17 @@ export function buildTraceGroups(events: LogEvent[]) {
     const sorted = [...traceEvents].sort(compareEvents);
     const services = [...new Set(sorted.map((event) => event.service).filter(Boolean))] as string[];
     const levels = [...new Set(sorted.map((event) => event.level))];
+    const requestIds = [...new Set(sorted.map((event) => event.requestId).filter(Boolean))] as string[];
     const uniqueSpans = new Set(sorted.map((event) => event.spanId).filter(Boolean));
     const timedEvents = sorted.filter((event) => event.timestampMs !== null);
-    const issueCount = sorted.filter((event) => event.level === "error" || event.level === "fatal").length;
+    const issueCount = sorted.filter((event) => isIssueLevel(event.level)).length;
 
     return {
       traceId,
       eventIds: sorted.map((event) => event.id),
       services,
       levels,
+      requestIds,
       eventCount: sorted.length,
       spanCount: uniqueSpans.size,
       issueCount,
@@ -165,6 +197,172 @@ export function getRelatedEvents(events: LogEvent[], selectedEvent: LogEvent | n
   return events.filter((event) =>
     Math.abs(event.lineNumber - selectedEvent.lineNumber) <= 3,
   );
+}
+
+function createMutableSpanNode(spanId: string): MutableSpanNode {
+  return {
+    spanId,
+    parentSpanId: null,
+    service: null,
+    requestIds: new Set<string>(),
+    label: "Unnamed span",
+    eventIds: [],
+    eventCount: 0,
+    issueCount: 0,
+    level: "unknown",
+    startMs: null,
+    endMs: null,
+    childIds: [],
+  };
+}
+
+function updateSpanWindow(node: MutableSpanNode, timestampMs: number | null) {
+  if (timestampMs === null) {
+    return;
+  }
+
+  node.startMs = node.startMs === null ? timestampMs : Math.min(node.startMs, timestampMs);
+  node.endMs = node.endMs === null ? timestampMs : Math.max(node.endMs, timestampMs);
+}
+
+function materializeSpanNode(
+  spanId: string,
+  nodes: Map<string, MutableSpanNode>,
+  depth: number,
+  visited: Set<string>,
+): SpanNode {
+  const node = nodes.get(spanId);
+
+  if (!node || visited.has(spanId)) {
+    return {
+      spanId,
+      parentSpanId: null,
+      depth,
+      service: null,
+      requestIds: [],
+      label: "Broken span",
+      eventIds: [],
+      eventCount: 0,
+      issueCount: 0,
+      level: "unknown",
+      startMs: null,
+      endMs: null,
+      children: [],
+    };
+  }
+
+  visited.add(spanId);
+  const children = [...node.childIds]
+    .map((childId) => materializeSpanNode(childId, nodes, depth + 1, visited))
+    .sort((left, right) => {
+      if (left.startMs !== null && right.startMs !== null && left.startMs !== right.startMs) {
+        return left.startMs - right.startMs;
+      }
+
+      return left.spanId.localeCompare(right.spanId);
+    });
+
+  return {
+    spanId: node.spanId,
+    parentSpanId: node.parentSpanId,
+    depth,
+    service: node.service,
+    requestIds: [...node.requestIds],
+    label: node.label,
+    eventIds: node.eventIds,
+    eventCount: node.eventCount,
+    issueCount: node.issueCount,
+    level: node.level,
+    startMs: node.startMs,
+    endMs: node.endMs,
+    children,
+  };
+}
+
+function computeMaxDepth(nodes: SpanNode[], fallback = 0): number {
+  let maxDepth = fallback;
+
+  for (const node of nodes) {
+    maxDepth = Math.max(maxDepth, node.depth, computeMaxDepth(node.children, maxDepth));
+  }
+
+  return maxDepth;
+}
+
+export function buildSpanForest(events: LogEvent[], traceId: string | null): SpanForest | null {
+  if (!traceId) {
+    return null;
+  }
+
+  const traceEvents = events
+    .filter((event) => event.traceId === traceId)
+    .sort(compareEvents);
+
+  if (traceEvents.length === 0) {
+    return null;
+  }
+
+  const spanNodes = new Map<string, MutableSpanNode>();
+  const orphanEvents: LogEvent[] = [];
+
+  for (const event of traceEvents) {
+    if (!event.spanId) {
+      orphanEvents.push(event);
+      continue;
+    }
+
+    const span = spanNodes.get(event.spanId) ?? createMutableSpanNode(event.spanId);
+    span.parentSpanId = span.parentSpanId ?? event.parentSpanId ?? null;
+    span.service = span.service ?? event.service;
+    span.eventIds.push(event.id);
+    span.eventCount += 1;
+    span.issueCount += isIssueLevel(event.level) ? 1 : 0;
+    span.level = levelRank(event.level) < levelRank(span.level) ? event.level : span.level;
+    span.label = span.label === "Unnamed span" ? event.message.replace(/\s*\(\+\d+ lines\)$/, "") : span.label;
+    updateSpanWindow(span, event.timestampMs);
+
+    if (event.requestId) {
+      span.requestIds.add(event.requestId);
+    }
+
+    spanNodes.set(event.spanId, span);
+  }
+
+  for (const [spanId, node] of spanNodes.entries()) {
+    if (!node.parentSpanId || node.parentSpanId === spanId) {
+      continue;
+    }
+
+    const parent = spanNodes.get(node.parentSpanId);
+
+    if (!parent) {
+      continue;
+    }
+
+    if (!parent.childIds.includes(spanId)) {
+      parent.childIds.push(spanId);
+    }
+  }
+
+  const rootIds = [...spanNodes.values()]
+    .filter((node) => !node.parentSpanId || node.parentSpanId === node.spanId || !spanNodes.has(node.parentSpanId))
+    .map((node) => node.spanId)
+    .sort((left, right) => {
+      const leftNode = spanNodes.get(left);
+      const rightNode = spanNodes.get(right);
+      const leftStart = leftNode?.startMs ?? Number.MAX_SAFE_INTEGER;
+      const rightStart = rightNode?.startMs ?? Number.MAX_SAFE_INTEGER;
+      return leftStart - rightStart || left.localeCompare(right);
+    });
+
+  const roots = rootIds.map((spanId) => materializeSpanNode(spanId, spanNodes, 0, new Set<string>()));
+
+  return {
+    roots,
+    orphanEvents,
+    totalSpans: spanNodes.size,
+    maxDepth: computeMaxDepth(roots),
+  };
 }
 
 export function formatDuration(startMs: number | null, endMs: number | null) {

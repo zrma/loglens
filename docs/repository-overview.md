@@ -21,27 +21,29 @@
 2. Tauri dialog 플러그인으로 `.log` 또는 `.txt` 파일 하나를 고른다.
 3. 프런트엔드가 선택된 파일 경로를 받아 텍스트 파일을 읽는다.
 4. 파일 내용을 구조화 이벤트로 파싱한다.
-5. 검색어, level, service, trace 기준으로 이벤트를 필터링한다.
+5. 검색어, level, service, trace, request, issue-only 기준으로 이벤트를 필터링한다.
 6. `이벤트` 탭에서 구조화된 이벤트 목록과 상세 패널을 보여준다.
-7. 선택한 이벤트에 traceId가 있으면 관련 이벤트 흐름을 묶어 보여준다.
-8. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
+7. 선택한 이벤트에 traceId가 있으면 관련 이벤트 흐름과 span topology를 묶어 보여준다.
+8. parser note와 멀티라인 line range를 상세 패널에서 확인한다.
+9. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
 
 ## 런타임 구조
 
 ### Frontend
 
-- 위치: [`src/App.tsx`](../src/App.tsx)
+- 위치:
+- [`src/App.tsx`](../src/App.tsx)
+- [`src/features/log-explorer/components`](../src/features/log-explorer/components)
+- [`src/features/log-explorer/presentation.tsx`](../src/features/log-explorer/presentation.tsx)
 - 역할:
-- 파일 선택 버튼과 현재 선택 경로 표시
-- 로그 파일 읽기와 샘플 세션 로드
+- 파일 선택과 샘플 세션 로드
 - 구조화 이벤트 기준 상태 관리
-- 검색어/level/service/trace 필터링
-- 선택 이벤트 상세 패널 렌더링
-- trace 그룹 목록과 관련 이벤트 흐름 표시
-- 시간대별 집계 차트 렌더링
-- 이벤트/분석 탭 렌더링
+- 검색어/level/service/trace/request/issue 필터링
+- 선택 이벤트 상세 패널, parser note, span topology 렌더링
+- 시간대별 집계 차트와 분포 카드 렌더링
+- 이벤트/분석 탭 전환
 
-실제 화면 조립은 이 파일이 담당하지만, 파싱과 집계 로직은 `src/lib/logs`로 분리되었습니다.
+`App.tsx`는 상태와 데이터 파이프 조립을 맡고, 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
 
 ### Tauri / Rust
 
@@ -55,13 +57,13 @@
 
 ## 주요 상태와 데이터 흐름
 
-- `logFile`: 현재 선택된 파일 경로
-- `logLines`: 빈 줄을 제거한 로그 라인 배열
-- `searchTerm`: 검색 입력값
-- `activeTab`: 현재 선택된 탭
-- `errorMessage`: 파일 선택/읽기 실패 메시지
+- `session`: 파싱된 이벤트와 parser diagnostics를 담는 세션
+- `searchTerm`, `levelFilter`, `serviceFilter`, `traceFilter`, `requestFilter`, `issuesOnly`
+- `selectedEventId`
+- `activeTab`
+- `errorMessage`
 
-데이터 흐름은 `파일 선택 -> 텍스트 읽기 -> 줄 배열 생성 -> 검색 필터 -> 테이블/차트 렌더링` 순서입니다.
+데이터 흐름은 `파일 선택 -> 텍스트 읽기 -> 이벤트 레코드 분리 -> 구조화 파싱 -> trace/span 집계 -> 필터 -> 탭 렌더링` 순서입니다.
 
 ## 폴더별 역할
 
@@ -73,11 +75,11 @@
 
 ## 현재 한계
 
-- 파서는 JSON line, key=value, plain text timestamp prefix까지만 안정적으로 지원한다.
-- trace/span 단서 추출은 들어갔지만, 관계 시각화는 아직 목록/상세 패널 수준이다.
+- 파서는 JSON line, key=value, plain text timestamp prefix와 일부 stack trace heuristics까지만 안정적으로 지원한다.
+- span 관계 시각화는 기본 트리 수준이고, timeline/gantt 뷰는 아직 없다.
 - 대용량 파일 스트리밍이나 가상 스크롤이 없어 큰 로그 파일에서는 비효율적일 수 있다.
-- 오류 메시지 표시는 추가됐지만, 자세한 진단과 복구 흐름은 아직 단순하다.
-- 테스트는 parser smoke 수준만 있다.
+- parser note는 생겼지만, 포맷별 실패 원인 분류는 아직 거칠다.
+- 테스트는 parser/trace smoke 수준이며 UI 상호작용 테스트는 아직 없다.
 
 ## 유지보수 관점에서 중요한 사실
 
@@ -87,7 +89,7 @@
 
 ## 다음에 손대기 좋은 영역
 
-- correlation ID와 request ID를 포함한 더 풍부한 연결 규칙
+- correlation ID를 포함한 더 풍부한 연결 규칙
 - 큰 파일 대응을 위한 스트리밍/가상화
-- Rust 또는 별도 도메인 레이어로 분석 로직 분리
-- 시각화와 테스트 확장
+- span timeline/gantt 시각화
+- UI 스모크 테스트와 fixture 확장

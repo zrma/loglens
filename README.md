@@ -17,9 +17,10 @@
 - Tauri 파일 선택 다이얼로그로 로그 파일 1개를 연다.
 - 선택한 텍스트 로그를 구조화 이벤트로 파싱한다.
 - 이벤트 목록과 상세 패널을 함께 보여준다.
-- 검색어, level, service, trace 기준으로 이벤트를 필터링한다.
+- 검색어, level, service, trace, request, issue-only 기준으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
-- trace/span/request ID를 추출해 관련 이벤트를 묶어 보여준다.
+- trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology를 재구성한다.
+- 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 
 ## 현재 구현 상태
@@ -28,10 +29,12 @@
 
 - `.log`, `.txt` 파일 단일 선택
 - 로컬 파일 읽기
-- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부)
-- 검색어, level, service, trace 기반 필터링
+- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, multiline stack trace 병합)
+- 검색어, level, service, trace, request, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
+- trace 내부 parent/child span topology 카드
+- parser note와 line range 표시
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
 - 선택한 파일만 Tauri 파일 시스템 scope에 동적으로 허용
@@ -40,13 +43,13 @@
 
 ### 아직 구현되지 않은 부분
 
-- 다양한 로그 포맷과 멀티라인 로그에 대한 안정적인 파싱
-- 에러 레벨 외의 더 풍부한 구조화 필드 정규화
+- 다양한 로그 포맷과 nested JSON에 대한 더 안정적인 정규화
 - 여러 파일 동시 비교
-- trace/span 관계의 더 정교한 시각화
+- span timeline/gantt 수준의 더 정교한 시각화
 - 대용량 로그 대응 최적화
+- UI 스모크 테스트와 더 넓은 fixture 세트
 
-현재 파서는 JSON line, key=value, plain text timestamp prefix를 최소 범위로 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + 기초 trace 탐색 MVP" 단계입니다.
+현재 파서는 JSON line, key=value, plain text timestamp prefix와 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 
 ## 구조 요약
 
@@ -56,14 +59,16 @@
 - 차트: Recharts
 - 네이티브 레이어 역할: 창 생성, 파일 선택 다이얼로그, 파일 시스템 접근 권한 제공
 
-현재 로그 처리 로직은 대부분 [`src/App.tsx`](./src/App.tsx)에 있으며, Rust 쪽은 분석 엔진이라기보다 얇은 Tauri 셸에 가깝습니다.
+현재 로그 처리 로직은 `src/lib/logs`와 `src/features/log-explorer`로 나뉘어 있으며, Rust 쪽은 분석 엔진이라기보다 얇은 Tauri 셸에 가깝습니다.
 
 ## 주요 파일
 
-- [`src/App.tsx`](./src/App.tsx): 세션 로드, 구조화 필터, trace 탐색, 상세 이벤트 패널, 시간대 차트
+- [`src/App.tsx`](./src/App.tsx): 세션 로드, 필터 상태, 탭 전환, 데이터 파이프 조립
+- [`src/features/log-explorer/components`](./src/features/log-explorer/components): overview, sidebar, events, analysis 화면 컴포넌트
+- [`src/features/log-explorer/presentation.tsx`](./src/features/log-explorer/presentation.tsx): 공용 badge, metric card, 강조 렌더링
 - [`src/main.tsx`](./src/main.tsx): React 엔트리포인트
-- [`src/lib/logs/parser.ts`](./src/lib/logs/parser.ts): 구조화 로그 파서
-- [`src/lib/logs/analysis.ts`](./src/lib/logs/analysis.ts): 필터링, trace 그룹화, 시간대 집계
+- [`src/lib/logs/parser.ts`](./src/lib/logs/parser.ts): 구조화 로그 파서, multiline 병합, parser diagnostics 생성
+- [`src/lib/logs/analysis.ts`](./src/lib/logs/analysis.ts): 필터링, trace 그룹화, span forest, 시간대 집계
 - [`src/lib/logs/sample.ts`](./src/lib/logs/sample.ts): 샘플 trace 세션 fixture
 - [`src-tauri/src/lib.rs`](./src-tauri/src/lib.rs): Tauri 플러그인 등록과 선택 파일 단위 접근 허용
 - [`src-tauri/capabilities/default.json`](./src-tauri/capabilities/default.json): 메인 창 권한 선언
