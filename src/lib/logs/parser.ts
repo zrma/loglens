@@ -1,6 +1,8 @@
 import type {
   LogEvent,
+  LogFieldMap,
   LogSource,
+  LogSourceRef,
   ParseIssue,
   ParsedLogFormat,
   ParsedLogSession,
@@ -27,10 +29,11 @@ type ParserProgress = {
   diagnosticCount: number;
 };
 
-type ParseSourceMeta = {
-  id: string;
-  label: string;
-  path: string | null;
+type ParseSourceMeta = LogSourceRef;
+
+type FieldLookup = {
+  fields: LogFieldMap;
+  normalizedValues: Map<string, string>;
 };
 
 type ParseLogOptions = {
@@ -61,6 +64,8 @@ const STACK_CONTINUATION_PATTERNS = [
   /^\s*\^+$/,
 ];
 const EXCEPTION_LINE_PATTERN = /^[A-Za-z_$][\w.$]*(?:Error|Exception):/;
+const STACK_CONTEXT_PATTERN = /(?:error|exception|traceback|panic|fatal|stack trace|caused by)/i;
+const NUMERIC_TIMESTAMP_PATTERN = /^-?\d+(?:\.\d+)?$/;
 
 function stripQuotes(value: string) {
   if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
@@ -115,45 +120,88 @@ function extractTraceparentContext(value: string | null | undefined) {
   };
 }
 
-function parseTimestamp(value: string | number | null | undefined) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    if (value > 1_000_000_000_000) {
-      return value;
-    }
+function normalizeEpochTimestamp(value: number) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
 
-    if (value > 1_000_000_000) {
-      return value * 1000;
-    }
+  const absoluteValue = Math.abs(value);
+
+  if (absoluteValue >= 1_000_000_000_000_000_000) {
+    return Math.trunc(value / 1_000_000);
+  }
+
+  if (absoluteValue >= 1_000_000_000_000_000) {
+    return Math.trunc(value / 1000);
+  }
+
+  if (absoluteValue >= 1_000_000_000_000) {
+    return Math.trunc(value);
+  }
+
+  if (absoluteValue >= 1_000_000_000) {
+    return Math.trunc(value * 1000);
+  }
+
+  return null;
+}
+
+function parseTimestamp(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return normalizeEpochTimestamp(value);
   }
 
   if (typeof value === "string") {
-    const normalized = value.includes("T")
-      ? value
-      : value.replace(/\//g, "-").replace(" ", "T");
-    const parsed = new Date(normalized);
+    const trimmed = value.trim();
 
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.getTime();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (NUMERIC_TIMESTAMP_PATTERN.test(trimmed)) {
+      return normalizeEpochTimestamp(Number(trimmed));
+    }
+
+    const normalized = trimmed.includes("T")
+      ? trimmed
+      : trimmed.replace(/\//g, "-").replace(/\s+/, "T");
+    const parsed = Date.parse(normalized);
+
+    if (!Number.isNaN(parsed)) {
+      return parsed;
     }
   }
 
   return null;
 }
 
-function flattenObject(value: unknown, prefix = "", acc: Record<string, string> = {}) {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function flattenObject(value: unknown, prefix = "", acc: LogFieldMap = {}) {
   if (value === null || value === undefined) {
     return acc;
   }
 
   if (Array.isArray(value)) {
-    if (prefix) {
-      acc[prefix] = value.join(", ");
+    if (value.every((item) => item === null || item === undefined || !isPlainRecord(item))) {
+      if (prefix) {
+        acc[prefix] = value.map((item) => (item === null || item === undefined ? "" : String(item))).join(", ");
+      }
+
+      return acc;
+    }
+
+    for (const [index, item] of value.entries()) {
+      const nextKey = prefix ? `${prefix}.${index}` : String(index);
+      flattenObject(item, nextKey, acc);
     }
 
     return acc;
   }
 
-  if (typeof value === "object") {
+  if (isPlainRecord(value)) {
     for (const [key, nestedValue] of Object.entries(value)) {
       const nextKey = prefix ? `${prefix}.${key}` : key;
       flattenObject(nestedValue, nextKey, acc);
@@ -169,24 +217,48 @@ function flattenObject(value: unknown, prefix = "", acc: Record<string, string> 
   return acc;
 }
 
-function pickField(fields: Record<string, string>, candidates: string[]) {
-  const entries = Object.entries(fields);
+function createFieldLookup(fields: LogFieldMap): FieldLookup {
+  const normalizedValues = new Map<string, string>();
+
+  for (const [key, value] of Object.entries(fields)) {
+    let candidateKey = key.toLowerCase();
+
+    while (candidateKey) {
+      if (!normalizedValues.has(candidateKey)) {
+        normalizedValues.set(candidateKey, value);
+      }
+
+      const nextDotIndex = candidateKey.indexOf(".");
+      if (nextDotIndex === -1) {
+        break;
+      }
+
+      candidateKey = candidateKey.slice(nextDotIndex + 1);
+    }
+  }
+
+  return {
+    fields,
+    normalizedValues,
+  };
+}
+
+function pickField(fieldLookup: FieldLookup, candidates: string[]) {
+  const { fields, normalizedValues } = fieldLookup;
 
   for (const candidate of candidates) {
-    if (fields[candidate]) {
-      return fields[candidate];
+    const directValue = fields[candidate];
+
+    if (directValue) {
+      return directValue;
     }
   }
 
   for (const candidate of candidates) {
-    const normalizedCandidate = candidate.toLowerCase();
-    const match = entries.find(([key]) => {
-      const normalizedKey = key.toLowerCase();
-      return normalizedKey === normalizedCandidate || normalizedKey.endsWith(`.${normalizedCandidate}`);
-    });
+    const match = normalizedValues.get(candidate.toLowerCase());
 
     if (match) {
-      return match[1];
+      return match;
     }
   }
 
@@ -194,7 +266,7 @@ function pickField(fields: Record<string, string>, candidates: string[]) {
 }
 
 function parseKeyValueFields(rawLine: string) {
-  const fields: Record<string, string> = {};
+  const fields: LogFieldMap = {};
 
   for (const match of rawLine.matchAll(KV_PATTERN)) {
     const [, key, rawValue] = match;
@@ -220,6 +292,10 @@ function deriveServiceFromText(rawLine: string) {
   return inlineMatch?.[1] ?? null;
 }
 
+function lineLooksLikeStackContext(line: string) {
+  return STACK_CONTEXT_PATTERN.test(line);
+}
+
 function formatMessageSummary(message: string, continuationLineCount: number) {
   if (continuationLineCount <= 0) {
     return message;
@@ -230,11 +306,11 @@ function formatMessageSummary(message: string, continuationLineCount: number) {
 
 function deriveMessage(
   headerLine: string,
-  fields: Record<string, string>,
+  fieldLookup: FieldLookup,
   continuationLineCount: number,
   aliases: LogFieldAliases,
 ) {
-  const directMessage = pickField(fields, aliases.message);
+  const directMessage = pickField(fieldLookup, aliases.message);
 
   if (directMessage) {
     return formatMessageSummary(directMessage, continuationLineCount);
@@ -278,7 +354,7 @@ function dedupeIssues(issues: ParseIssue[]) {
 function createEvent(
   record: RawRecord,
   format: ParsedLogFormat,
-  fields: Record<string, string>,
+  fields: LogFieldMap,
   aliases: LogFieldAliases,
   baseIssues: ParseIssue[] = [],
   source: ParseSourceMeta = { id: "session", label: "session", path: null },
@@ -286,16 +362,18 @@ function createEvent(
   const headerLine = record.lines[0] ?? record.text;
   const issues = [...baseIssues];
   const continuationLineCount = Math.max(record.lines.length - 1, 0);
-  const timestampText = pickField(fields, aliases.timestamp) ?? headerLine.match(TIMESTAMP_PATTERN)?.[0] ?? null;
-  const levelText = pickField(fields, aliases.level) ?? headerLine.match(LEVEL_PATTERN)?.[0] ?? null;
-  const service = pickField(fields, aliases.service) ?? deriveServiceFromText(headerLine);
+  const fieldLookup = createFieldLookup(fields);
+  const timestampText = pickField(fieldLookup, aliases.timestamp) ?? headerLine.match(TIMESTAMP_PATTERN)?.[0] ?? null;
+  const timestampMs = parseTimestamp(timestampText);
+  const levelText = pickField(fieldLookup, aliases.level) ?? headerLine.match(LEVEL_PATTERN)?.[0] ?? null;
+  const service = pickField(fieldLookup, aliases.service) ?? deriveServiceFromText(headerLine);
   const traceContext = extractTraceparentContext(
-    pickField(fields, aliases.traceparent) ?? headerLine.match(TRACEPARENT_PATTERN)?.[0] ?? null,
+    pickField(fieldLookup, aliases.traceparent) ?? headerLine.match(TRACEPARENT_PATTERN)?.[0] ?? null,
   );
-  const traceId = pickField(fields, aliases.traceId) ?? traceContext?.traceId ?? null;
-  const spanId = pickField(fields, aliases.spanId) ?? traceContext?.spanId ?? null;
-  const parentSpanId = pickField(fields, aliases.parentSpanId);
-  const requestId = pickField(fields, aliases.requestId);
+  const traceId = pickField(fieldLookup, aliases.traceId) ?? traceContext?.traceId ?? null;
+  const spanId = pickField(fieldLookup, aliases.spanId) ?? traceContext?.spanId ?? null;
+  const parentSpanId = pickField(fieldLookup, aliases.parentSpanId);
+  const requestId = pickField(fieldLookup, aliases.requestId);
 
   if (record.lines.length > 1) {
     issues.push(createIssue("multiline", `${record.lines.length}줄을 하나의 이벤트로 병합했습니다.`));
@@ -314,11 +392,11 @@ function createEvent(
     sourcePath: source.path,
     rawLine: record.text,
     format,
-    timestampMs: parseTimestamp(timestampText),
+    timestampMs,
     timestampText,
     level: normalizeLevel(levelText),
     service,
-    message: deriveMessage(headerLine, fields, continuationLineCount, aliases),
+    message: deriveMessage(headerLine, fieldLookup, continuationLineCount, aliases),
     traceId,
     spanId,
     parentSpanId,
@@ -330,7 +408,7 @@ function createEvent(
 }
 
 function resolveEventAliases(
-  fields: Record<string, string>,
+  fields: LogFieldMap,
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
 ) {
@@ -360,7 +438,7 @@ function parseJsonEvent(
   try {
     const parsed = JSON.parse(record.text) as unknown;
 
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (!isPlainRecord(parsed)) {
       return null;
     }
 
@@ -390,13 +468,14 @@ function parseKeyValueEvent(
 
   const timestampMatch = headerLine.match(TIMESTAMP_PATTERN);
   const effectiveAliases = resolveEventAliases(fields, aliases, aliasPresetId);
+  const fieldLookup = createFieldLookup(fields);
 
-  if (timestampMatch && !pickField(fields, effectiveAliases.timestamp)) {
+  if (timestampMatch && !pickField(fieldLookup, effectiveAliases.timestamp)) {
     fields.timestamp = timestampMatch[0];
   }
 
   const levelMatch = headerLine.match(LEVEL_PATTERN);
-  if (levelMatch && !pickField(fields, effectiveAliases.level)) {
+  if (levelMatch && !pickField(fieldLookup, effectiveAliases.level)) {
     fields.level = levelMatch[0];
   }
 
@@ -411,7 +490,7 @@ function parsePlainEvent(
   source?: ParseSourceMeta,
 ) {
   const headerLine = record.lines[0] ?? record.text;
-  const fields: Record<string, string> = {};
+  const fields: LogFieldMap = {};
   const timestampMatch = headerLine.match(TIMESTAMP_PATTERN);
   const levelMatch = headerLine.match(LEVEL_PATTERN);
   const traceMatch = headerLine.match(/\btrace(?:Id|_id)?[:= ]([A-Za-z0-9-_/.:]+)/i);
@@ -451,12 +530,6 @@ function parsePlainEvent(
   return createEvent(record, "plain", fields, resolveEventAliases(fields, aliases, aliasPresetId), inheritedIssues, source);
 }
 
-function currentLooksLikeStack(lines: string[]) {
-  return lines.some((line) =>
-    /(?:error|exception|traceback|panic|fatal|stack trace|caused by)/i.test(line),
-  );
-}
-
 function looksLikeEventStart(line: string) {
   const trimmed = line.trimStart();
 
@@ -465,34 +538,22 @@ function looksLikeEventStart(line: string) {
     || LEVEL_START_PATTERN.test(trimmed);
 }
 
-function isContinuationLine(line: string, currentLines: string[]) {
+function isContinuationLine(line: string, hasStackContext: boolean) {
   const trimmed = line.trim();
 
   if (!trimmed) {
-    return currentLines.length > 0;
+    return true;
   }
 
   if (STACK_CONTINUATION_PATTERNS.some((pattern) => pattern.test(line))) {
     return true;
   }
 
-  if (EXCEPTION_LINE_PATTERN.test(trimmed) && currentLooksLikeStack(currentLines)) {
+  if (EXCEPTION_LINE_PATTERN.test(trimmed) && hasStackContext) {
     return true;
   }
 
-  return /^\s{2,}\S/.test(line) && currentLooksLikeStack(currentLines);
-}
-
-function splitLogRecords(content: string) {
-  const records: RawRecord[] = [];
-  const accumulator = createRecordAccumulator((record) => records.push(record));
-
-  content.split(/\r?\n/).forEach((line, index) => {
-    accumulator.pushLine(line, index + 1);
-  });
-
-  accumulator.finish();
-  return records;
+  return /^\s{2,}\S/.test(line) && hasStackContext;
 }
 
 function createEmptySession(sources: LogSource[] = []): ParsedLogSession {
@@ -523,9 +584,20 @@ function appendEventToSession(session: ParsedLogSession, event: LogEvent) {
   }
 }
 
+function createSourceEntry(source: ParseSourceMeta): LogSource {
+  return {
+    id: source.id,
+    label: source.label,
+    path: source.path,
+    eventCount: 0,
+    diagnosticCount: 0,
+  };
+}
+
 function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
   let startLineNumber = 0;
   let currentLines: string[] = [];
+  let hasStackContext = false;
 
   function flushRecord() {
     if (currentLines.length === 0) {
@@ -540,13 +612,20 @@ function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
     });
     currentLines = [];
     startLineNumber = 0;
+    hasStackContext = false;
+  }
+
+  function startRecord(line: string, lineNumber: number) {
+    startLineNumber = lineNumber;
+    currentLines = [line];
+    hasStackContext = lineLooksLikeStackContext(line);
   }
 
   function pushLine(rawLine: string, lineNumber: number) {
     const line = rawLine.trimEnd();
 
     if (!line.trim()) {
-      if (currentLines.length > 0 && currentLooksLikeStack(currentLines)) {
+      if (currentLines.length > 0 && hasStackContext) {
         currentLines.push("");
       }
 
@@ -554,26 +633,24 @@ function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
     }
 
     if (currentLines.length === 0) {
-      startLineNumber = lineNumber;
-      currentLines = [line];
+      startRecord(line, lineNumber);
       return;
     }
 
-    if (isContinuationLine(line, currentLines)) {
+    if (isContinuationLine(line, hasStackContext)) {
       currentLines.push(line);
+      hasStackContext = hasStackContext || lineLooksLikeStackContext(line);
       return;
     }
 
     if (looksLikeEventStart(line)) {
       flushRecord();
-      startLineNumber = lineNumber;
-      currentLines = [line];
+      startRecord(line, lineNumber);
       return;
     }
 
     flushRecord();
-    startLineNumber = lineNumber;
-    currentLines = [line];
+    startRecord(line, lineNumber);
   }
 
   return {
@@ -582,30 +659,63 @@ function createRecordAccumulator(onRecord: (record: RawRecord) => void) {
   };
 }
 
-function buildSessionFromRecords(
-  records: RawRecord[],
+function updateSourceCounts(session: ParsedLogSession) {
+  if (session.sources[0]) {
+    session.sources[0].eventCount = session.events.length;
+    session.sources[0].diagnosticCount = session.diagnostics.length;
+  }
+}
+
+function createSessionAccumulator(
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
   source?: ParseSourceMeta,
 ) {
-  const session = createEmptySession(source ? [{
-    id: source.id,
-    label: source.label,
-    path: source.path,
-    eventCount: 0,
-    diagnosticCount: 0,
-  }] : []);
-
-  for (const record of records) {
+  const session = createEmptySession(source ? [createSourceEntry(source)] : []);
+  const accumulator = createRecordAccumulator((record) => {
     appendEventToSession(session, parseLogRecord(record, aliases, aliasPresetId, source));
+  });
+
+  return {
+    pushLine: accumulator.pushLine,
+    finish() {
+      accumulator.finish();
+      updateSourceCounts(session);
+      return session;
+    },
+    session,
+  };
+}
+
+function forEachContentLine(content: string, onLine: (line: string, lineNumber: number) => void) {
+  let lineNumber = 1;
+  let lineStart = 0;
+
+  for (let index = 0; index < content.length; index += 1) {
+    const currentChar = content.charCodeAt(index);
+
+    if (currentChar !== 10 && currentChar !== 13) {
+      continue;
+    }
+
+    onLine(content.slice(lineStart, index), lineNumber);
+    lineNumber += 1;
+
+    if (currentChar === 13 && content.charCodeAt(index + 1) === 10) {
+      index += 1;
+    }
+
+    lineStart = index + 1;
   }
 
-  if (source) {
-    session.sources[0].eventCount = session.events.length;
-    session.sources[0].diagnosticCount = session.diagnostics.length;
+  if (
+    content.length === 0
+    || lineStart < content.length
+    || content.endsWith("\n")
+    || content.endsWith("\r")
+  ) {
+    onLine(content.slice(lineStart), lineNumber);
   }
-
-  return session;
 }
 
 function parseLogRecord(
@@ -624,20 +734,23 @@ function parseLogRecord(
 export function parseLogLine(rawLine: string, lineNumber: number, options: ParseLogOptions = {}) {
   const aliasPresetId = options.aliasPresetId ?? "auto";
   const aliases = buildLogFieldAliases(aliasPresetId, options.aliasOverrides);
+  const normalizedLine = rawLine.trimEnd();
 
   return parseLogRecord({
     startLineNumber: lineNumber,
     endLineNumber: lineNumber,
-    lines: [rawLine.trimEnd()],
-    text: rawLine.trimEnd(),
+    lines: [normalizedLine],
+    text: normalizedLine,
   }, aliases, aliasPresetId, options.source);
 }
 
 export function parseLogContent(content: string, options: ParseLogOptions = {}): ParsedLogSession {
   const aliasPresetId = options.aliasPresetId ?? "auto";
   const aliases = buildLogFieldAliases(aliasPresetId, options.aliasOverrides);
+  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.source);
 
-  return buildSessionFromRecords(splitLogRecords(content), aliases, aliasPresetId, options.source);
+  forEachContentLine(content, sessionAccumulator.pushLine);
+  return sessionAccumulator.finish();
 }
 
 export async function parseLogLineStream(
@@ -652,43 +765,29 @@ export async function parseLogLineStream(
 ): Promise<ParsedLogSession> {
   const aliasPresetId = options.aliasPresetId ?? "auto";
   const aliases = buildLogFieldAliases(aliasPresetId, options.aliasOverrides);
-  const session = createEmptySession(options.source ? [{
-    id: options.source.id,
-    label: options.source.label,
-    path: options.source.path,
-    eventCount: 0,
-    diagnosticCount: 0,
-  }] : []);
-  const accumulator = createRecordAccumulator((record) => {
-    appendEventToSession(session, parseLogRecord(record, aliases, aliasPresetId, options.source));
-  });
+  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.source);
   const reportInterval = options.reportInterval ?? 1000;
   let lineCount = 0;
 
   for await (const line of lines) {
     lineCount += 1;
-    accumulator.pushLine(line, lineCount);
+    sessionAccumulator.pushLine(line, lineCount);
 
     if (options.onProgress && lineCount % reportInterval === 0) {
       options.onProgress({
         lineCount,
-        eventCount: session.events.length,
-        diagnosticCount: session.diagnostics.length,
+        eventCount: sessionAccumulator.session.events.length,
+        diagnosticCount: sessionAccumulator.session.diagnostics.length,
       });
     }
   }
 
-  accumulator.finish();
+  const session = sessionAccumulator.finish();
   options.onProgress?.({
     lineCount,
     eventCount: session.events.length,
     diagnosticCount: session.diagnostics.length,
   });
-
-  if (session.sources[0]) {
-    session.sources[0].eventCount = session.events.length;
-    session.sources[0].diagnosticCount = session.diagnostics.length;
-  }
 
   return session;
 }

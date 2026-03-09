@@ -37,7 +37,7 @@ export function getLevelTone(level: LogLevel) {
     case "trace":
       return "border-emerald-200 bg-emerald-50 text-emerald-700";
     default:
-      return "border-slate-200 bg-slate-100 text-slate-700";
+      return "border-border bg-muted text-muted-foreground";
   }
 }
 
@@ -90,7 +90,7 @@ export function highlightText(text: string, term: string): ReactNode {
       ? (
         <mark
           key={`${part}-${index}`}
-          className="rounded-md bg-primary/25 px-1 py-0.5 font-semibold text-foreground"
+          className="rounded-md bg-accent px-1 py-0.5 font-semibold text-foreground"
         >
           {part}
         </mark>
@@ -107,7 +107,7 @@ export function MetricCard({
   value,
 }: MetricCardProps) {
   return (
-    <Card className="group overflow-hidden border-white/60 bg-white/72 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_32px_80px_-36px_rgba(15,23,42,0.45)]">
+    <Card className="group overflow-hidden border-border bg-card shadow-xl shadow-black/5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/10 dark:shadow-black/30 dark:hover:shadow-black/40">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">

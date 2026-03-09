@@ -46,7 +46,8 @@ export function normalizeBuiltinEventStreamColumns(
   columnIds: EventStreamBuiltinColumnId[],
   pinnedFieldColumns: string[] = [],
 ) {
-  const ordered = EVENT_STREAM_COLUMN_ORDER.filter((columnId) => columnIds.includes(columnId));
+  const selectedColumnIds = new Set(columnIds);
+  const ordered = EVENT_STREAM_COLUMN_ORDER.filter((columnId) => selectedColumnIds.has(columnId));
 
   if (ordered.length === 0 && pinnedFieldColumns.length === 0) {
     return ["message"] satisfies EventStreamBuiltinColumnId[];
@@ -60,7 +61,8 @@ export function buildEventStreamColumns(
   pinnedFieldColumns: string[],
 ) {
   const normalizedBuiltins = normalizeBuiltinEventStreamColumns(builtinColumnIds, pinnedFieldColumns);
-  const builtinColumns = EVENT_STREAM_BUILTIN_COLUMNS.filter((column) => normalizedBuiltins.includes(column.id));
+  const builtinColumnSet = new Set(normalizedBuiltins);
+  const builtinColumns = EVENT_STREAM_BUILTIN_COLUMNS.filter((column) => builtinColumnSet.has(column.id));
   const messageColumn = builtinColumns.find((column) => column.id === "message") ?? null;
   const leadingBuiltinColumns = builtinColumns.filter((column) => column.id !== "message");
   const fieldColumns = unique(pinnedFieldColumns).map((fieldKey) => ({
@@ -86,4 +88,3 @@ export function getEventStreamGridTemplate(columns: EventStreamColumn[]) {
 export function getEventStreamMinWidth(columns: EventStreamColumn[]) {
   return columns.reduce((sum, column) => sum + column.minWidth, 0);
 }
-

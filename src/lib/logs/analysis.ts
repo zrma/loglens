@@ -22,11 +22,31 @@ type FacetCount = {
 };
 
 type MutableSpanNode = Omit<SpanNode, "children" | "depth" | "requestIds"> & {
-  childIds: string[];
+  childIds: Set<string>;
   requestIds: Set<string>;
 };
 
+type MutableDerivedFlowGroup = Omit<DerivedFlowGroup, "methods" | "routes" | "services" | "sources"> & {
+  methods: Set<string>;
+  routes: Set<string>;
+  services: Set<string>;
+  sources: Set<string>;
+};
+
+type MutableTraceGroup = {
+  traceId: string;
+  events: LogEvent[];
+  issueCount: number;
+  startMs: number | null;
+  endMs: number | null;
+};
+
+type MutableTraceSourceCoverage = Omit<TraceSourceCoverage, "services"> & {
+  services: Set<string>;
+};
+
 const LEVEL_ORDER: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
+const LEVEL_RANK = new Map<LogLevel, number>(LEVEL_ORDER.map((level, index) => [level, index]));
 const HTTP_METHOD_PATTERN = /\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/i;
 const PATH_PATTERN = /(\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+)/;
 const ROUTE_FIELD_KEYS = [
@@ -60,6 +80,16 @@ const RESOURCE_ID_EXCLUDE_PATTERNS = [
   /user/i,
   /parent/i,
 ];
+const DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
+  month: "2-digit",
+  day: "2-digit",
+});
+const TIME_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
 
 type DerivedFlowHint = {
   family: string | null;
@@ -72,8 +102,42 @@ type DerivedFlowHint = {
 };
 
 function levelRank(level: LogLevel) {
-  const index = LEVEL_ORDER.indexOf(level);
-  return index === -1 ? LEVEL_ORDER.length : index;
+  const index = LEVEL_RANK.get(level);
+  return index === undefined ? LEVEL_ORDER.length : index;
+}
+
+function materializeFacetCounts(counter: Map<string, number>) {
+  return [...counter.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
+function matchesNormalizedSearch(value: string | null | undefined, normalizedSearch: string) {
+  return value?.toLowerCase().includes(normalizedSearch) ?? false;
+}
+
+function eventMatchesSearch(event: LogEvent, normalizedSearch: string) {
+  if (
+    matchesNormalizedSearch(event.message, normalizedSearch)
+    || matchesNormalizedSearch(event.rawLine, normalizedSearch)
+    || matchesNormalizedSearch(event.sourceLabel, normalizedSearch)
+    || matchesNormalizedSearch(event.sourcePath, normalizedSearch)
+    || matchesNormalizedSearch(event.service, normalizedSearch)
+    || matchesNormalizedSearch(event.traceId, normalizedSearch)
+    || matchesNormalizedSearch(event.spanId, normalizedSearch)
+    || matchesNormalizedSearch(event.parentSpanId, normalizedSearch)
+    || matchesNormalizedSearch(event.requestId, normalizedSearch)
+  ) {
+    return true;
+  }
+
+  for (const [key, value] of Object.entries(event.fields)) {
+    if (key.toLowerCase().includes(normalizedSearch) || value.toLowerCase().includes(normalizedSearch)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function compareEvents(left: LogEvent, right: LogEvent) {
@@ -131,21 +195,7 @@ export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
       return true;
     }
 
-    const haystacks = [
-      event.message,
-      event.rawLine,
-      event.sourceLabel,
-      event.sourcePath,
-      event.service,
-      event.traceId,
-      event.spanId,
-      event.parentSpanId,
-      event.requestId,
-      ...Object.keys(event.fields),
-      ...Object.values(event.fields),
-    ];
-
-    return haystacks.some((value) => value?.toLowerCase().includes(normalizedSearch));
+    return eventMatchesSearch(event, normalizedSearch);
   });
 }
 
@@ -161,14 +211,12 @@ export function buildFieldKeyCounts(events: LogEvent[]) {
   const counter = new Map<string, number>();
 
   for (const event of events) {
-    for (const key of Object.keys(event.fields)) {
+    for (const key in event.fields) {
       counter.set(key, (counter.get(key) ?? 0) + 1);
     }
   }
 
-  return [...counter.entries()]
-    .map(([label, count]) => ({ label, count }))
-    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+  return materializeFacetCounts(counter);
 }
 
 export function buildFieldValueCounts(events: LogEvent[], fieldKey: string | "all") {
@@ -176,12 +224,20 @@ export function buildFieldValueCounts(events: LogEvent[], fieldKey: string | "al
     return [];
   }
 
-  return buildFacetCounts(
-    events
-      .map((event) => event.fields[fieldKey] ?? null)
-      .filter((value): value is string => value !== null),
-    "none",
-  );
+  const counter = new Map<string, number>();
+
+  for (const event of events) {
+    const value = event.fields[fieldKey];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    const label = value.trim() ? value : "none";
+    counter.set(label, (counter.get(label) ?? 0) + 1);
+  }
+
+  return materializeFacetCounts(counter);
 }
 
 export function buildHourlyChartData(events: LogEvent[]) {
@@ -216,9 +272,7 @@ export function buildFacetCounts(values: Array<string | null | undefined>, empty
     counter.set(label, (counter.get(label) ?? 0) + 1);
   }
 
-  return [...counter.entries()]
-    .map(([label, count]) => ({ label, count }))
-    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+  return materializeFacetCounts(counter);
 }
 
 function pickCandidateField(event: LogEvent, candidates: string[]) {
@@ -402,50 +456,83 @@ function deriveFlowHint(event: LogEvent): DerivedFlowHint {
 }
 
 export function buildLevelCounts(events: LogEvent[]) {
-  const counts = buildFacetCounts(events.map((event) => event.level), "unknown");
+  const counter = new Map<LogLevel, number>();
 
-  return counts.sort((left, right) => {
-    const leftIndex = LEVEL_ORDER.indexOf(left.label as LogLevel);
-    const rightIndex = LEVEL_ORDER.indexOf(right.label as LogLevel);
-    return leftIndex - rightIndex;
-  });
+  for (const event of events) {
+    counter.set(event.level, (counter.get(event.level) ?? 0) + 1);
+  }
+
+  return [...counter.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((left, right) => levelRank(left.label) - levelRank(right.label));
 }
 
 export function buildTraceGroups(events: LogEvent[]) {
-  const groups = new Map<string, LogEvent[]>();
+  const groups = new Map<string, MutableTraceGroup>();
 
   for (const event of events) {
     if (!event.traceId) {
       continue;
     }
 
-    const traceEvents = groups.get(event.traceId) ?? [];
-    traceEvents.push(event);
-    groups.set(event.traceId, traceEvents);
+    const current = groups.get(event.traceId) ?? {
+      traceId: event.traceId,
+      events: [],
+      issueCount: 0,
+      startMs: null,
+      endMs: null,
+    };
+
+    current.events.push(event);
+    current.issueCount += isIssueLevel(event.level) ? 1 : 0;
+
+    if (event.timestampMs !== null) {
+      current.startMs = current.startMs === null ? event.timestampMs : Math.min(current.startMs, event.timestampMs);
+      current.endMs = current.endMs === null ? event.timestampMs : Math.max(current.endMs, event.timestampMs);
+    }
+
+    groups.set(event.traceId, current);
   }
 
-  const traces: TraceGroup[] = [...groups.entries()].map(([traceId, traceEvents]) => {
-    const sorted = [...traceEvents].sort(compareEvents);
-    const services = [...new Set(sorted.map((event) => event.service).filter(Boolean))] as string[];
-    const sources = [...new Set(sorted.map((event) => event.sourceLabel))];
-    const levels = [...new Set(sorted.map((event) => event.level))];
-    const requestIds = [...new Set(sorted.map((event) => event.requestId).filter(Boolean))] as string[];
-    const uniqueSpans = new Set(sorted.map((event) => event.spanId).filter(Boolean));
-    const timedEvents = sorted.filter((event) => event.timestampMs !== null);
-    const issueCount = sorted.filter((event) => isIssueLevel(event.level)).length;
+  const traces: TraceGroup[] = [...groups.values()].map((group) => {
+    const sorted = [...group.events].sort(compareEvents);
+    const services = new Set<string>();
+    const sources = new Set<string>();
+    const levels = new Set<LogLevel>();
+    const requestIds = new Set<string>();
+    const uniqueSpans = new Set<string>();
+    const eventIds: string[] = [];
+
+    for (const event of sorted) {
+      eventIds.push(event.id);
+      sources.add(event.sourceLabel);
+      levels.add(event.level);
+
+      if (event.service) {
+        services.add(event.service);
+      }
+
+      if (event.requestId) {
+        requestIds.add(event.requestId);
+      }
+
+      if (event.spanId) {
+        uniqueSpans.add(event.spanId);
+      }
+    }
 
     return {
-      traceId,
-      eventIds: sorted.map((event) => event.id),
-      services,
-      sources,
-      levels,
-      requestIds,
+      traceId: group.traceId,
+      eventIds,
+      services: [...services],
+      sources: [...sources],
+      levels: [...levels],
+      requestIds: [...requestIds],
       eventCount: sorted.length,
       spanCount: uniqueSpans.size,
-      issueCount,
-      startMs: timedEvents[0]?.timestampMs ?? null,
-      endMs: timedEvents[timedEvents.length - 1]?.timestampMs ?? null,
+      issueCount: group.issueCount,
+      startMs: group.startMs,
+      endMs: group.endMs,
     };
   });
 
@@ -463,7 +550,7 @@ export function buildTraceGroups(events: LogEvent[]) {
 }
 
 export function buildDerivedFlowGroups(events: LogEvent[]) {
-  const groups = new Map<string, DerivedFlowGroup>();
+  const groups = new Map<string, MutableDerivedFlowGroup>();
 
   for (const event of events) {
     const hint = deriveFlowHint(event);
@@ -481,11 +568,11 @@ export function buildDerivedFlowGroups(events: LogEvent[]) {
       family: hint.family,
       flowKey,
       issueCount: 0,
-      methods: [],
+      methods: new Set<string>(),
       resourceId: hint.resourceId,
-      routes: [],
-      services: [],
-      sources: [],
+      routes: new Set<string>(),
+      services: new Set<string>(),
+      sources: new Set<string>(),
       startMs: null,
       endMs: null,
     };
@@ -494,21 +581,19 @@ export function buildDerivedFlowGroups(events: LogEvent[]) {
     current.eventIds.push(event.id);
     current.issueCount += isIssueLevel(event.level) ? 1 : 0;
 
-    if (hint.method && !current.methods.includes(hint.method)) {
-      current.methods.push(hint.method);
+    if (hint.method) {
+      current.methods.add(hint.method);
     }
 
-    if (hint.normalizedRoute && !current.routes.includes(hint.normalizedRoute)) {
-      current.routes.push(hint.normalizedRoute);
+    if (hint.normalizedRoute) {
+      current.routes.add(hint.normalizedRoute);
     }
 
-    if (event.service && !current.services.includes(event.service)) {
-      current.services.push(event.service);
+    if (event.service) {
+      current.services.add(event.service);
     }
 
-    if (!current.sources.includes(event.sourceLabel)) {
-      current.sources.push(event.sourceLabel);
-    }
+    current.sources.add(event.sourceLabel);
 
     if (event.timestampMs !== null) {
       current.startMs = current.startMs === null ? event.timestampMs : Math.min(current.startMs, event.timestampMs);
@@ -520,6 +605,13 @@ export function buildDerivedFlowGroups(events: LogEvent[]) {
 
   return [...groups.values()]
     .filter((group) => group.eventCount > 1)
+    .map((group) => ({
+      ...group,
+      methods: [...group.methods],
+      routes: [...group.routes],
+      services: [...group.services],
+      sources: [...group.sources],
+    }))
     .sort((left, right) => (
       right.issueCount - left.issueCount
       || right.eventCount - left.eventCount
@@ -541,7 +633,7 @@ export function buildTraceSourceCoverage(events: LogEvent[], traceId: string | n
     return [];
   }
 
-  const grouped = new Map<string, TraceSourceCoverage>();
+  const grouped = new Map<string, MutableTraceSourceCoverage>();
 
   for (const event of events) {
     if (event.traceId !== traceId) {
@@ -553,24 +645,29 @@ export function buildTraceSourceCoverage(events: LogEvent[], traceId: string | n
       sourceLabel: event.sourceLabel,
       eventCount: 0,
       issueCount: 0,
-      services: [],
+      services: new Set<string>(),
     };
 
     current.eventCount += 1;
     current.issueCount += isIssueLevel(event.level) ? 1 : 0;
 
-    if (event.service && !current.services.includes(event.service)) {
-      current.services.push(event.service);
+    if (event.service) {
+      current.services.add(event.service);
     }
 
     grouped.set(event.sourceId, current);
   }
 
-  return [...grouped.values()].sort((left, right) => (
-    right.issueCount - left.issueCount
-    || right.eventCount - left.eventCount
-    || left.sourceLabel.localeCompare(right.sourceLabel)
-  ));
+  return [...grouped.values()]
+    .map((coverage) => ({
+      ...coverage,
+      services: [...coverage.services],
+    }))
+    .sort((left, right) => (
+      right.issueCount - left.issueCount
+      || right.eventCount - left.eventCount
+      || left.sourceLabel.localeCompare(right.sourceLabel)
+    ));
 }
 
 export function getRelatedEvents(events: LogEvent[], selectedEvent: LogEvent | null, limit = 8) {
@@ -585,9 +682,13 @@ export function getRelatedEvents(events: LogEvent[], selectedEvent: LogEvent | n
       .slice(0, limit);
   }
 
-  return events.filter((event) =>
-    Math.abs(event.lineNumber - selectedEvent.lineNumber) <= 3,
-  );
+  return events
+    .filter((event) => (
+      event.sourceId === selectedEvent.sourceId
+      && Math.abs(event.lineNumber - selectedEvent.lineNumber) <= 3
+    ))
+    .sort(compareEvents)
+    .slice(0, limit);
 }
 
 function createMutableSpanNode(spanId: string): MutableSpanNode {
@@ -603,7 +704,7 @@ function createMutableSpanNode(spanId: string): MutableSpanNode {
     level: "unknown",
     startMs: null,
     endMs: null,
-    childIds: [],
+    childIds: new Set<string>(),
   };
 }
 
@@ -670,11 +771,19 @@ function materializeSpanNode(
   };
 }
 
-function computeMaxDepth(nodes: SpanNode[], fallback = 0): number {
-  let maxDepth = fallback;
+function computeMaxDepth(nodes: SpanNode[]) {
+  let maxDepth = 0;
+  const stack = [...nodes];
 
-  for (const node of nodes) {
-    maxDepth = Math.max(maxDepth, node.depth, computeMaxDepth(node.children, maxDepth));
+  while (stack.length > 0) {
+    const node = stack.pop();
+
+    if (!node) {
+      continue;
+    }
+
+    maxDepth = Math.max(maxDepth, node.depth);
+    stack.push(...node.children);
   }
 
   return maxDepth;
@@ -730,9 +839,7 @@ export function buildSpanForest(events: LogEvent[], traceId: string | null): Spa
       continue;
     }
 
-    if (!parent.childIds.includes(spanId)) {
-      parent.childIds.push(spanId);
-    }
+    parent.childIds.add(spanId);
   }
 
   const rootIds = [...spanNodes.values()]
@@ -776,16 +883,8 @@ export function formatTimestamp(timestampMs: number | null) {
   }
 
   const date = new Date(timestampMs);
-  const datePart = new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-  const timePart = new Intl.DateTimeFormat("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(date);
+  const datePart = DATE_FORMATTER.format(date);
+  const timePart = TIME_FORMATTER.format(date);
 
   return `${datePart} ${timePart}`;
 }

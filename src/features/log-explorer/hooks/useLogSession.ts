@@ -1,9 +1,12 @@
-import { startTransition, useCallback, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, readTextFileLines } from "@tauri-apps/plugin-fs";
 import { getFileName } from "@/features/log-explorer/presentation";
-import { LOG_ALIAS_PRESETS, type LogAliasPresetId } from "@/lib/logs/aliases";
+import {
+  getLogAliasPreset,
+  LOG_ALIAS_PRESETS,
+  type LogAliasPresetId,
+} from "@/lib/logs/aliases";
 import {
   mergeParsedSessions,
   parseLogContent,
@@ -22,6 +25,50 @@ export type LoadProgressState = ParserProgress & {
 type SessionLoadRequest =
   | { kind: "files"; paths: string[] }
   | { kind: "sample" };
+
+function createSourceMeta(label: string, path: string | null) {
+  return {
+    id: path ?? "sample",
+    label,
+    path,
+  };
+}
+
+function normalizeDialogPath(path: string) {
+  const trimmed = path.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!trimmed.startsWith("file://")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+
+    if (parsed.protocol !== "file:") {
+      return trimmed;
+    }
+
+    const decodedPath = decodeURIComponent(parsed.pathname);
+
+    if (/^\/[A-Za-z]:\//.test(decodedPath)) {
+      return decodedPath.slice(1);
+    }
+
+    return decodedPath;
+  } catch {
+    return trimmed;
+  }
+}
+
+function normalizeSelectedPaths(selected: string | string[]) {
+  return (Array.isArray(selected) ? selected : [selected])
+    .map((path) => (typeof path === "string" ? normalizeDialogPath(path) : null))
+    .filter((path): path is string => typeof path === "string" && path.length > 0);
+}
 
 function summarizeSessionSources(paths: string[]) {
   if (paths.length === 0) {
@@ -52,16 +99,66 @@ export function useLogSession() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState<LoadProgressState | null>(null);
   const [parserPresetId, setParserPresetIdState] = useState<LogAliasPresetId>("auto");
-  const [lastLoadRequest, setLastLoadRequest] = useState<SessionLoadRequest | null>(null);
+  const activeLoadIdRef = useRef(0);
+  const isMountedRef = useRef(true);
+  const lastLoadRequestRef = useRef<SessionLoadRequest | null>(null);
 
-  const applySession = useCallback((parsedSession: ParsedLogSession, label: string, path: string | null) => {
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      activeLoadIdRef.current += 1;
+    };
+  }, []);
+
+  const beginLoad = useCallback(() => {
+    activeLoadIdRef.current += 1;
+    return activeLoadIdRef.current;
+  }, []);
+
+  const isActiveLoad = useCallback((loadId: number) => (
+    isMountedRef.current && activeLoadIdRef.current === loadId
+  ), []);
+
+  const setLoadProgressSafely = useCallback((loadId: number, progress: LoadProgressState | null) => {
+    if (!isActiveLoad(loadId)) {
+      return;
+    }
+
+    setLoadProgress(progress);
+  }, [isActiveLoad]);
+
+  const setErrorMessageSafely = useCallback((loadId: number, nextErrorMessage: string | null) => {
+    if (!isActiveLoad(loadId)) {
+      return;
+    }
+
+    setErrorMessage(nextErrorMessage);
+  }, [isActiveLoad]);
+
+  const applySession = useCallback((
+    loadId: number,
+    parsedSession: ParsedLogSession,
+    label: string,
+    path: string | null,
+  ) => {
+    if (!isActiveLoad(loadId)) {
+      return;
+    }
+
     startTransition(() => {
+      if (!isActiveLoad(loadId)) {
+        return;
+      }
+
       setSession(parsedSession);
       setSourceLabel(label);
       setSourcePath(path);
+      setLoadProgress(null);
       setErrorMessage(null);
     });
-  }, []);
+  }, [isActiveLoad]);
 
   const parseSessionContent = useCallback((
     content: string,
@@ -69,24 +166,29 @@ export function useLogSession() {
     path: string | null,
     presetId: LogAliasPresetId,
   ) => {
-    applySession(parseLogContent(content, {
+    const loadId = beginLoad();
+    const parsedSession = parseLogContent(content, {
       aliasPresetId: presetId,
-      source: {
-        id: path ?? "sample",
-        label,
-        path,
-      },
-    }), label, path);
-  }, [applySession]);
+      source: createSourceMeta(label, path),
+    });
+
+    applySession(loadId, parsedSession, label, path);
+  }, [applySession, beginLoad]);
 
   const loadSelectedPaths = useCallback(async (paths: string[], presetId: LogAliasPresetId) => {
+    const loadId = beginLoad();
+
     try {
+      setErrorMessageSafely(loadId, null);
       const parsedSessions: ParsedLogSession[] = [];
 
       for (const [index, path] of paths.entries()) {
+        if (!isActiveLoad(loadId)) {
+          return;
+        }
+
         const nextLabel = getFileName(path) ?? path;
-        await invoke("allow_file_access", { path });
-        setLoadProgress({
+        setLoadProgressSafely(loadId, {
           currentSourceIndex: index + 1,
           sourceLabel: nextLabel,
           totalSources: paths.length,
@@ -97,10 +199,15 @@ export function useLogSession() {
 
         try {
           const lineStream = await readTextFileLines(path);
+
+          if (!isActiveLoad(loadId)) {
+            return;
+          }
+
           const parsedSession = await parseLogLineStream(lineStream, {
             aliasPresetId: presetId,
             onProgress: (progress) => {
-              setLoadProgress({
+              setLoadProgressSafely(loadId, {
                 currentSourceIndex: index + 1,
                 sourceLabel: nextLabel,
                 totalSources: paths.length,
@@ -108,25 +215,30 @@ export function useLogSession() {
               });
             },
             reportInterval: 1500,
-            source: {
-              id: path,
-              label: nextLabel,
-              path,
-            },
+            source: createSourceMeta(nextLabel, path),
           });
+
+          if (!isActiveLoad(loadId)) {
+            return;
+          }
 
           parsedSessions.push(parsedSession);
         } catch {
           const content = await readTextFile(path);
+
+          if (!isActiveLoad(loadId)) {
+            return;
+          }
+
           parsedSessions.push(parseLogContent(content, {
             aliasPresetId: presetId,
-            source: {
-              id: path,
-              label: nextLabel,
-              path,
-            },
+            source: createSourceMeta(nextLabel, path),
           }));
         }
+      }
+
+      if (!isActiveLoad(loadId)) {
+        return;
       }
 
       const mergedSession = parsedSessions.length === 1
@@ -134,13 +246,16 @@ export function useLogSession() {
         : mergeParsedSessions(parsedSessions);
       const summary = summarizeSessionSources(paths);
 
-      applySession(mergedSession, summary.title ?? "No Active Session", summary.path);
+      applySession(loadId, mergedSession, summary.title ?? "No Active Session", summary.path);
     } catch (readError) {
-      setErrorMessage(readError instanceof Error ? readError.message : "로그 파일을 읽지 못했습니다.");
+      setErrorMessageSafely(
+        loadId,
+        readError instanceof Error ? readError.message : "로그 파일을 읽지 못했습니다.",
+      );
     } finally {
-      setLoadProgress(null);
+      setLoadProgressSafely(loadId, null);
     }
-  }, [applySession]);
+  }, [applySession, beginLoad, isActiveLoad, setErrorMessageSafely, setLoadProgressSafely]);
 
   const reloadSession = useCallback(async (request: SessionLoadRequest, presetId: LogAliasPresetId) => {
     if (request.kind === "sample") {
@@ -167,14 +282,14 @@ export function useLogSession() {
         return;
       }
 
-      const selectedPaths = Array.isArray(selected) ? selected : [selected];
+      const selectedPaths = normalizeSelectedPaths(selected);
 
       if (selectedPaths.length === 0) {
         return;
       }
 
       const request: SessionLoadRequest = { kind: "files", paths: selectedPaths };
-      setLastLoadRequest(request);
+      lastLoadRequestRef.current = request;
       await reloadSession(request, parserPresetId);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "로그 파일 선택 중 오류가 발생했습니다.");
@@ -183,22 +298,28 @@ export function useLogSession() {
 
   const loadSampleSession = useCallback(() => {
     const request: SessionLoadRequest = { kind: "sample" };
-    setLastLoadRequest(request);
+    lastLoadRequestRef.current = request;
     parseSessionContent(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null, parserPresetId);
   }, [parseSessionContent, parserPresetId]);
 
   const setParserPresetId = useCallback((nextPresetId: LogAliasPresetId) => {
+    if (nextPresetId === parserPresetId) {
+      return;
+    }
+
     setParserPresetIdState(nextPresetId);
 
-    if (nextPresetId === parserPresetId || !lastLoadRequest || loadProgress) {
+    const lastLoadRequest = lastLoadRequestRef.current;
+
+    if (!lastLoadRequest) {
       return;
     }
 
     void reloadSession(lastLoadRequest, nextPresetId);
-  }, [lastLoadRequest, loadProgress, parserPresetId, reloadSession]);
+  }, [parserPresetId, reloadSession]);
 
   const parserPreset = useMemo(
-    () => LOG_ALIAS_PRESETS.find((preset) => preset.id === parserPresetId) ?? LOG_ALIAS_PRESETS[0],
+    () => getLogAliasPreset(parserPresetId),
     [parserPresetId],
   );
 

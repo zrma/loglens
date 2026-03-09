@@ -4,11 +4,13 @@ import {
   buildFieldKeyCounts,
   buildFieldValueCounts,
   buildSpanForest,
+  getRelatedEvents,
   getDerivedFlowGroupForEvent,
   buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
 } from "@/lib/logs/analysis";
+import { buildLogFieldAliases } from "@/lib/logs/aliases";
 import { mergeParsedSessions, parseLogContent, parseLogLineStream } from "@/lib/logs/parser";
 import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
 
@@ -326,6 +328,21 @@ run batch service....
     });
   });
 
+  it("parses numeric epoch timestamps and preserves object arrays as indexed fields", () => {
+    const session = parseLogContent(`
+{"timestamp":"1741437296000123","level":"info","service":"batch-worker","message":"batch accepted","jobs":[{"id":"job-1","status":"queued"},{"id":"job-2","status":"done"}]}
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      level: "info",
+      service: "batch-worker",
+      timestampMs: 1741437296000,
+      timestampText: "1741437296000123",
+    });
+    expect(session.events[0]?.fields["jobs.0.id"]).toBe("job-1");
+    expect(session.events[0]?.fields["jobs.1.status"]).toBe("done");
+  });
+
   it("builds derived flows for restful create and follow-up events without explicit trace ids", () => {
     const session = parseLogContent(`
 {"timestamp":"2026-03-08T12:00:00.000Z","level":"info","service":"api-gateway","message":"transcribe created","method":"POST","path":"/v1/transcribe","transcription_id":"tr-9812"}
@@ -369,5 +386,45 @@ main.chargeCard()
     expect(session.events[0]?.rawLine).toContain("goroutine 19 [running]:");
     expect(session.events[0]?.rawLine).toContain("/app/cmd/server/main.go:42 +0x1af");
     expect(session.events[0]?.parseIssues.some((issue) => issue.kind === "multiline")).toBe(true);
+  });
+
+  it("scopes nearby related events to the same source in merged sessions", () => {
+    const firstSession = parseLogContent(`
+2026-03-08 10:00:00 INFO api request_id=req-a message="first source line 1"
+2026-03-08 10:00:01 INFO api request_id=req-a message="first source line 2"
+2026-03-08 10:00:02 INFO api request_id=req-a message="first source line 3"
+    `.trim(), {
+      source: {
+        id: "/tmp/first.log",
+        label: "first.log",
+        path: "/tmp/first.log",
+      },
+    });
+    const secondSession = parseLogContent(`
+2026-03-08 10:00:00 INFO worker request_id=req-b message="second source line 1"
+2026-03-08 10:00:01 INFO worker request_id=req-b message="second source line 2"
+2026-03-08 10:00:02 INFO worker request_id=req-b message="second source line 3"
+    `.trim(), {
+      source: {
+        id: "/tmp/second.log",
+        label: "second.log",
+        path: "/tmp/second.log",
+      },
+    });
+
+    const merged = mergeParsedSessions([firstSession, secondSession]);
+    const related = getRelatedEvents(merged.events, firstSession.events[1] ?? null, 10);
+
+    expect(related).toHaveLength(3);
+    expect(related.every((event) => event.sourceId === "/tmp/first.log")).toBe(true);
+  });
+
+  it("returns isolated alias arrays for each build", () => {
+    const firstAliases = buildLogFieldAliases();
+    firstAliases.traceId.push("custom-trace-key");
+
+    const secondAliases = buildLogFieldAliases();
+
+    expect(secondAliases.traceId).not.toContain("custom-trace-key");
   });
 });

@@ -1,18 +1,41 @@
-export type LogLevel =
-  | "trace"
-  | "debug"
-  | "info"
-  | "warn"
-  | "error"
-  | "fatal"
-  | "unknown";
+export const LOG_LEVEL_VALUES = [
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+  "fatal",
+  "unknown",
+] as const;
 
-export type ParsedLogFormat = "json" | "keyvalue" | "plain";
+export type LogLevel = (typeof LOG_LEVEL_VALUES)[number];
 
-export type ParseIssueKind =
-  | "multiline"
-  | "invalid_json"
-  | "timestamp_missing";
+export const PARSED_LOG_FORMAT_VALUES = ["json", "keyvalue", "plain"] as const;
+
+export type ParsedLogFormat = (typeof PARSED_LOG_FORMAT_VALUES)[number];
+
+export const PARSE_ISSUE_KIND_VALUES = [
+  "multiline",
+  "invalid_json",
+  "timestamp_missing",
+] as const;
+
+export type ParseIssueKind = (typeof PARSE_ISSUE_KIND_VALUES)[number];
+
+export type LogFieldMap = Record<string, string>;
+
+export type LogSourceRef = Pick<LogSource, "id" | "label" | "path">;
+
+const LOG_LEVEL_SET = new Set<string>(LOG_LEVEL_VALUES);
+const PARSE_ISSUE_KIND_SET = new Set<string>(PARSE_ISSUE_KIND_VALUES);
+
+export function isLogLevel(value: string): value is LogLevel {
+  return LOG_LEVEL_SET.has(value);
+}
+
+export function isParseIssueKind(value: string): value is ParseIssueKind {
+  return PARSE_ISSUE_KIND_SET.has(value);
+}
 
 export type ParseIssue = {
   kind: ParseIssueKind;
@@ -55,7 +78,7 @@ export type LogEvent = {
   requestId: string | null;
   isMultiLine: boolean;
   parseIssues: ParseIssue[];
-  fields: Record<string, string>;
+  fields: LogFieldMap;
 };
 
 export type ParsedLogSession = {
@@ -104,10 +127,13 @@ export type TraceSourceCoverage = {
   services: string[];
 };
 
-export type DerivedFlowCorrelationKind =
-  | "resource"
-  | "request"
-  | "trace";
+export const DERIVED_FLOW_CORRELATION_KIND_VALUES = [
+  "resource",
+  "request",
+  "trace",
+] as const;
+
+export type DerivedFlowCorrelationKind = (typeof DERIVED_FLOW_CORRELATION_KIND_VALUES)[number];
 
 export type DerivedFlowGroup = {
   flowKey: string;

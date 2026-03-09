@@ -63,13 +63,13 @@ export function OverviewSection({
   return (
     <>
       <section>
-        <Card className="overflow-hidden border-white/60 bg-white/76 shadow-[0_28px_90px_-45px_rgba(11,37,53,0.5)] backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+        <Card className="relative z-10 overflow-hidden border-border bg-card shadow-2xl shadow-black/5 backdrop-blur-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-500 dark:shadow-black/30">
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               {/* Left side: Title, Description, and Parser Settings */}
               <div className="min-w-0 flex-1 space-y-5">
                 <div className="space-y-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary bg-accent px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
                     <Sparkles className="size-3.5" />
                     LogLens Diagnostics
                   </div>
@@ -82,7 +82,7 @@ export function OverviewSection({
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 rounded-2xl border border-border/50 bg-white/40 p-4 sm:max-w-md">
+                <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted p-4 sm:max-w-md">
                   <div className="flex items-center gap-3">
                     <span className="shrink-0 text-sm font-medium text-foreground">파서 프리셋:</span>
                     <Select
@@ -92,7 +92,7 @@ export function OverviewSection({
                     >
                       <SelectTrigger
                         aria-label="파서 프리셋"
-                        className="h-9 flex-1 rounded-xl border-white/60 bg-white/85 text-sm"
+                        className="h-9 flex-1 rounded-xl border-border bg-background text-sm"
                       >
                         <SelectValue placeholder="파서 프리셋" />
                       </SelectTrigger>
@@ -108,8 +108,8 @@ export function OverviewSection({
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
                     {parserPreset.description}
                   </p>
-                  <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground/80">
-                    <ShieldCheck className="size-3 text-primary/70" />
+                  <div className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <ShieldCheck className="size-3 text-primary" />
                     {session
                       ? "변경 시 현재 세션을 즉시 다시 파싱합니다"
                       : "로그 파일은 오직 로컬 환경에서만 안전하게 처리됩니다"}
@@ -118,22 +118,24 @@ export function OverviewSection({
               </div>
 
               {/* Right side: Primary Actions */}
-              <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col lg:items-end">
+              <div className="relative z-10 flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row lg:flex-col lg:items-end">
                 <Button
+                  type="button"
                   size="lg"
                   onClick={onSelectLogFile}
                   disabled={Boolean(loadProgress)}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-semibold shadow-md transition-all active:scale-95 sm:w-48 lg:w-56"
+                  className="pointer-events-auto flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-semibold shadow-md transition-all active:scale-95 sm:w-48 lg:w-56"
                 >
                   <FolderOpen className="mr-2 size-4" />
                   {loadProgress ? "데이터 파싱 중..." : "로컬 로그 파일 열기"}
                 </Button>
                 <Button
+                  type="button"
                   size="lg"
                   variant="outline"
                   onClick={onLoadSampleSession}
                   disabled={Boolean(loadProgress)}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl border-white/70 bg-white/80 px-6 text-sm font-semibold shadow-sm transition-all hover:bg-white active:scale-95 sm:w-48 lg:w-56"
+                  className="pointer-events-auto flex h-12 w-full items-center justify-center rounded-2xl border-border bg-background px-6 text-sm font-semibold shadow-sm transition-all hover:bg-muted active:scale-95 sm:w-48 lg:w-56"
                 >
                   <FileJson2 className="mr-2 size-4 text-muted-foreground" />
                   데모 데이터로 체험하기
@@ -152,7 +154,7 @@ export function OverviewSection({
             )}
 
             {loadProgress && (
-              <div className="mt-5 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground">
+              <div className="mt-5 rounded-2xl border border-primary bg-accent px-4 py-3 text-sm text-foreground">
                 <p className="font-medium">세션을 불러오는 중...</p>
                 <p className="mt-1 break-all text-muted-foreground">
                   {loadProgress.totalSources > 1
@@ -168,7 +170,7 @@ export function OverviewSection({
             )}
 
             {session && (
-              <div className="mt-6 rounded-2xl border border-border/60 bg-white/60 p-4">
+              <div className="mt-6 rounded-2xl border border-border bg-card p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
                     <p className="break-all text-base font-semibold tracking-[-0.03em] text-foreground">
@@ -179,10 +181,10 @@ export function OverviewSection({
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                       소스 {sourceCount}
                     </span>
-                    <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                       서비스 {servicesInSession}
                     </span>
                     {errorCount > 0 && (
@@ -191,14 +193,14 @@ export function OverviewSection({
                       </span>
                     )}
                     {multilineCount > 0 && (
-                      <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                      <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
                         멀티라인 {multilineCount}
                       </span>
                     )}
                     {formatBadges.filter(({ count }) => count > 0).map(({ label, count }) => (
                       <span
                         key={label}
-                        className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-xs font-medium text-secondary-foreground"
+                        className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
                       >
                         {label} {count}
                       </span>
@@ -206,11 +208,11 @@ export function OverviewSection({
                   </div>
                 </div>
                 {sources.length > 1 && (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border/50 pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
                     {sources.slice(0, 8).map((source) => (
                       <span
                         key={source.id}
-                        className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                        className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
                         title={source.path ?? source.label}
                       >
                         {source.label} · {source.eventCount}
