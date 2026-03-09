@@ -1,4 +1,4 @@
-import { AlertTriangle, Filter, Search } from "lucide-react";
+import { AlertTriangle, Filter, Layers, Network, Search, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { FacetCount } from "@/lib/logs/analysis";
-import { formatDuration } from "@/lib/logs/analysis";
 import type { DerivedFlowGroup, FieldFilter, LogLevel, TraceGroup } from "@/lib/logs/types";
 import {
   EVENT_STREAM_BUILTIN_COLUMNS,
@@ -114,48 +113,82 @@ export function SidebarSection({
 }: SidebarSectionProps) {
   const activeFacetFilter = fieldFilters.find((filter) => filter.key === facetFieldKey) ?? null;
   const previewFieldValues = fieldValueOptions.slice(0, 12);
-  const remainingFieldValueCount = Math.max(fieldValueOptions.length - previewFieldValues.length, 0);
 
   return (
     <div className="space-y-6">
+      {/* 1. 검색 및 기본 필터 */}
       <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl tracking-[-0.03em]">탐색 필터</CardTitle>
-          <CardDescription className="leading-6">
-            검색과 핵심 필터로 범위를 좁힙니다.
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
+              <Search className="size-4 text-primary" />
+              검색 및 조건 필터
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-full border-border/70 bg-white/60 px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+              onClick={onResetFilters}
+              disabled={!hasSession}
+            >
+              <Filter className="mr-1.5 size-3.5" />
+              초기화
+            </Button>
+          </div>
+          <CardDescription className="text-xs leading-6">
+            검색어와 주요 속성을 조합하여 로그를 좁혀보세요.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="메시지, request id, trace id, service명, 필드 값으로 검색"
+              aria-label="로그 검색"
+              placeholder="메시지, ID, 서비스명 검색..."
               value={searchTerm}
               onChange={(event) => onSearchTermChange(event.target.value)}
               disabled={!hasSession}
-              className="h-12 rounded-2xl border-white/60 bg-white/85 pl-10 shadow-none"
+              className="h-12 rounded-2xl border-white/60 bg-white/85 pl-10 shadow-none focus-visible:ring-primary/20"
             />
           </div>
 
           <div className="grid gap-3">
-            <Select value={levelFilter} onValueChange={(value) => onLevelFilterChange(value as LogLevel | "all")} disabled={!hasSession}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 level</SelectItem>
-                {Object.entries(LEVEL_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={levelFilter} onValueChange={(value) => onLevelFilterChange(value as LogLevel | "all")} disabled={!hasSession}>
+                <SelectTrigger aria-label="로그 레벨 필터" className="h-11 rounded-2xl border-white/60 bg-white/85">
+                  <SelectValue placeholder="로그 레벨" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 레벨</SelectItem>
+                  {Object.entries(LEVEL_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-11 rounded-2xl border-white/60 bg-white/85 font-medium",
+                  issuesOnly && "border-red-200 bg-red-50 text-red-700 hover:bg-red-50 hover:text-red-800",
+                )}
+                onClick={() => onIssuesOnlyChange(!issuesOnly)}
+                disabled={!hasSession}
+              >
+                <AlertTriangle className="mr-1.5 size-4" />
+                {issuesOnly ? "이슈만" : "모든 로그"}
+              </Button>
+            </div>
 
             <Select value={sourceFilter} onValueChange={onSourceFilterChange} disabled={!hasSession || sourceOptions.length === 0}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="Source" />
+              <SelectTrigger aria-label="소스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="shrink-0 text-muted-foreground">Source:</span>
+                  <SelectValue placeholder="선택" />
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">모든 source</SelectItem>
+                <SelectItem value="all">모든 소스</SelectItem>
                 {sourceOptions.map(({ value, label, count }) => (
                   <SelectItem key={value} value={value}>{label} ({count})</SelectItem>
                 ))}
@@ -163,11 +196,14 @@ export function SidebarSection({
             </Select>
 
             <Select value={serviceFilter} onValueChange={onServiceFilterChange} disabled={!hasSession}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="Service" />
+              <SelectTrigger aria-label="서비스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="shrink-0 text-muted-foreground">Service:</span>
+                  <SelectValue placeholder="선택" />
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">모든 service</SelectItem>
+                <SelectItem value="all">모든 서비스</SelectItem>
                 {serviceOptions.map(({ label, count }) => (
                   <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
                 ))}
@@ -175,11 +211,14 @@ export function SidebarSection({
             </Select>
 
             <Select value={traceFilter} onValueChange={onTraceFilterChange} disabled={!hasSession}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="Trace" />
+              <SelectTrigger aria-label="트레이스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="shrink-0 text-muted-foreground">Trace:</span>
+                  <SelectValue placeholder="선택" />
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">모든 trace</SelectItem>
+                <SelectItem value="all">모든 트레이스</SelectItem>
                 {traceOptions.map((traceId) => (
                   <SelectItem key={traceId} value={traceId}>{formatTraceLabel(traceId)}</SelectItem>
                 ))}
@@ -187,84 +226,239 @@ export function SidebarSection({
             </Select>
 
             <Select value={requestFilter} onValueChange={onRequestFilterChange} disabled={!hasSession}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-                <SelectValue placeholder="Request" />
+              <SelectTrigger aria-label="요청 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="shrink-0 text-muted-foreground">Request:</span>
+                  <SelectValue placeholder="선택" />
+                </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">모든 request</SelectItem>
+                <SelectItem value="all">모든 요청</SelectItem>
                 {requestOptions.map(({ label, count }) => (
                   <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+      {/* 2. 필드 값 필터 (Facets) */}
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
+              <Layers className="size-4 text-[color:var(--chart-1)]" />
+              데이터 패싯
+            </CardTitle>
             <Button
               variant="outline"
-              className={cn(
-                "h-11 rounded-2xl border-white/60 bg-white/85",
-                issuesOnly && "border-red-200 bg-red-50 text-red-700 hover:bg-red-50",
-              )}
-              onClick={() => onIssuesOnlyChange(!issuesOnly)}
-              disabled={!hasSession}
+              size="sm"
+              className="h-8 rounded-full border-border/70 bg-white/60 px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+              onClick={onClearFieldFilters}
+              disabled={!hasSession || fieldFilters.length === 0}
             >
-              <AlertTriangle className="size-4" />
-              {issuesOnly ? "문제 이벤트만" : "모든 이벤트"}
+              조건 초기화
             </Button>
-            <Button
-              variant="ghost"
-              className="h-11 rounded-2xl"
-              onClick={onResetFilters}
-              disabled={!hasSession}
-            >
-              <Filter className="size-4" />
-              초기화
-            </Button>
+          </div>
+          <CardDescription className="text-xs leading-6">
+            추출된 필드의 고유값을 기준으로 정밀하게 필터링합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Select value={facetFieldKey} onValueChange={onFacetFieldKeyChange} disabled={!hasSession || fieldKeyOptions.length === 0}>
+            <SelectTrigger aria-label="필드 패싯 선택" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectValue placeholder="필드 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">필드 선택</SelectItem>
+              {fieldKeyOptions.map(({ label, count }) => (
+                <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {facetFieldKey !== "all" ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {previewFieldValues.map(({ label, count }) => {
+                  const isActive = activeFacetFilter?.value === label;
+                  const isExcluded = isActive && activeFacetFilter?.operator === "exclude";
+
+                  return (
+                    <div
+                      key={`${facetFieldKey}:${label}`}
+                      className={cn(
+                        "w-full rounded-2xl border p-3 transition-colors",
+                        isActive
+                          ? isExcluded
+                            ? "border-amber-200 bg-amber-50"
+                            : "border-primary/30 bg-primary/10"
+                          : "border-border/60 bg-white/80 hover:border-primary/20",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="block break-all text-xs font-semibold text-foreground [overflow-wrap:anywhere]">{label}</span>
+                          <span className="mt-1 block text-[10px] text-muted-foreground">{count} events</span>
+                        </div>
+                        <div className="flex shrink-0 gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 rounded-full border-primary/20 bg-white px-2.5 text-[10px] font-bold text-primary shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5"
+                            onClick={() => onAddFieldFilter(facetFieldKey, label, "include")}
+                          >
+                            포함
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 rounded-full border-amber-200/50 bg-white px-2.5 text-[10px] font-bold text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-50"
+                            onClick={() => onAddFieldFilter(facetFieldKey, label, "exclude")}
+                          >
+                            제외
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {fieldFacetKeys.map(({ label, count }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => onFacetFieldKeyChange(label)}
+                  className="rounded-full border border-border/70 bg-white/70 px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary/20 hover:text-foreground"
+                >
+                  {label} ({count})
+                </button>
+              ))}
+            </div>
+          )}
+
+          {fieldFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3">
+              {fieldFilters.map((filter) => (
+                <button
+                  key={`${filter.key}:${filter.operator}:${filter.value}`}
+                  type="button"
+                  onClick={() => onRemoveFieldFilter(filter.key)}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition",
+                    filter.operator === "exclude"
+                      ? "border-amber-200 bg-amber-50 text-amber-800"
+                      : "border-primary/20 bg-primary/10 text-primary",
+                  )}
+                >
+                  {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value} &times;
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3. 주요 인사이트 (Radar & Flows) */}
+      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
+            <Network className="size-4 text-[color:var(--chart-2)]" />
+            주요 흐름 및 인사이트
+          </CardTitle>
+          <CardDescription className="text-xs leading-6">
+            중요도가 높거나 서로 연관된 흐름을 자동으로 추출합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">주요 트레이스 (Trace)</p>
+            {topTraceGroups.length > 0 ? topTraceGroups.slice(0, 3).map((group) => (
+              <button
+                key={group.traceId}
+                type="button"
+                onClick={() => onSelectTraceGroup(group)}
+                className={cn(
+                  "w-full rounded-2xl border p-3 text-left transition-all",
+                  traceFilter === group.traceId
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-border/60 bg-white/60 hover:border-primary/20",
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate font-mono text-xs font-semibold text-foreground">{formatTraceLabel(group.traceId)}</p>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">{group.eventCount} evt</span>
+                </div>
+                {group.issueCount > 0 && (
+                  <div className="mt-2 inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-bold text-red-700 uppercase">
+                    ISSUE {group.issueCount}
+                  </div>
+                )}
+              </button>
+            )) : <p className="text-xs text-muted-foreground">데이터가 부족합니다.</p>}
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">자동 추론된 흐름</p>
+            {topDerivedFlowGroups.length > 0 ? topDerivedFlowGroups.slice(0, 3).map((group) => (
+              <button
+                key={group.flowKey}
+                type="button"
+                onClick={() => onSelectDerivedFlowGroup(group)}
+                className="w-full rounded-2xl border border-border/60 bg-white/60 p-3 text-left transition-all hover:border-primary/20"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-xs font-semibold text-foreground">{group.family}</p>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">{group.eventCount} evt</span>
+                </div>
+                <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                  {group.correlationKind}: {group.correlationValue}
+                </p>
+              </button>
+            )) : <p className="text-xs text-muted-foreground">데이터가 부족합니다.</p>}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+      {/* 4. 보기 설정 (Columns & Lens) */}
+      <Card className="border-white/60 bg-white/72 opacity-80 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl transition-opacity hover:opacity-100">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-xl tracking-[-0.03em]">Event Columns</CardTitle>
-              <CardDescription className="pt-1 leading-6">
-                스트림에 표시할 컬럼을 고릅니다.
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full"
-              onClick={onResetEventColumns}
-              disabled={!hasSession}
-            >
-              기본값
-            </Button>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
+              <Settings2 className="size-4 text-muted-foreground" />
+              뷰(View) 설정
+            </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Built-in</p>
-            <div className="flex flex-wrap gap-2">
+        <CardContent className="space-y-5">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">리스트 컬럼</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                onClick={onResetEventColumns}
+              >
+                초기화
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {EVENT_STREAM_BUILTIN_COLUMNS.map((column) => {
                 const isActive = eventStreamBuiltinColumns.includes(column.id);
-
                 return (
                   <button
                     key={column.id}
-                    type="button"
-                    aria-label={`${column.label} 컬럼`}
-                    aria-pressed={isActive}
                     onClick={() => onToggleBuiltinEventColumn(column.id)}
-                    disabled={!hasSession}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                      isActive
-                        ? "border-primary/20 bg-primary/10 text-primary"
-                        : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
+                      "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                      isActive ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground"
                     )}
                   >
                     {column.label}
@@ -274,377 +468,77 @@ export function SidebarSection({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pinned Fields</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">필드 컬럼 고정</p>
+            </div>
             {eventColumnFieldOptions.length > 0 ? (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  {eventColumnFieldOptions.map(({ label, count }) => {
-                    const isActive = pinnedEventFieldColumns.includes(label);
-
-                    return (
-                      <button
-                        key={label}
-                        type="button"
-                        aria-label={`${label} 필드 컬럼`}
-                        aria-pressed={isActive}
-                        onClick={() => onToggleEventFieldColumn(label)}
-                        disabled={!hasSession}
-                        className={cn(
-                          "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                          isActive
-                            ? "border-primary/20 bg-primary/10 text-primary"
-                            : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
-                        )}
-                      >
-                        {label} ({count})
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  구조화 필드를 컬럼으로 고정합니다.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm leading-6 text-muted-foreground">
-                구조화 필드가 추출되면 여기서 컬럼으로 고정할 수 있습니다.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-xl tracking-[-0.03em]">Field Facets</CardTitle>
-              <CardDescription className="pt-1 leading-6">
-                필드 값 기준으로 조건을 누적합니다.
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full"
-              onClick={onClearFieldFilters}
-              disabled={!hasSession || fieldFilters.length === 0}
-            >
-              조건 해제
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {fieldFilters.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {fieldFilters.map((filter) => (
-                <button
-                  key={`${filter.key}:${filter.operator}:${filter.value}`}
-                  type="button"
-                  onClick={() => onRemoveFieldFilter(filter.key)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                    filter.operator === "exclude"
-                      ? "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100"
-                      : "border-primary/20 bg-primary/10 text-primary hover:border-primary/30 hover:bg-primary/15",
-                  )}
-                >
-                  {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value} 닫기
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              활성 필드 조건이 없습니다.
-            </p>
-          )}
-
-          <Select value={facetFieldKey} onValueChange={onFacetFieldKeyChange} disabled={!hasSession || fieldKeyOptions.length === 0}>
-            <SelectTrigger className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
-              <SelectValue placeholder="facet key 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">facet key 선택</SelectItem>
-              {fieldKeyOptions.map(({ label, count }) => (
-                <SelectItem key={label} value={label}>{label} ({count})</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {fieldFacetKeys.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {fieldFacetKeys.map(({ label, count }) => {
-                const isActive = facetFieldKey === label;
-
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => onFacetFieldKeyChange(label)}
-                    disabled={!hasSession}
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                      isActive
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-border/70 bg-white/70 text-muted-foreground hover:border-primary/20 hover:bg-primary/5 hover:text-foreground",
-                    )}
-                  >
-                    {label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {facetFieldKey !== "all" ? (
-            previewFieldValues.length > 0 ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {previewFieldValues.map(({ label, count }) => {
-                    const isActive = activeFacetFilter?.value === label;
-                    const isExcluded = isActive && activeFacetFilter?.operator === "exclude";
-
-                    return (
-                      <div
-                        key={`${facetFieldKey}:${label}`}
-                        className={cn(
-                          "rounded-2xl border px-3 py-3",
-                          isActive
-                            ? isExcluded
-                              ? "border-amber-200 bg-amber-50"
-                              : "border-primary/30 bg-primary/10"
-                            : "border-border/70 bg-white/80",
-                        )}
-                      >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="block break-all text-xs font-medium text-foreground [overflow-wrap:anywhere]">{label}</span>
-                        <span className="mt-1 block text-[11px] text-muted-foreground">{count} events</span>
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 rounded-full px-3 text-xs"
-                          onClick={() => onAddFieldFilter(facetFieldKey, label, "include")}
-                          disabled={!hasSession}
-                        >
-                          포함
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 rounded-full px-3 text-xs text-amber-700 hover:text-amber-800"
-                          onClick={() => onAddFieldFilter(facetFieldKey, label, "exclude")}
-                          disabled={!hasSession}
-                        >
-                          제외
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  같은 key는 마지막 선택으로 교체됩니다.
-                  {remainingFieldValueCount > 0 ? ` 상위 ${previewFieldValues.length}개만 표시 중입니다.` : ""}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-muted-foreground">
-                현재 범위에 남아 있는 값이 없습니다.
-              </p>
-            )
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              key를 고르면 value facet이 열립니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-xl tracking-[-0.03em]">Field Lens</CardTitle>
-              <CardDescription className="pt-1 leading-6">
-                상세 패널에 보일 필드를 조절합니다.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full"
-                onClick={onHideAllFieldVisibility}
-                disabled={!hasSession || fieldKeyOptions.length === 0 || hiddenFieldKeys.length >= fieldKeyOptions.length}
-              >
-                전부 숨김
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full"
-                onClick={onResetFieldVisibility}
-                disabled={!hasSession || hiddenFieldKeys.length === 0}
-              >
-                표시 복원
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {fieldLensKeys.length > 0 ? (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {fieldLensKeys.map(({ label, count }) => {
-                  const isHidden = hiddenFieldKeys.includes(label);
+              <div className="flex flex-wrap gap-1.5">
+                {eventColumnFieldOptions.slice(0, 10).map(({ label }) => {
+                  const isPinned = pinnedEventFieldColumns.includes(label);
 
                   return (
                     <button
                       key={label}
                       type="button"
-                      onClick={() => onToggleFieldVisibility(label)}
-                      disabled={!hasSession}
+                      onClick={() => onToggleEventFieldColumn(label)}
                       className={cn(
-                        "rounded-full border px-3 py-1.5 text-xs font-medium transition",
-                        isHidden
-                          ? "border-dashed border-border/70 bg-white/50 text-muted-foreground"
-                          : "border-primary/20 bg-primary/10 text-primary",
+                        "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                        isPinned ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground",
                       )}
                     >
-                      {label} ({count})
+                      {label}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">
-                현재 범위 기준 상위 key만 표시합니다. 숨김 {hiddenFieldKeys.length}개
-              </p>
-            </>
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              구조화 필드가 추출되면 여기서 토글할 수 있습니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <p className="text-xs text-muted-foreground">고정할 구조화 필드가 없습니다.</p>
+            )}
+          </div>
 
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl tracking-[-0.03em]">Trace Radar</CardTitle>
-          <CardDescription className="leading-6">
-            이벤트 수나 이슈가 큰 trace를 먼저 보여줍니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {topTraceGroups.length > 0 ? topTraceGroups.map((group) => (
-            <button
-              key={group.traceId}
-              type="button"
-              onClick={() => onSelectTraceGroup(group)}
-              className={cn(
-                "w-full rounded-3xl border p-4 text-left transition-all",
-                traceFilter === group.traceId
-                  ? "border-primary/30 bg-primary/10 shadow-[0_20px_40px_-32px_rgba(8,145,178,0.5)]"
-                  : "border-border/70 bg-white/80 hover:border-primary/20 hover:bg-primary/5",
-              )}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium tracking-[-0.02em] text-foreground">{formatTraceLabel(group.traceId)}</p>
-                <span className="text-xs text-muted-foreground">{group.eventCount} events</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">상세 필드 표시</p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                  onClick={onHideAllFieldVisibility}
+                  disabled={!hasSession || fieldLensKeys.length === 0 || hiddenFieldKeys.length >= fieldLensKeys.length}
+                >
+                  전부 숨김
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                  onClick={onResetFieldVisibility}
+                  disabled={!hasSession || hiddenFieldKeys.length === 0}
+                >
+                  복원
+                </Button>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {group.sources.slice(0, 2).map((source) => (
-                  <span
-                    key={`${group.traceId}-${source}`}
-                    className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {fieldLensKeys.slice(0, 10).map(({ label }) => {
+                const isHidden = hiddenFieldKeys.includes(label);
+                return (
+                  <button
+                    key={label}
+                    onClick={() => onToggleFieldVisibility(label)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                      isHidden ? "border-dashed border-border/50 text-muted-foreground" : "border-primary/10 bg-primary/5 text-primary/80"
+                    )}
                   >
-                    {source}
-                  </span>
-                ))}
-                {group.services.slice(0, 2).map((service) => (
-                  <span
-                    key={service}
-                    className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
-                  >
-                    {service}
-                  </span>
-                ))}
-                {group.requestIds[0] && (
-                  <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                    {group.requestIds[0]}
-                  </span>
-                )}
-                {group.issueCount > 0 && (
-                  <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
-                    issue {group.issueCount}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                span {group.spanCount} · request {group.requestIds.length || 0}
-              </p>
-            </button>
-          )) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              trace id가 추출되면 상위 trace가 이곳에 나타납니다.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl tracking-[-0.03em]">Derived Flows</CardTitle>
-          <CardDescription className="leading-6">
-            route와 resource/request 단서로 묶은 흐름입니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {topDerivedFlowGroups.length > 0 ? topDerivedFlowGroups.map((group) => (
-            <button
-              key={group.flowKey}
-              type="button"
-              onClick={() => onSelectDerivedFlowGroup(group)}
-              className="w-full rounded-3xl border border-border/70 bg-white/80 p-4 text-left transition-all hover:border-primary/20 hover:bg-primary/5"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium tracking-[-0.02em] text-foreground">{group.family}</p>
-                <span className="text-xs text-muted-foreground">{group.eventCount} events</span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
-                  {group.correlationKind} {group.correlationValue}
-                </span>
-                {group.methods.map((method) => (
-                  <span
-                    key={`${group.flowKey}-${method}`}
-                    className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-                  >
-                    {method}
-                  </span>
-                ))}
-                {group.issueCount > 0 && (
-                  <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
-                    issue {group.issueCount}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                {group.routes.join(", ") || group.family} · {formatDuration(group.startMs, group.endMs)}
-              </p>
-            </button>
-          )) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              route와 resource 단서가 추출되면 흐름 묶음이 여기에 나타납니다.
-            </p>
-          )}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

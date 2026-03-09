@@ -38,8 +38,8 @@ const AnalysisTab = lazy(async () => {
 
 const DIAGNOSTIC_LABELS = {
   invalid_json: "JSON fallback",
-  multiline: "multiline 병합",
-  timestamp_missing: "timestamp 없음",
+  multiline: "멀티라인 병합",
+  timestamp_missing: "타임스탬프 누락",
 } as const;
 
 function pickPreferredEventId(events: LogEvent[]) {
@@ -250,7 +250,7 @@ function App() {
       }
 
       if ((session?.sources.length ?? 0) > 1) {
-        return `${session?.sources.length ?? 0}개 파일에서 병합한 세션`;
+        return `${session?.sources.length ?? 0}개 파일 병합 세션`;
       }
 
       return "샘플 세션";
@@ -265,38 +265,38 @@ function App() {
     () => Object.keys(selectedEvent?.fields ?? {}).filter((key) => hiddenFieldKeys.includes(key)),
     [hiddenFieldKeys, selectedEvent?.fields],
   );
-  const sessionTitle = sourceLabel ?? "No Active Session";
+  const sessionTitle = sourceLabel ?? "세션 없음";
   const sourceCount = session?.sources.length ?? 0;
   const showSourceContext = sourceCount > 1;
   const metrics: MetricCardProps[] = useMemo(() => [
     {
-      caption: sourceLabel ? "현재 세션 전체 이벤트 수" : "파일 또는 샘플 세션을 불러오면 집계됩니다",
+      caption: sourceLabel ? "세션 전체" : "세션을 불러오면 집계됩니다",
       icon: FileText,
       iconClassName: "bg-primary/10 text-primary",
-      title: "이벤트 수",
+      title: "전체 이벤트",
       value: events.length.toLocaleString(),
     },
     {
       caption: searchTerm || levelFilter !== "all" || sourceFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || issuesOnly
-        ? "현재 필터가 적용된 결과"
-        : "지금 화면에 표시되는 탐색 범위",
+        ? "필터 적용 결과"
+        : "현재 탐색 범위",
       icon: Filter,
       iconClassName: "bg-secondary text-secondary-foreground",
-      title: "현재 탐색 범위",
+      title: "탐색 범위",
       value: filteredEvents.length.toLocaleString(),
     },
     {
-      caption: "traceId가 있는 이벤트를 기준으로 그룹화",
+      caption: "trace ID 기준 그룹",
       icon: GitBranch,
       iconClassName: "bg-[color:var(--chart-2)]/15 text-[color:var(--chart-2)]",
-      title: "추적 가능한 trace",
+      title: "Trace 그룹",
       value: tracesInSession.toLocaleString(),
     },
     {
-      caption: "멀티라인 병합과 timestamp 누락 등 parser 진단 수",
+      caption: "멀티라인 병합, 타임스탬프 누락 등",
       icon: AlertTriangle,
       iconClassName: "bg-[color:var(--chart-4)]/15 text-[color:var(--chart-4)]",
-      title: "Parser Notes",
+      title: "파서 노트",
       value: parserNoteCount.toLocaleString(),
     },
   ], [
@@ -412,12 +412,11 @@ function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(circle_at_12%_10%,rgba(55,160,150,0.18),transparent_34%),radial-gradient(circle_at_88%_2%,rgba(232,153,83,0.2),transparent_26%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[40rem] bg-[radial-gradient(ellipse_at_top_left,rgba(59,130,246,0.15),transparent_50%),radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.15),transparent_50%)]" />
 
       <main className="relative mx-auto flex min-h-screen w-full max-w-[1760px] flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
         <OverviewSection
           session={session}
-          sourceLabel={sourceLabel}
           sourceLocation={sourceLocation}
           sessionTitle={sessionTitle}
           sources={session?.sources ?? []}
@@ -493,46 +492,38 @@ function App() {
           />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 rounded-[30px] border border-white/60 bg-white/72 p-4 shadow-[0_28px_90px_-48px_rgba(11,37,53,0.55)] backdrop-blur-xl">
-            <div className="flex flex-col gap-4 border-b border-border/70 pb-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Explorer</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">구조화 로그 세션</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  이벤트, 필드, trace를 한 흐름에서 탐색합니다.
-                </p>
-              </div>
-
-              <TabsList className="grid h-11 w-full max-w-[320px] grid-cols-2 rounded-full bg-slate-950 p-1 text-slate-400">
+            <div className="border-b border-border/70 pb-4">
+              <TabsList className="grid h-12 w-full max-w-[320px] grid-cols-2 rounded-full bg-muted/60 p-1 text-muted-foreground">
                 <TabsTrigger
                   value="events"
-                  className="rounded-full border-0 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-none"
+                  className="rounded-full border-0 font-medium data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
-                  <ListTree className="size-4" />
-                  이벤트
+                  <ListTree className="mr-2 size-4" />
+                  이벤트 스트림
                 </TabsTrigger>
                 <TabsTrigger
                   value="analysis"
-                  className="rounded-full border-0 data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-none"
+                  className="rounded-full border-0 font-medium data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
-                  <BarChart3 className="size-4" />
-                  분석
+                  <BarChart3 className="mr-2 size-4" />
+                  연관 분석
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {!session ? (
-              <div className="flex min-h-[580px] items-center justify-center px-4 py-10">
-                <div className="max-w-xl text-center">
-                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <FolderOpen className="size-7" />
+              <div className="flex min-h-[500px] items-center justify-center px-4 py-10">
+                <div className="max-w-md text-center animate-in zoom-in-95 fade-in-0 duration-700">
+                  <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-inner">
+                    <FolderOpen className="size-8" />
+                  </div>
+                  <h3 className="mt-6 text-2xl font-bold tracking-[-0.03em] text-foreground">
+                    분석을 시작하려면 로그를 선택하세요
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    이벤트 스트림, 트레이스 토폴로지 및 연관 분석 결과가 이곳에 표시됩니다. 좌측 패널에서 로컬 파일을 열거나 데모 데이터를 통해 기능들을 체험해보세요.
+                  </p>
                 </div>
-                <h3 className="mt-6 text-3xl font-semibold tracking-[-0.05em] text-foreground">
-                  로그 세션을 불러오세요
-                </h3>
-                <p className="mt-4 text-base leading-7 text-muted-foreground">
-                  파일을 열면 이벤트 스트림과 trace 요약이 여기에 표시됩니다.
-                </p>
-              </div>
               </div>
             ) : (
               <>
@@ -569,9 +560,9 @@ function App() {
                     fallback={(
                       <div className="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-border/80 bg-white/70 p-8 text-center">
                         <div>
-                          <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 패널 로딩 중</p>
+                          <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 뷰 준비 중</p>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            차트 모듈을 필요할 때만 불러옵니다.
+                            차트를 불러오고 있습니다.
                           </p>
                         </div>
                       </div>

@@ -116,9 +116,9 @@ export function VirtualizedEventStream({
     switch (column.id) {
       case "time":
         return (
-          <div className="overflow-hidden px-4 py-3 font-mono text-xs text-muted-foreground">
+          <div className="overflow-hidden px-4 py-3 font-mono text-sm text-foreground/80">
             <div>{formatTimestamp(event.timestampMs)}</div>
-            <div className="mt-1 text-[11px]">
+            <div className="mt-1 text-xs text-muted-foreground">
               #{event.lineNumber}
               {event.endLineNumber > event.lineNumber ? `-${event.endLineNumber}` : ""}
             </div>
@@ -162,7 +162,7 @@ export function VirtualizedEventStream({
       default:
         return (
           <div className="flex min-w-0 flex-col gap-2 overflow-hidden px-4 py-3">
-            <p className="min-w-0 overflow-hidden font-mono text-[13px] leading-5 text-foreground break-all [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">
+            <p className="min-w-0 overflow-hidden font-mono text-sm leading-6 text-foreground break-all [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [overflow-wrap:anywhere]">
               {highlightText(event.message, searchTerm)}
             </p>
             <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">

@@ -41,10 +41,6 @@ type EventsTabProps = {
   onToggleFieldVisibility: (fieldKey: string) => void;
 };
 
-function flattenSpanNodes(nodes: SpanNode[]): SpanNode[] {
-  return nodes.flatMap((node) => [node, ...flattenSpanNodes(node.children)]);
-}
-
 function buildSpanBarStyle(node: SpanNode, group: TraceGroup | null) {
   if (node.startMs === null || node.endMs === null || !group || group.startMs === null || group.endMs === null) {
     return null;
@@ -88,7 +84,7 @@ function SpanTopologyNode({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium tracking-[-0.02em] text-foreground">{node.service ?? "미지정 서비스"}</span>
+              <span className="font-medium tracking-[-0.02em] text-foreground">{node.service ?? "(서비스 미지정)"}</span>
               <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                 {node.spanId}
               </span>
@@ -163,8 +159,6 @@ export function EventsTab({
   onRemoveFieldFilter,
   onToggleFieldVisibility,
 }: EventsTabProps) {
-  const timelineNodes = spanForest ? flattenSpanNodes(spanForest.roots) : [];
-
   return (
     <div className="min-w-0 grid gap-6 min-[1820px]:grid-cols-[minmax(0,1.28fr)_340px]">
       <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
@@ -236,265 +230,135 @@ export function EventsTab({
 
       <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none min-[1820px]:sticky min-[1820px]:top-6 min-[1820px]:h-[calc(100vh-7rem)] min-[1820px]:self-start">
         <CardHeader className="border-b border-border/70 pb-4">
-          <CardTitle className="text-2xl tracking-[-0.04em]">상세 이벤트</CardTitle>
-          <CardDescription className="pt-2 leading-6">
-            선택 이벤트와 관련 컨텍스트를 보여줍니다.
+          <CardTitle className="text-xl tracking-[-0.03em]">이벤트 상세 분석</CardTitle>
+          <CardDescription className="pt-1 text-xs leading-5">
+            로그 원문과 추출된 맥락 정보를 분석합니다.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5 p-5 min-[1820px]:min-h-0 min-[1820px]:flex-1 min-[1820px]:overflow-y-auto">
+        <CardContent className="space-y-6 p-5 min-[1820px]:min-h-0 min-[1820px]:flex-1 min-[1820px]:overflow-y-auto">
           {selectedEvent ? (
             <>
-              <div className="min-w-0 rounded-[28px] bg-slate-950 px-4 py-4 text-slate-50">
+              {/* 1. 핵심 메시지 */}
+              <div className="min-w-0 rounded-3xl bg-slate-950 px-5 py-5 text-slate-50 shadow-xl shadow-slate-900/20">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Selected Event</p>
-                    <p className="mt-2 break-all text-lg font-semibold tracking-[-0.03em]">
-                      {selectedEvent.service ?? "미지정 서비스"}
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <LevelBadge level={selectedEvent.level} />
+                      <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Selected Event</span>
+                    </div>
+                    <p className="truncate text-lg font-bold tracking-tight text-white">
+                      {selectedEvent.service ?? "Service Unspecified"}
                     </p>
                   </div>
-                  <LevelBadge level={selectedEvent.level} />
                 </div>
-                <p className="mt-4 font-mono text-sm leading-6 text-slate-200 break-all [overflow-wrap:anywhere]">
-                  {selectedEvent.message}
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {showSourceContext && (
-                  <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                    <p className="text-sm text-muted-foreground">source</p>
-                    <p className="mt-2 break-all text-sm font-medium text-foreground">
-                      {selectedEvent.sourceLabel}
-                    </p>
-                  </div>
-                )}
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <p className="text-sm text-muted-foreground">trace</p>
-                  <p className="mt-2 break-all text-sm font-medium text-foreground">
-                    {selectedEvent.traceId ?? "없음"}
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <p className="text-sm text-muted-foreground">span</p>
-                  <p className="mt-2 break-all text-sm font-medium text-foreground">
-                    {selectedEvent.spanId ?? "없음"}
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <p className="text-sm text-muted-foreground">request</p>
-                  <p className="mt-2 break-all text-sm font-medium text-foreground">
-                    {selectedEvent.requestId ?? "없음"}
-                  </p>
-                </div>
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <p className="text-sm text-muted-foreground">라인 범위</p>
-                  <p className="mt-2 break-all text-sm font-medium text-foreground">
-                    {selectedEvent.lineNumber}
-                    {selectedEvent.endLineNumber > selectedEvent.lineNumber ? `-${selectedEvent.endLineNumber}` : ""}
+                <div className="mt-5 rounded-2xl bg-white/5 p-4">
+                  <p className="font-mono text-[15px] leading-relaxed text-slate-100 break-all [overflow-wrap:anywhere]">
+                    {selectedEvent.message}
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {showSourceContext && (
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => onApplySourceFilter(selectedEvent.sourceId)}
-                  >
-                    이 source만 보기
-                  </Button>
-                )}
-                {selectedEvent.traceId && (
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => onApplyTraceFilter(selectedEvent.traceId ?? "all")}
-                  >
-                    이 trace만 보기
-                  </Button>
-                )}
-                {selectedEvent.service && (
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => onApplyServiceFilter(selectedEvent.service ?? "all")}
-                  >
-                    이 service만 보기
-                  </Button>
-                )}
-                {selectedEvent.requestId && (
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => onApplyRequestFilter(selectedEvent.requestId ?? "all")}
-                  >
-                    이 request만 보기
-                  </Button>
-                )}
-                {selectedDerivedFlowGroup && (
-                  <Button
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => {
-                      const nextEventId = selectedDerivedFlowGroup.eventIds[0];
-
-                      if (nextEventId) {
-                        onSelectEvent(nextEventId);
-                      }
-                    }}
-                  >
-                    이 flow로 이동
-                  </Button>
-                )}
-              </div>
-
-              {selectedDerivedFlowGroup && (
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium tracking-[-0.02em] text-foreground">Derived Flow</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        route와 resource/request 단서로 묶은 흐름입니다.
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedDerivedFlowGroup.eventCount} events
-                    </span>
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-border/60 bg-white p-3">
-                      <p className="text-sm text-muted-foreground">family</p>
-                      <p className="mt-2 break-all text-sm font-medium text-foreground">
-                        {selectedDerivedFlowGroup.family}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-white p-3">
-                      <p className="text-sm text-muted-foreground">correlation</p>
-                      <p className="mt-2 break-all text-sm font-medium text-foreground">
-                        {selectedDerivedFlowGroup.correlationKind} {selectedDerivedFlowGroup.correlationValue}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {selectedDerivedFlowGroup.methods.map((method) => (
-                      <span
-                        key={`${selectedDerivedFlowGroup.flowKey}-${method}`}
-                        className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
-                      >
-                        {method}
-                      </span>
-                    ))}
-                    {selectedDerivedFlowGroup.routes.map((route) => (
-                      <span
-                        key={`${selectedDerivedFlowGroup.flowKey}-${route}`}
-                        className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
-                      >
-                        {route}
-                      </span>
-                    ))}
-                    {selectedDerivedFlowGroup.resourceId && (
-                      <span className="rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                        resource {selectedDerivedFlowGroup.resourceId}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium tracking-[-0.02em] text-foreground">Source Coverage</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        선택한 trace의 파일별 분포입니다.
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {selectedTraceSourceCoverage.length} sources
-                    </span>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {selectedTraceSourceCoverage.map((source) => (
-                      <div
-                        key={`${source.sourceId}-${selectedEvent.traceId ?? "none"}`}
-                        className="rounded-3xl border border-border/70 bg-white p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="break-all text-sm font-medium text-foreground">{source.sourceLabel}</p>
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                              <span>{source.eventCount} events</span>
-                              <span>{source.services.length} services</span>
-                              {source.issueCount > 0 && <span>issue {source.issueCount}</span>}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 rounded-full px-3 text-xs"
-                            onClick={() => onApplySourceFilter(source.sourceId)}
-                          >
-                            이 source
-                          </Button>
-                        </div>
-                        {source.services.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {source.services.slice(0, 4).map((service) => (
-                              <span
-                                key={`${source.sourceId}-${service}`}
-                                className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground"
-                              >
-                                {service}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+              {/* 2. 주요 맥락 (Context) 및 필터 액션 */}
+              <div className="space-y-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">컨텍스트 및 필터</p>
+                <div className="grid gap-2">
+                  {[
+                    { label: "Source", value: selectedEvent.sourceLabel, action: () => onApplySourceFilter(selectedEvent.sourceId), show: showSourceContext },
+                    { label: "Trace ID", value: selectedEvent.traceId, action: () => onApplyTraceFilter(selectedEvent.traceId!), show: !!selectedEvent.traceId },
+                    { label: "Service", value: selectedEvent.service, action: () => onApplyServiceFilter(selectedEvent.service!), show: !!selectedEvent.service },
+                    { label: "Request ID", value: selectedEvent.requestId, action: () => onApplyRequestFilter(selectedEvent.requestId!), show: !!selectedEvent.requestId },
+                  ].filter(item => item.show).map((item) => (
+                    <div key={item.label} className="group flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/50 p-3 transition-colors hover:border-primary/30 hover:bg-white">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-medium text-muted-foreground">{item.label}</p>
+                        <p className="truncate font-mono text-xs font-semibold text-foreground">{item.value}</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {spanForest && (
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium tracking-[-0.02em] text-foreground">Span Topology</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        trace span 트리입니다.
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 shrink-0 rounded-full border-primary/20 bg-white px-3 text-[10px] font-bold text-primary opacity-0 shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5 group-hover:opacity-100"
+                        onClick={item.action}
+                      >
+                        필터 추가
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/50 p-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium text-muted-foreground">Line Number</p>
+                      <p className="font-mono text-xs font-semibold text-foreground">
+                        #{selectedEvent.lineNumber}
+                        {selectedEvent.endLineNumber > selectedEvent.lineNumber ? `-${selectedEvent.endLineNumber}` : ""}
                       </p>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {spanForest.totalSpans} spans · depth {spanForest.maxDepth + 1}
-                    </span>
                   </div>
+                </div>
+              </div>
 
-                  <div className="mt-4 space-y-3">
-                    {spanForest.roots.map((root) => (
-                      <SpanTopologyNode
-                        key={root.spanId}
-                        node={root}
-                        selectedTraceGroup={selectedTraceGroup}
-                        onSelectEvent={onSelectEvent}
-                      />
-                    ))}
-                  </div>
+              {/* 3. 분석 인사이트 (Trace & Flow) */}
+              {(spanForest || selectedDerivedFlowGroup) && (
+                <div className="space-y-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">분석 정보</p>
+                  
+                  {selectedDerivedFlowGroup && (
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-primary">추론된 흐름: {selectedDerivedFlowGroup.family}</p>
+                        <span className="text-[10px] font-medium text-primary/70">{selectedDerivedFlowGroup.eventCount} evt</span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-primary/80">
+                        {selectedDerivedFlowGroup.correlationKind} 기반 연관 분석 결과
+                      </p>
+                    </div>
+                  )}
 
-                  {spanForest.orphanEvents.length > 0 && (
-                    <div className="mt-4 rounded-3xl border border-dashed border-border/70 bg-white p-4">
-                      <p className="font-medium tracking-[-0.02em] text-foreground">Span 미지정 이벤트</p>
+                  {spanForest && (
+                    <div className="rounded-2xl border border-border/60 bg-white/50 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-foreground">Span 토폴로지</p>
+                        <span className="text-[10px] text-muted-foreground">{spanForest.totalSpans} spans</span>
+                      </div>
+                      <div className="mt-3 max-h-[320px] overflow-y-auto pr-2">
+                        {spanForest.roots.map((root) => (
+                          <SpanTopologyNode
+                            key={root.spanId}
+                            node={root}
+                            selectedTraceGroup={selectedTraceGroup}
+                            onSelectEvent={onSelectEvent}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
+                    <div className="rounded-2xl border border-border/60 bg-white/50 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-foreground">Source 커버리지</p>
+                        <span className="text-[10px] text-muted-foreground">{selectedTraceSourceCoverage.length} sources</span>
+                      </div>
                       <div className="mt-3 space-y-2">
-                        {spanForest.orphanEvents.map((event) => (
-                          <button
-                            key={event.id}
-                            type="button"
-                            onClick={() => onSelectEvent(event.id)}
-                            className="block w-full rounded-2xl border border-border/70 bg-secondary/40 px-3 py-3 text-left text-sm leading-6 text-muted-foreground break-all [overflow-wrap:anywhere]"
+                        {selectedTraceSourceCoverage.map((source) => (
+                          <div
+                            key={source.sourceId}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/70 p-3"
                           >
-                            {event.service ?? "미지정"} · {event.message}
-                          </button>
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-semibold text-foreground">{source.sourceLabel}</p>
+                              <p className="mt-1 text-[10px] text-muted-foreground">
+                                {source.eventCount} events
+                                {source.issueCount > 0 ? ` · issue ${source.issueCount}` : ""}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 shrink-0 rounded-full border-primary/20 bg-white px-3 text-[10px] font-bold text-primary"
+                              onClick={() => onApplySourceFilter(source.sourceId)}
+                            >
+                              이 소스
+                            </Button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -502,224 +366,106 @@ export function EventsTab({
                 </div>
               )}
 
-              {spanForest && selectedTraceGroup && (
-                <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium tracking-[-0.02em] text-foreground">Span Timeline</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        trace 기준 상대 시간입니다.
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDuration(selectedTraceGroup.startMs, selectedTraceGroup.endMs)}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 rounded-3xl border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(244,248,247,0.95))] p-4">
-                    <div className="grid grid-cols-[132px_minmax(0,1fr)] gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      <span>Span</span>
-                      <div className="flex items-center justify-between">
-                        <span>{formatTimestamp(selectedTraceGroup.startMs)}</span>
-                        <span>{formatTimestamp(selectedTraceGroup.endMs)}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      {timelineNodes.map((node) => {
-                        const barStyle = buildSpanBarStyle(node, selectedTraceGroup);
-
-                        return (
-                          <button
-                            key={`timeline-${node.spanId}`}
-                            type="button"
-                            onClick={() => {
-                              const nextEventId = node.eventIds[0];
-
-                              if (nextEventId) {
-                                onSelectEvent(nextEventId);
-                              }
-                            }}
-                            className="grid w-full grid-cols-[132px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-transparent px-2 py-2 text-left transition hover:border-primary/20 hover:bg-primary/5"
-                          >
-                            <div className="min-w-0" style={{ paddingLeft: `${Math.min(node.depth, 6) * 12}px` }}>
-                              <p className="truncate text-sm font-medium text-foreground">{node.service ?? node.spanId}</p>
-                              <p className="truncate text-[11px] text-muted-foreground">{node.spanId}</p>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="relative h-7 overflow-hidden rounded-full bg-secondary/75">
-                                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.04)_1px,transparent_1px)] [background-size:12.5%_100%]" />
-                                {barStyle && (
-                                  <div
-                                    className={cn(
-                                      "absolute top-1/2 h-4 -translate-y-1/2 rounded-full px-2 text-[10px] font-semibold leading-4 text-white",
-                                      node.issueCount > 0
-                                        ? "bg-[color:var(--chart-4)]"
-                                        : "bg-[color:var(--chart-3)]",
-                                    )}
-                                    style={barStyle}
-                                  >
-                                    <span className="truncate">{node.label}</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                                <span>{node.eventCount} events</span>
-                                <span>{formatDuration(node.startMs, node.endMs)}</span>
-                                {node.requestIds[0] && <span>{node.requestIds[0]}</span>}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium tracking-[-0.02em] text-foreground">
-                    {selectedEvent.traceId ? "관련 trace 흐름" : selectedDerivedFlowGroup ? "관련 flow 이벤트" : "주변 이벤트"}
-                  </p>
-                  {selectedTraceGroup && (
-                    <span className="text-xs text-muted-foreground">
-                      {selectedTraceGroup.eventCount} events · {formatDuration(selectedTraceGroup.startMs, selectedTraceGroup.endMs)}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4 space-y-3">
-                  {relatedEvents.map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      onClick={() => onSelectEvent(event.id)}
-                      className={cn(
-                        "w-full rounded-3xl border p-3 text-left transition-all",
-                        event.id === selectedEvent.id
-                          ? "border-primary/30 bg-primary/10"
-                          : "border-border/70 bg-white hover:border-primary/20 hover:bg-primary/5",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">{formatTimestamp(event.timestampMs)}</span>
-                        <LevelBadge level={event.level} />
-                      </div>
-                      <p className="mt-2 break-all text-sm font-medium text-foreground [overflow-wrap:anywhere]">
-                        {event.service ?? "미지정"}
-                      </p>
-                      {showSourceContext && (
-                        <p className="mt-1 break-all text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
-                          source {event.sourceLabel}
-                        </p>
-                      )}
-                      <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground break-all [overflow-wrap:anywhere]">
-                        {event.message}
-                      </p>
-                      {(event.spanId || event.parentSpanId) && (
-                        <p className="mt-2 break-all text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
-                          span {event.spanId ?? "없음"} / parent {event.parentSpanId ?? "없음"}
-                        </p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                <p className="font-medium tracking-[-0.02em] text-foreground">Parser Notes</p>
-                <div className="mt-4 space-y-3">
-                  {selectedEvent.parseIssues.length > 0 ? selectedEvent.parseIssues.map((issue) => (
-                    <div
-                      key={`${selectedEvent.id}-${issue.kind}`}
-                      className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm leading-6 text-amber-800"
-                    >
-                      {issue.message}
-                    </div>
-                  )) : (
-                    <p className="text-sm text-muted-foreground">추가 메모가 없습니다.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium tracking-[-0.02em] text-foreground">추출된 필드</p>
-                  <span className="text-xs text-muted-foreground">
-                    {visibleFieldEntries.length} visible
-                    {hiddenSelectedFieldKeys.length > 0 ? ` · ${hiddenSelectedFieldKeys.length} hidden` : ""}
-                  </span>
+              {/* 4. 추출된 필드 데이터 */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">추출된 데이터</p>
+                  <span className="text-[10px] text-muted-foreground">{visibleFieldEntries.length} items</span>
                 </div>
                 {hiddenSelectedFieldKeys.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {hiddenSelectedFieldKeys.map((fieldKey) => (
                       <button
                         key={fieldKey}
                         type="button"
                         onClick={() => onToggleFieldVisibility(fieldKey)}
-                        className="rounded-full border border-dashed border-border/70 bg-white px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
+                        className="rounded-full border border-dashed border-border/70 bg-white px-3 py-1 text-[10px] font-medium text-muted-foreground transition hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
                       >
                         {fieldKey} 다시 표시
                       </button>
                     ))}
                   </div>
                 )}
-                <div className="mt-4 grid gap-3">
-                  {visibleFieldEntries.length > 0 ? visibleFieldEntries.slice(0, 16).map(([key, value]) => (
-                    <div key={key} className="grid gap-2 rounded-2xl border border-border/60 bg-white/70 p-3 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-mono text-muted-foreground">{key}</span>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-full px-3 text-xs"
-                            onClick={() => onAddFieldFilter(key, value, "include")}
-                          >
-                            포함
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-full px-3 text-xs text-amber-700 hover:text-amber-800"
-                            onClick={() => onAddFieldFilter(key, value, "exclude")}
-                          >
-                            제외
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 rounded-full px-3 text-xs"
-                            onClick={() => onToggleFieldVisibility(key)}
-                          >
-                            숨김
-                          </Button>
+                <div className="grid gap-2">
+                  {visibleFieldEntries.length > 0 ? visibleFieldEntries.slice(0, 20).map(([key, value]) => (
+                    <div key={key} className="group relative rounded-xl border border-border/50 bg-white/40 p-3 transition-colors hover:bg-white">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[10px] font-bold text-muted-foreground/80">{key}</span>
+                        <div className="flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button onClick={() => onAddFieldFilter(key, value, "include")} className="rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-bold text-primary shadow-sm transition-colors hover:bg-primary/5">포함</button>
+                          <button onClick={() => onAddFieldFilter(key, value, "exclude")} className="rounded-full border border-amber-200/50 bg-white px-2.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-50">제외</button>
                         </div>
                       </div>
-                      <span className="break-all font-mono text-foreground">{value}</span>
+                      <p className="mt-1 break-all font-mono text-xs text-foreground">{value}</p>
                     </div>
                   )) : (
-                    <p className="text-sm text-muted-foreground">
-                      현재 표시 중인 필드가 없습니다. Field Lens에서 숨김을 복원해 보세요.
-                    </p>
+                    <p className="text-center text-xs text-muted-foreground py-4">추출된 필드가 없습니다.</p>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-border/70 bg-white/85 p-4">
-                <p className="font-medium tracking-[-0.02em] text-foreground">Raw Block</p>
-                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100">
-                  {selectedEvent.rawLine}
-                </pre>
+              {/* 5. 관련 이벤트 */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">관련 이벤트</p>
+                  <span className="text-[10px] text-muted-foreground">{relatedEvents.length} items</span>
+                </div>
+                <div className="space-y-2">
+                  {relatedEvents.length > 0 ? relatedEvents.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => onSelectEvent(event.id)}
+                      className={cn(
+                        "w-full rounded-2xl border p-3 text-left transition-colors",
+                        event.id === selectedEvent.id ? "border-primary/30 bg-primary/8" : "border-border/60 bg-white/60 hover:border-primary/20 hover:bg-white",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-xs font-semibold text-foreground">{event.service ?? "(서비스 미지정)"}</p>
+                        <span className="text-[10px] text-muted-foreground">{formatTimestamp(event.timestampMs)}</span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                        {event.message}
+                      </p>
+                    </button>
+                  )) : (
+                    <p className="text-center text-xs text-muted-foreground py-4">연관 이벤트가 없습니다.</p>
+                  )}
+                </div>
               </div>
+
+              {/* 6. 원문 데이터 */}
+              <div className="space-y-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">로그 원문 (Raw)</p>
+                <div className="rounded-2xl bg-slate-100 p-4">
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-slate-600">
+                    {selectedEvent.rawLine}
+                  </pre>
+                </div>
+              </div>
+
+              {/* 7. 분석 특이사항 */}
+              {selectedEvent.parseIssues.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground text-amber-700">분석 특이사항</p>
+                  <div className="space-y-2">
+                    {selectedEvent.parseIssues.map((issue) => (
+                      <div
+                        key={`${selectedEvent.id}-${issue.kind}`}
+                        className="rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-2 text-[11px] leading-relaxed text-amber-800"
+                      >
+                        {issue.message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-            <div className="rounded-[28px] border border-dashed border-border/80 bg-white/70 p-5">
-              <p className="text-sm leading-7 text-muted-foreground">
-                이벤트를 선택하면 세부 정보가 여기에 표시됩니다.
+            <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-white/50 p-10 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                분석할 로그를 선택하세요.
               </p>
             </div>
           )}
