@@ -27,45 +27,45 @@ export function AnalysisTab({
 }: AnalysisTabProps) {
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_340px]">
-      <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
-        <CardHeader className="border-b border-border/70 pb-4">
+      <Card className="overflow-hidden border-border bg-card shadow-none">
+        <CardHeader className="border-b border-border pb-4">
           <CardTitle className="text-2xl tracking-[-0.04em]">시간대별 분포</CardTitle>
           <CardDescription className="pt-2 leading-6">
             {hourlyChart.parsedCount.toLocaleString()}개 이벤트 기준
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="h-[430px] rounded-[26px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(244,248,247,0.92))] p-4">
+          <div className="h-[430px] rounded-[26px] border border-border bg-[linear-gradient(180deg,var(--card),var(--muted))] p-4">
             {hourlyChart.parsedCount > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={hourlyChart.data}
                   margin={{ top: 18, right: 18, left: 0, bottom: 8 }}
                 >
-                  <CartesianGrid stroke="rgba(30,41,59,0.08)" vertical={false} />
+                  <CartesianGrid stroke="var(--border)" strokeOpacity={0.5} vertical={false} />
                   <XAxis
                     dataKey="hour"
                     axisLine={false}
                     tickLine={false}
                     tickMargin={12}
-                    stroke="rgba(71,85,105,0.9)"
+                    stroke="var(--muted-foreground)"
                   />
                   <YAxis
                     allowDecimals={false}
                     axisLine={false}
                     tickLine={false}
                     tickMargin={12}
-                    stroke="rgba(71,85,105,0.9)"
+                    stroke="var(--muted-foreground)"
                   />
                   <Tooltip
-                    cursor={{ stroke: "rgba(15,118,110,0.18)", strokeWidth: 18 }}
+                    cursor={{ stroke: "var(--primary)", strokeOpacity: 0.15, strokeWidth: 18 }}
                     contentStyle={{
-                      background: "rgba(255,255,255,0.96)",
-                      border: "1px solid rgba(15,23,42,0.08)",
+                      background: "var(--popover)",
+                      border: "1px solid var(--border)",
                       borderRadius: "18px",
-                      boxShadow: "0 24px 60px -30px rgba(15,23,42,0.45)",
+                      boxShadow: "0 24px 60px -30px rgba(0,0,0,0.3)",
                     }}
-                    labelStyle={{ color: "rgba(15,23,42,0.92)", fontWeight: 600 }}
+                    labelStyle={{ color: "var(--foreground)", fontWeight: 600 }}
                   />
                   <Line
                     type="monotone"
@@ -79,7 +79,7 @@ export function AnalysisTab({
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-[22px] border border-dashed border-border/80 bg-white/60 p-8 text-center">
+              <div className="flex h-full items-center justify-center rounded-[22px] border border-dashed border-border bg-card p-8 text-center">
                 <div className="max-w-sm">
                   <p className="text-lg font-medium tracking-[-0.03em] text-foreground">
                     타임스탬프가 인식된 이벤트가 없습니다
@@ -95,7 +95,7 @@ export function AnalysisTab({
       </Card>
 
       <div className="space-y-6">
-        <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+        <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Level 분포</CardTitle>
           <CardDescription className="leading-6">
@@ -116,7 +116,7 @@ export function AnalysisTab({
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+        <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Service 분포</CardTitle>
           <CardDescription className="leading-6">
@@ -135,7 +135,7 @@ export function AnalysisTab({
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+        <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Request 분포</CardTitle>
           <CardDescription className="leading-6">
@@ -157,7 +157,7 @@ export function AnalysisTab({
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+        <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">파서 노트</CardTitle>
           <CardDescription className="leading-6">
@@ -179,7 +179,7 @@ export function AnalysisTab({
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
+        <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Trace 요약</CardTitle>
           <CardDescription className="leading-6">
@@ -190,7 +190,7 @@ export function AnalysisTab({
             {filteredTraceGroups.slice(0, 4).map((group) => (
               <div
                 key={group.traceId}
-                className="rounded-3xl border border-border/70 bg-white/85 p-4"
+                className="rounded-3xl border border-border bg-card p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium tracking-[-0.02em] text-foreground">

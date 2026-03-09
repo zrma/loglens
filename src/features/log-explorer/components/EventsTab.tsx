@@ -79,13 +79,13 @@ function SpanTopologyNode({
             onSelectEvent(nextEventId);
           }
         }}
-        className="w-full rounded-3xl border border-border/70 bg-white/90 p-4 text-left transition hover:border-primary/20 hover:bg-primary/5"
+        className="w-full rounded-3xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-accent"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium tracking-[-0.02em] text-foreground">{node.service ?? "(서비스 미지정)"}</span>
-              <span className="rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+              <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                 {node.spanId}
               </span>
               {node.issueCount > 0 && (
@@ -108,7 +108,7 @@ function SpanTopologyNode({
 
         {barStyle && (
           <div className="mt-4 rounded-full bg-secondary p-1">
-            <div className="relative h-2 rounded-full bg-white/70">
+            <div className="relative h-2 rounded-full bg-background">
               <div
                 className="absolute top-0 h-2 rounded-full bg-[color:var(--chart-1)]"
                 style={barStyle}
@@ -161,8 +161,8 @@ export function EventsTab({
 }: EventsTabProps) {
   return (
     <div className="min-w-0 grid gap-6 min-[1820px]:grid-cols-[minmax(0,1.28fr)_340px]">
-      <Card className="min-w-0 h-[clamp(34rem,72vh,52rem)] overflow-hidden border-white/60 bg-white/78 shadow-none min-[1820px]:h-[calc(100vh-7rem)]">
-        <CardHeader className="border-b border-border/70 pb-4">
+      <Card className="min-w-0 h-[clamp(34rem,72vh,52rem)] overflow-hidden border-border bg-card shadow-none min-[1820px]:h-[calc(100vh-7rem)]">
+        <CardHeader className="border-b border-border pb-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -172,11 +172,11 @@ export function EventsTab({
                 </CardDescription>
               </div>
               <div className="flex min-w-0 flex-wrap gap-2">
-                <span className="max-w-full truncate rounded-full border border-border/80 bg-secondary/55 px-3 py-1 text-xs font-medium text-secondary-foreground">
+                <span className="max-w-full truncate rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
                   source: {sessionTitle}
                 </span>
                 {traceFilter !== "all" && (
-                  <span className="max-w-full truncate rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  <span className="max-w-full truncate rounded-full border border-primary bg-accent px-3 py-1 text-xs font-medium text-primary">
                     trace: {formatTraceLabel(traceFilter)}
                   </span>
                 )}
@@ -193,7 +193,7 @@ export function EventsTab({
                       "max-w-full rounded-full border px-3 py-1 text-xs font-medium transition",
                       filter.operator === "exclude"
                         ? "border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100"
-                        : "border-primary/20 bg-primary/10 text-primary hover:border-primary/30 hover:bg-primary/15",
+                        : "border-primary bg-accent text-primary hover:border-primary hover:bg-accent",
                     )}
                   >
                     {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value}
@@ -228,8 +228,8 @@ export function EventsTab({
         </CardContent>
       </Card>
 
-      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none min-[1820px]:sticky min-[1820px]:top-6 min-[1820px]:h-[calc(100vh-7rem)] min-[1820px]:self-start">
-        <CardHeader className="border-b border-border/70 pb-4">
+      <Card className="min-w-0 overflow-hidden border-border bg-card shadow-none min-[1820px]:sticky min-[1820px]:top-6 min-[1820px]:h-[calc(100vh-7rem)] min-[1820px]:self-start">
+        <CardHeader className="border-b border-border pb-4">
           <CardTitle className="text-xl tracking-[-0.03em]">이벤트 상세 분석</CardTitle>
           <CardDescription className="pt-1 text-xs leading-5">
             로그 원문과 추출된 맥락 정보를 분석합니다.
@@ -268,7 +268,7 @@ export function EventsTab({
                     { label: "Service", value: selectedEvent.service, action: () => onApplyServiceFilter(selectedEvent.service!), show: !!selectedEvent.service },
                     { label: "Request ID", value: selectedEvent.requestId, action: () => onApplyRequestFilter(selectedEvent.requestId!), show: !!selectedEvent.requestId },
                   ].filter(item => item.show).map((item) => (
-                    <div key={item.label} className="group flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/50 p-3 transition-colors hover:border-primary/30 hover:bg-white">
+                    <div key={item.label} className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted p-3 transition-colors hover:border-primary hover:bg-background">
                       <div className="min-w-0">
                         <p className="text-[10px] font-medium text-muted-foreground">{item.label}</p>
                         <p className="truncate font-mono text-xs font-semibold text-foreground">{item.value}</p>
@@ -276,14 +276,14 @@ export function EventsTab({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 shrink-0 rounded-full border-primary/20 bg-white px-3 text-[10px] font-bold text-primary opacity-0 shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5 group-hover:opacity-100"
+                        className="h-7 shrink-0 rounded-full border-primary bg-background px-3 text-[10px] font-bold text-primary opacity-0 shadow-sm transition-all hover:border-primary hover:bg-accent group-hover:opacity-100"
                         onClick={item.action}
                       >
                         필터 추가
                       </Button>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/50 p-3">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted p-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-medium text-muted-foreground">Line Number</p>
                       <p className="font-mono text-xs font-semibold text-foreground">
@@ -301,19 +301,19 @@ export function EventsTab({
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">분석 정보</p>
                   
                   {selectedDerivedFlowGroup && (
-                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="rounded-2xl border border-primary bg-accent p-4">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-primary">추론된 흐름: {selectedDerivedFlowGroup.family}</p>
-                        <span className="text-[10px] font-medium text-primary/70">{selectedDerivedFlowGroup.eventCount} evt</span>
+                        <span className="text-[10px] font-medium text-primary">{selectedDerivedFlowGroup.eventCount} evt</span>
                       </div>
-                      <p className="mt-1 text-[11px] leading-relaxed text-primary/80">
+                      <p className="mt-1 text-[11px] leading-relaxed text-primary">
                         {selectedDerivedFlowGroup.correlationKind} 기반 연관 분석 결과
                       </p>
                     </div>
                   )}
 
                   {spanForest && (
-                    <div className="rounded-2xl border border-border/60 bg-white/50 p-4">
+                    <div className="rounded-2xl border border-border bg-muted p-4">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-foreground">Span 토폴로지</p>
                         <span className="text-[10px] text-muted-foreground">{spanForest.totalSpans} spans</span>
@@ -332,7 +332,7 @@ export function EventsTab({
                   )}
 
                   {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
-                    <div className="rounded-2xl border border-border/60 bg-white/50 p-4">
+                    <div className="rounded-2xl border border-border bg-muted p-4">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-foreground">Source 커버리지</p>
                         <span className="text-[10px] text-muted-foreground">{selectedTraceSourceCoverage.length} sources</span>
@@ -341,7 +341,7 @@ export function EventsTab({
                         {selectedTraceSourceCoverage.map((source) => (
                           <div
                             key={source.sourceId}
-                            className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-white/70 p-3"
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-xs font-semibold text-foreground">{source.sourceLabel}</p>
@@ -353,7 +353,7 @@ export function EventsTab({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 shrink-0 rounded-full border-primary/20 bg-white px-3 text-[10px] font-bold text-primary"
+                              className="h-7 shrink-0 rounded-full border-primary bg-background px-3 text-[10px] font-bold text-primary"
                               onClick={() => onApplySourceFilter(source.sourceId)}
                             >
                               이 소스
@@ -379,7 +379,7 @@ export function EventsTab({
                         key={fieldKey}
                         type="button"
                         onClick={() => onToggleFieldVisibility(fieldKey)}
-                        className="rounded-full border border-dashed border-border/70 bg-white px-3 py-1 text-[10px] font-medium text-muted-foreground transition hover:border-primary/20 hover:bg-primary/5 hover:text-foreground"
+                        className="rounded-full border border-dashed border-border bg-muted px-3 py-1 text-[10px] font-medium text-muted-foreground transition hover:border-primary hover:bg-accent hover:text-foreground"
                       >
                         {fieldKey} 다시 표시
                       </button>
@@ -388,12 +388,12 @@ export function EventsTab({
                 )}
                 <div className="grid gap-2">
                   {visibleFieldEntries.length > 0 ? visibleFieldEntries.slice(0, 20).map(([key, value]) => (
-                    <div key={key} className="group relative rounded-xl border border-border/50 bg-white/40 p-3 transition-colors hover:bg-white">
+                    <div key={key} className="group relative rounded-xl border border-border bg-muted p-3 transition-colors hover:bg-background">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-[10px] font-bold text-muted-foreground/80">{key}</span>
+                        <span className="truncate font-mono text-[10px] font-bold text-muted-foreground">{key}</span>
                         <div className="flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button onClick={() => onAddFieldFilter(key, value, "include")} className="rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-bold text-primary shadow-sm transition-colors hover:bg-primary/5">포함</button>
-                          <button onClick={() => onAddFieldFilter(key, value, "exclude")} className="rounded-full border border-amber-200/50 bg-white px-2.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-50">제외</button>
+                          <button onClick={() => onAddFieldFilter(key, value, "include")} className="rounded-full border border-primary bg-background px-2.5 py-0.5 text-[10px] font-bold text-primary shadow-sm transition-colors hover:bg-accent">포함</button>
+                          <button onClick={() => onAddFieldFilter(key, value, "exclude")} className="rounded-full border border-amber-200/50 bg-background px-2.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-50">제외</button>
                         </div>
                       </div>
                       <p className="mt-1 break-all font-mono text-xs text-foreground">{value}</p>
@@ -418,7 +418,7 @@ export function EventsTab({
                       onClick={() => onSelectEvent(event.id)}
                       className={cn(
                         "w-full rounded-2xl border p-3 text-left transition-colors",
-                        event.id === selectedEvent.id ? "border-primary/30 bg-primary/8" : "border-border/60 bg-white/60 hover:border-primary/20 hover:bg-white",
+                        event.id === selectedEvent.id ? "border-primary bg-accent" : "border-border bg-card hover:border-primary hover:bg-background",
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -438,8 +438,8 @@ export function EventsTab({
               {/* 6. 원문 데이터 */}
               <div className="space-y-4">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">로그 원문 (Raw)</p>
-                <div className="rounded-2xl bg-slate-100 p-4">
-                  <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-slate-600">
+                <div className="rounded-2xl bg-muted p-4">
+                  <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-muted-foreground">
                     {selectedEvent.rawLine}
                   </pre>
                 </div>
@@ -463,7 +463,7 @@ export function EventsTab({
               )}
             </>
           ) : (
-            <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-white/50 p-10 text-center">
+            <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card p-10 text-center">
               <p className="text-sm font-medium text-muted-foreground">
                 분석할 로그를 선택하세요.
               </p>

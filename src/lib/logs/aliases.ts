@@ -1,3 +1,5 @@
+import type { LogFieldMap } from "@/lib/logs/types";
+
 export type LogAliasField =
   | "traceId"
   | "traceparent"
@@ -62,6 +64,7 @@ const ZAP_SHORT_JSON_ALIASES: LogFieldAliasOverrides = {
   service: ["N"],
   timestamp: ["T"],
 };
+const ZAP_SHORT_JSON_KEYS = ["T", "L", "N", "M", "rid"] as const;
 
 export const LOG_ALIAS_PRESETS: LogAliasPreset[] = [
   {
@@ -86,12 +89,26 @@ function uniqueAliases(aliases: string[]) {
   return [...new Set(aliases)];
 }
 
+function cloneAliasSet(aliases: LogFieldAliases): LogFieldAliases {
+  return {
+    traceId: [...aliases.traceId],
+    traceparent: [...aliases.traceparent],
+    spanId: [...aliases.spanId],
+    parentSpanId: [...aliases.parentSpanId],
+    requestId: [...aliases.requestId],
+    service: [...aliases.service],
+    message: [...aliases.message],
+    timestamp: [...aliases.timestamp],
+    level: [...aliases.level],
+  };
+}
+
 function mergeAliasSets(
   baseAliases: LogFieldAliases,
   nextAliases: LogFieldAliasOverrides,
   prepend = false,
 ) {
-  const merged = { ...baseAliases };
+  const merged = cloneAliasSet(baseAliases);
 
   for (const [field, aliases] of Object.entries(nextAliases) as Array<[LogAliasField, string[] | undefined]>) {
     if (!aliases || aliases.length === 0) {
@@ -124,7 +141,7 @@ export function buildLogFieldAliases(
   aliasOverrides: LogFieldAliasOverrides = {},
 ) {
   const preset = getLogAliasPreset(presetId);
-  let aliases = { ...BASE_LOG_FIELD_ALIASES };
+  let aliases = cloneAliasSet(BASE_LOG_FIELD_ALIASES);
 
   if (preset.id !== "auto" && preset.aliases) {
     aliases = mergeAliasSets(aliases, preset.aliases);
@@ -133,8 +150,8 @@ export function buildLogFieldAliases(
   return mergeAliasSets(aliases, aliasOverrides, true);
 }
 
-export function detectAutoAliasOverrides(fields: Record<string, string>): LogFieldAliasOverrides {
-  const hasZapShortKey = ["T", "L", "N", "M", "rid"].some((key) => key in fields);
+export function detectAutoAliasOverrides(fields: LogFieldMap): LogFieldAliasOverrides {
+  const hasZapShortKey = ZAP_SHORT_JSON_KEYS.some((key) => Object.prototype.hasOwnProperty.call(fields, key));
 
   return hasZapShortKey ? ZAP_SHORT_JSON_ALIASES : {};
 }

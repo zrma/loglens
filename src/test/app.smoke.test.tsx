@@ -1,3 +1,4 @@
+import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
@@ -29,6 +30,14 @@ async function* linesFromText(text: string) {
   }
 }
 
+function renderApp() {
+  return render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}
+
 describe("App smoke", () => {
   beforeEach(() => {
     tauriMocks.invokeMock.mockReset();
@@ -40,7 +49,7 @@ describe("App smoke", () => {
   });
 
   it("renders the empty structured explorer shell", () => {
-    render(<App />);
+    renderApp();
 
     expect(
       screen.getByRole("heading", { name: /분석을 시작하려면 로그를 선택하세요/i }),
@@ -49,7 +58,7 @@ describe("App smoke", () => {
   });
 
   it("loads the sample session and reveals span topology plus parser notes", async () => {
-    render(<App />);
+    renderApp();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
@@ -68,7 +77,7 @@ describe("App smoke", () => {
   });
 
   it("lets users add builtin columns to the event stream", async () => {
-    render(<App />);
+    renderApp();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
@@ -86,15 +95,17 @@ describe("App smoke", () => {
   });
 
   it("streams selected files line by line and merges them into one session", async () => {
-    tauriMocks.openMock.mockResolvedValue(["/tmp/checkout.log", "/tmp/auth.log"]);
-    tauriMocks.invokeMock.mockResolvedValue(undefined);
+    tauriMocks.openMock.mockResolvedValue([
+      "file:///tmp/checkout.log",
+      "file:///tmp/auth.log",
+    ]);
     tauriMocks.readTextFileLinesMock
       .mockResolvedValueOnce(linesFromText(SAMPLE_LOG_CONTENT))
       .mockResolvedValueOnce(linesFromText(`
 {"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
       `.trim()));
 
-    render(<App />);
+    renderApp();
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /로컬 로그 파일 열기/i }));

@@ -126,7 +126,7 @@ export function VirtualizedEventStream({
     switch (column.id) {
       case "time":
         return (
-          <div className="overflow-hidden px-4 py-3 font-mono text-sm text-foreground/80">
+          <div className="overflow-hidden px-4 py-3 font-mono text-sm text-foreground">
             <div>{formatTimestamp(event.timestampMs)}</div>
             <div className="mt-1 text-xs text-muted-foreground">
               #{event.lineNumber}
@@ -182,17 +182,17 @@ export function VirtualizedEventStream({
                 </span>
               )}
               {!columns.some((nextColumn) => nextColumn.id === "trace") && event.traceId && (
-                <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-secondary/55 px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                <span className="min-w-0 max-w-full truncate rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                   trace {formatTraceLabel(event.traceId)}
                 </span>
               )}
               {!columns.some((nextColumn) => nextColumn.id === "request") && event.requestId && (
-                <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <span className="min-w-0 max-w-full truncate rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   req {event.requestId}
                 </span>
               )}
               {!columns.some((nextColumn) => nextColumn.id === "source") && showSourceContext && (
-                <span className="min-w-0 max-w-full truncate rounded-full border border-border/70 bg-white px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                <span className="min-w-0 max-w-full truncate rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   src {event.sourceLabel}
                 </span>
               )}
@@ -223,7 +223,7 @@ export function VirtualizedEventStream({
     >
       <div className="relative" style={{ height: `${totalHeight}px`, width: `${contentWidth}px` }}>
         <div
-          className="sticky top-0 z-10 grid border-b border-border/70 bg-white/95 text-xs uppercase tracking-[0.18em] text-muted-foreground"
+          className="sticky top-0 z-10 grid border-b border-border bg-background backdrop-blur-md text-xs uppercase tracking-[0.18em] text-muted-foreground"
           style={{ gridTemplateColumns }}
         >
           {columns.map((column) => (
@@ -243,13 +243,13 @@ export function VirtualizedEventStream({
                 onClick={() => onSelectEvent(event.id)}
                 role="option"
                 aria-selected={selectedEventId === event.id}
-                className="absolute left-0 overflow-hidden border-b border-border/60 text-left"
+                className="absolute left-0 overflow-hidden border-b border-border text-left"
                 style={{ top: `${top}px`, height: `${EVENT_ROW_HEIGHT}px`, width: `${contentWidth}px` }}
               >
                 <div
                   className={cn(
-                    "grid h-full items-start overflow-hidden px-0 transition-colors hover:bg-primary/5",
-                    selectedEventId === event.id ? "bg-primary/8" : "bg-white/70",
+                    "grid h-full items-start overflow-hidden px-0 transition-colors hover:bg-accent",
+                    selectedEventId === event.id ? "bg-accent" : "bg-card",
                   )}
                   style={{ gridTemplateColumns, width: `${contentWidth}px` }}
                 >

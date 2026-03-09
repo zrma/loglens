@@ -117,7 +117,7 @@ export function SidebarSection({
   return (
     <div className="space-y-6">
       {/* 1. 검색 및 기본 필터 */}
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+      <Card className="border-border bg-card shadow-xl shadow-black/5 dark:shadow-black/30 backdrop-blur-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
@@ -127,7 +127,7 @@ export function SidebarSection({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 rounded-full border-border/70 bg-white/60 px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+              className="h-8 rounded-full border-border bg-muted px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary hover:bg-background hover:text-foreground"
               onClick={onResetFilters}
               disabled={!hasSession}
             >
@@ -148,14 +148,14 @@ export function SidebarSection({
               value={searchTerm}
               onChange={(event) => onSearchTermChange(event.target.value)}
               disabled={!hasSession}
-              className="h-12 rounded-2xl border-white/60 bg-white/85 pl-10 shadow-none focus-visible:ring-primary/20"
+              className="h-12 rounded-2xl border-border bg-background pl-10 shadow-none focus-visible:ring-primary"
             />
           </div>
 
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">
               <Select value={levelFilter} onValueChange={(value) => onLevelFilterChange(value as LogLevel | "all")} disabled={!hasSession}>
-                <SelectTrigger aria-label="로그 레벨 필터" className="h-11 rounded-2xl border-white/60 bg-white/85">
+                <SelectTrigger aria-label="로그 레벨 필터" className="h-11 rounded-2xl border-border bg-background">
                   <SelectValue placeholder="로그 레벨" />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,7 +169,7 @@ export function SidebarSection({
               <Button
                 variant="outline"
                 className={cn(
-                  "h-11 rounded-2xl border-white/60 bg-white/85 font-medium",
+                  "h-11 rounded-2xl border-border bg-background font-medium",
                   issuesOnly && "border-red-200 bg-red-50 text-red-700 hover:bg-red-50 hover:text-red-800",
                 )}
                 onClick={() => onIssuesOnlyChange(!issuesOnly)}
@@ -181,7 +181,7 @@ export function SidebarSection({
             </div>
 
             <Select value={sourceFilter} onValueChange={onSourceFilterChange} disabled={!hasSession || sourceOptions.length === 0}>
-              <SelectTrigger aria-label="소스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectTrigger aria-label="소스 필터" className="h-11 w-full rounded-2xl border-border bg-background">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="shrink-0 text-muted-foreground">Source:</span>
                   <SelectValue placeholder="선택" />
@@ -196,7 +196,7 @@ export function SidebarSection({
             </Select>
 
             <Select value={serviceFilter} onValueChange={onServiceFilterChange} disabled={!hasSession}>
-              <SelectTrigger aria-label="서비스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectTrigger aria-label="서비스 필터" className="h-11 w-full rounded-2xl border-border bg-background">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="shrink-0 text-muted-foreground">Service:</span>
                   <SelectValue placeholder="선택" />
@@ -211,7 +211,7 @@ export function SidebarSection({
             </Select>
 
             <Select value={traceFilter} onValueChange={onTraceFilterChange} disabled={!hasSession}>
-              <SelectTrigger aria-label="트레이스 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectTrigger aria-label="트레이스 필터" className="h-11 w-full rounded-2xl border-border bg-background">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="shrink-0 text-muted-foreground">Trace:</span>
                   <SelectValue placeholder="선택" />
@@ -226,7 +226,7 @@ export function SidebarSection({
             </Select>
 
             <Select value={requestFilter} onValueChange={onRequestFilterChange} disabled={!hasSession}>
-              <SelectTrigger aria-label="요청 필터" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+              <SelectTrigger aria-label="요청 필터" className="h-11 w-full rounded-2xl border-border bg-background">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <span className="shrink-0 text-muted-foreground">Request:</span>
                   <SelectValue placeholder="선택" />
@@ -244,7 +244,7 @@ export function SidebarSection({
       </Card>
 
       {/* 2. 필드 값 필터 (Facets) */}
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+      <Card className="border-border bg-card shadow-xl shadow-black/5 dark:shadow-black/30 backdrop-blur-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
@@ -254,7 +254,7 @@ export function SidebarSection({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 rounded-full border-border/70 bg-white/60 px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+              className="h-8 rounded-full border-border bg-muted px-3 text-[11px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary hover:bg-background hover:text-foreground"
               onClick={onClearFieldFilters}
               disabled={!hasSession || fieldFilters.length === 0}
             >
@@ -267,7 +267,7 @@ export function SidebarSection({
         </CardHeader>
         <CardContent className="space-y-4">
           <Select value={facetFieldKey} onValueChange={onFacetFieldKeyChange} disabled={!hasSession || fieldKeyOptions.length === 0}>
-            <SelectTrigger aria-label="필드 패싯 선택" className="h-11 w-full rounded-2xl border-white/60 bg-white/85">
+            <SelectTrigger aria-label="필드 패싯 선택" className="h-11 w-full rounded-2xl border-border bg-background">
               <SelectValue placeholder="필드 선택" />
             </SelectTrigger>
             <SelectContent>
@@ -293,8 +293,8 @@ export function SidebarSection({
                         isActive
                           ? isExcluded
                             ? "border-amber-200 bg-amber-50"
-                            : "border-primary/30 bg-primary/10"
-                          : "border-border/60 bg-white/80 hover:border-primary/20",
+                            : "border-primary bg-accent"
+                          : "border-border bg-card hover:border-primary",
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -307,7 +307,7 @@ export function SidebarSection({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 rounded-full border-primary/20 bg-white px-2.5 text-[10px] font-bold text-primary shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5"
+                            className="h-7 rounded-full border-primary bg-background px-2.5 text-[10px] font-bold text-primary shadow-sm transition-all hover:border-primary hover:bg-accent"
                             onClick={() => onAddFieldFilter(facetFieldKey, label, "include")}
                           >
                             포함
@@ -316,7 +316,7 @@ export function SidebarSection({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 rounded-full border-amber-200/50 bg-white px-2.5 text-[10px] font-bold text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-50"
+                            className="h-7 rounded-full border-amber-200/50 bg-background px-2.5 text-[10px] font-bold text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-50"
                             onClick={() => onAddFieldFilter(facetFieldKey, label, "exclude")}
                           >
                             제외
@@ -335,7 +335,7 @@ export function SidebarSection({
                   key={label}
                   type="button"
                   onClick={() => onFacetFieldKeyChange(label)}
-                  className="rounded-full border border-border/70 bg-white/70 px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary/20 hover:text-foreground"
+                  className="rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition hover:border-primary hover:text-foreground"
                 >
                   {label} ({count})
                 </button>
@@ -344,7 +344,7 @@ export function SidebarSection({
           )}
 
           {fieldFilters.length > 0 && (
-            <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3">
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
               {fieldFilters.map((filter) => (
                 <button
                   key={`${filter.key}:${filter.operator}:${filter.value}`}
@@ -354,7 +354,7 @@ export function SidebarSection({
                     "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition",
                     filter.operator === "exclude"
                       ? "border-amber-200 bg-amber-50 text-amber-800"
-                      : "border-primary/20 bg-primary/10 text-primary",
+                      : "border-primary bg-accent text-primary",
                   )}
                 >
                   {filter.key} {filter.operator === "exclude" ? "!=" : "="} {filter.value} &times;
@@ -366,7 +366,7 @@ export function SidebarSection({
       </Card>
 
       {/* 3. 주요 인사이트 (Radar & Flows) */}
-      <Card className="border-white/60 bg-white/72 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl">
+      <Card className="border-border bg-card shadow-xl shadow-black/5 dark:shadow-black/30 backdrop-blur-xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
             <Network className="size-4 text-[color:var(--chart-2)]" />
@@ -387,8 +387,8 @@ export function SidebarSection({
                 className={cn(
                   "w-full rounded-2xl border p-3 text-left transition-all",
                   traceFilter === group.traceId
-                    ? "border-primary/30 bg-primary/10"
-                    : "border-border/60 bg-white/60 hover:border-primary/20",
+                    ? "border-primary bg-accent"
+                    : "border-border bg-muted hover:border-primary",
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -411,7 +411,7 @@ export function SidebarSection({
                 key={group.flowKey}
                 type="button"
                 onClick={() => onSelectDerivedFlowGroup(group)}
-                className="w-full rounded-2xl border border-border/60 bg-white/60 p-3 text-left transition-all hover:border-primary/20"
+                className="w-full rounded-2xl border border-border bg-muted p-3 text-left transition-all hover:border-primary"
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-xs font-semibold text-foreground">{group.family}</p>
@@ -427,7 +427,7 @@ export function SidebarSection({
       </Card>
 
       {/* 4. 보기 설정 (Columns & Lens) */}
-      <Card className="border-white/60 bg-white/72 opacity-80 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.48)] backdrop-blur-xl transition-opacity hover:opacity-100">
+      <Card className="border-border bg-card opacity-80 shadow-xl shadow-black/5 backdrop-blur-xl transition-opacity hover:opacity-100 dark:shadow-black/30">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-[-0.03em]">
@@ -443,7 +443,7 @@ export function SidebarSection({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                className="h-6 rounded-full border-border bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary hover:bg-background hover:text-foreground"
                 onClick={onResetEventColumns}
               >
                 초기화
@@ -459,7 +459,7 @@ export function SidebarSection({
                     title={column.label}
                     className={cn(
                       "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
-                      isActive ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground"
+                      isActive ? "border-primary bg-accent text-primary" : "border-border bg-muted text-muted-foreground"
                     )}
                   >
                     <span className="block truncate whitespace-nowrap">{column.label}</span>
@@ -486,7 +486,7 @@ export function SidebarSection({
                       title={label}
                       className={cn(
                         "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
-                        isPinned ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground",
+                        isPinned ? "border-primary bg-accent text-primary" : "border-border bg-muted text-muted-foreground",
                       )}
                     >
                       <span className="block truncate whitespace-nowrap">{label}</span>
@@ -506,7 +506,7 @@ export function SidebarSection({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                  className="h-6 rounded-full border-border bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary hover:bg-background hover:text-foreground"
                   onClick={onHideAllFieldVisibility}
                   disabled={!hasSession || fieldLensKeys.length === 0 || hiddenFieldKeys.length >= fieldLensKeys.length}
                 >
@@ -515,7 +515,7 @@ export function SidebarSection({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 rounded-full border-border/70 bg-white/60 px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/30 hover:bg-white hover:text-foreground"
+                  className="h-6 rounded-full border-border bg-muted px-2.5 text-[10px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary hover:bg-background hover:text-foreground"
                   onClick={onResetFieldVisibility}
                   disabled={!hasSession || hiddenFieldKeys.length === 0}
                 >
@@ -533,7 +533,7 @@ export function SidebarSection({
                     title={label}
                     className={cn(
                       "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
-                      isHidden ? "border-dashed border-border/50 text-muted-foreground" : "border-primary/10 bg-primary/5 text-primary/80"
+                      isHidden ? "border-dashed border-border text-muted-foreground" : "border-primary bg-accent text-primary"
                     )}
                   >
                     <span className="block truncate whitespace-nowrap">{label}</span>

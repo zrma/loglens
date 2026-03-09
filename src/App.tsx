@@ -272,7 +272,7 @@ function App() {
     {
       caption: sourceLabel ? "세션 전체" : "세션을 불러오면 집계됩니다",
       icon: FileText,
-      iconClassName: "bg-primary/10 text-primary",
+      iconClassName: "bg-accent text-primary",
       title: "전체 이벤트",
       value: events.length.toLocaleString(),
     },
@@ -491,19 +491,19 @@ function App() {
             }}
           />
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 rounded-[30px] border border-white/60 bg-white/72 p-4 shadow-[0_28px_90px_-48px_rgba(11,37,53,0.55)] backdrop-blur-xl">
-            <div className="border-b border-border/70 pb-4">
-              <TabsList className="grid h-12 w-full max-w-[320px] grid-cols-2 rounded-full bg-muted/60 p-1 text-muted-foreground">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="min-w-0 rounded-[30px] border border-border bg-card p-4 shadow-2xl shadow-black/5 backdrop-blur-xl dark:shadow-black/30">
+            <div className="border-b border-border pb-4">
+              <TabsList className="grid h-12 w-full max-w-[320px] grid-cols-2 rounded-full bg-muted p-1 text-muted-foreground">
                 <TabsTrigger
                   value="events"
-                  className="rounded-full border-0 font-medium data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="rounded-full border-0 font-medium data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
                   <ListTree className="mr-2 size-4" />
                   이벤트 스트림
                 </TabsTrigger>
                 <TabsTrigger
                   value="analysis"
-                  className="rounded-full border-0 font-medium data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="rounded-full border-0 font-medium data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                 >
                   <BarChart3 className="mr-2 size-4" />
                   연관 분석
@@ -514,7 +514,7 @@ function App() {
             {!session ? (
               <div className="flex min-h-[500px] items-center justify-center px-4 py-10">
                 <div className="max-w-md text-center animate-in zoom-in-95 fade-in-0 duration-700">
-                  <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-inner">
+                  <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-accent text-primary shadow-inner">
                     <FolderOpen className="size-8" />
                   </div>
                   <h3 className="mt-6 text-2xl font-bold tracking-[-0.03em] text-foreground">
@@ -558,7 +558,7 @@ function App() {
                 <TabsContent value="analysis" className="mt-4">
                   <Suspense
                     fallback={(
-                      <div className="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-border/80 bg-white/70 p-8 text-center">
+                      <div className="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-border bg-card p-8 text-center">
                         <div>
                           <p className="text-lg font-medium tracking-[-0.03em] text-foreground">분석 뷰 준비 중</p>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">
