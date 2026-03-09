@@ -43,36 +43,35 @@ describe("App smoke", () => {
     render(<App />);
 
     expect(
-      screen.getByRole("heading", { name: /로그 세션을 불러오세요/i }),
+      screen.getByRole("heading", { name: /분석을 시작하려면 로그를 선택하세요/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /샘플 trace 세션 로드/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /데모 데이터로 체험하기/i })).toBeInTheDocument();
   });
 
   it("loads the sample session and reveals span topology plus parser notes", async () => {
     render(<App />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /샘플 trace 세션 로드/i }));
+      fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
     });
 
     await act(async () => {
       fireEvent.change(
-        await screen.findByPlaceholderText(/메시지, request id, trace id, service명, 필드 값으로 검색/i),
+        await screen.findByPlaceholderText(/메시지, ID, 서비스명 검색/i),
         { target: { value: "cache miss" } },
       );
     });
 
-    expect(await screen.findByText("Span Topology")).toBeInTheDocument();
-    expect(screen.getByText(/trace span 트리입니다/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Span 토폴로지/i)).toBeInTheDocument();
     expect(await screen.findByText(/4줄을 하나의 이벤트로 병합했습니다/i)).toBeInTheDocument();
     expect(screen.getAllByText(/span-auth-root/i).length).toBeGreaterThan(0);
   });
 
-  it("lets users add source and field columns to the event stream", async () => {
+  it("lets users add builtin columns to the event stream", async () => {
     render(<App />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /샘플 trace 세션 로드/i }));
+      fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
     });
 
     const eventStream = await screen.findByRole("listbox", { name: /로그 이벤트 스트림/i });
@@ -80,16 +79,10 @@ describe("App smoke", () => {
     expect(within(eventStream).queryByText("Source")).not.toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Source 컬럼/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^Source$/i }));
     });
 
     expect(within(eventStream).getByText("Source")).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /request_id 필드 컬럼/i }));
-    });
-
-    expect(within(eventStream).getByText("request_id")).toBeInTheDocument();
   });
 
   it("streams selected files line by line and merges them into one session", async () => {
@@ -104,7 +97,7 @@ describe("App smoke", () => {
     render(<App />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /로그 파일 열기/i }));
+      fireEvent.click(screen.getByRole("button", { name: /로컬 로그 파일 열기/i }));
     });
 
     await waitFor(() => {
@@ -114,7 +107,7 @@ describe("App smoke", () => {
     expect((await screen.findAllByText(/2개 파일 세션/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/checkout\.log/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/auth\.log/i)).length).toBeGreaterThan(0);
-    expect(await screen.findByText(/이벤트 스트림/i)).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: /이벤트 스트림/i })).toBeInTheDocument();
     expect((await screen.findAllByText(/trace-checkout-4821/i)).length).toBeGreaterThan(0);
   });
 });

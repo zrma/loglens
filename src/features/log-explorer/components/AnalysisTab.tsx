@@ -29,9 +29,9 @@ export function AnalysisTab({
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_340px]">
       <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="border-b border-border/70 pb-4">
-          <CardTitle className="text-2xl tracking-[-0.04em]">시간대 분포</CardTitle>
+          <CardTitle className="text-2xl tracking-[-0.04em]">시간대별 분포</CardTitle>
           <CardDescription className="pt-2 leading-6">
-            필터 결과 {hourlyChart.parsedCount.toLocaleString()}개 이벤트 기준
+            {hourlyChart.parsedCount.toLocaleString()}개 이벤트 기준
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
@@ -82,10 +82,10 @@ export function AnalysisTab({
               <div className="flex h-full items-center justify-center rounded-[22px] border border-dashed border-border/80 bg-white/60 p-8 text-center">
                 <div className="max-w-sm">
                   <p className="text-lg font-medium tracking-[-0.03em] text-foreground">
-                    timestamp를 인식한 이벤트가 없습니다
+                    타임스탬프가 인식된 이벤트가 없습니다
                   </p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    인식 가능한 시간 필드가 필요합니다.
+                    시간 필드가 포함된 로그가 필요합니다.
                   </p>
                 </div>
               </div>
@@ -99,7 +99,7 @@ export function AnalysisTab({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Level 분포</CardTitle>
           <CardDescription className="leading-6">
-            추출된 level 기준
+            로그 레벨별 이벤트 비율
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
@@ -111,7 +111,7 @@ export function AnalysisTab({
                 maxCount={levelCounts[0]?.count ?? count}
               />
             )) : (
-              <p className="text-sm text-muted-foreground">표시할 level 분포가 없습니다.</p>
+              <p className="text-sm text-muted-foreground">레벨 정보가 있는 이벤트가 없습니다.</p>
             )}
           </CardContent>
         </Card>
@@ -120,7 +120,7 @@ export function AnalysisTab({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Service 분포</CardTitle>
           <CardDescription className="leading-6">
-            현재 범위 기준 상위 service
+            상위 service별 이벤트 비율
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
@@ -139,7 +139,7 @@ export function AnalysisTab({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Request 분포</CardTitle>
           <CardDescription className="leading-6">
-            상위 request 분포
+            상위 request별 이벤트 수
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
@@ -152,16 +152,16 @@ export function AnalysisTab({
               />
             ))}
             {requestCounts.length === 0 && (
-              <p className="text-sm text-muted-foreground">request id가 추출된 이벤트가 없습니다.</p>
+              <p className="text-sm text-muted-foreground">request ID가 포함된 이벤트가 없습니다.</p>
             )}
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-white/60 bg-white/78 shadow-none">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl tracking-[-0.03em]">Parser Notes</CardTitle>
+          <CardTitle className="text-xl tracking-[-0.03em]">파서 노트</CardTitle>
           <CardDescription className="leading-6">
-            파서 진단 요약
+            파싱 과정에서 발생한 진단 요약
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
@@ -174,7 +174,7 @@ export function AnalysisTab({
               />
             ))}
             {diagnosticCounts.length === 0 && (
-              <p className="text-sm text-muted-foreground">현재 세션에는 parser note가 없습니다.</p>
+              <p className="text-sm text-muted-foreground">파서 노트가 없습니다.</p>
             )}
           </CardContent>
         </Card>
@@ -183,7 +183,7 @@ export function AnalysisTab({
         <CardHeader className="pb-3">
           <CardTitle className="text-xl tracking-[-0.03em]">Trace 요약</CardTitle>
           <CardDescription className="leading-6">
-            현재 범위 기준 trace 묶음
+            현재 범위의 trace 그룹 요약
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-3">
@@ -206,7 +206,7 @@ export function AnalysisTab({
               </div>
             ))}
             {filteredTraceGroups.length === 0 && (
-              <p className="text-sm text-muted-foreground">현재 필터에서 묶을 trace가 없습니다.</p>
+              <p className="text-sm text-muted-foreground">현재 범위에 trace 그룹이 없습니다.</p>
             )}
           </CardContent>
         </Card>

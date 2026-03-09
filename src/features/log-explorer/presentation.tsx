@@ -90,7 +90,7 @@ export function highlightText(text: string, term: string): ReactNode {
       ? (
         <mark
           key={`${part}-${index}`}
-          className="rounded-md bg-primary/15 px-1 py-0.5 text-foreground"
+          className="rounded-md bg-primary/25 px-1 py-0.5 font-semibold text-foreground"
         >
           {part}
         </mark>
@@ -107,15 +107,15 @@ export function MetricCard({
   value,
 }: MetricCardProps) {
   return (
-    <Card className="overflow-hidden border-white/60 bg-white/72 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+    <Card className="group overflow-hidden border-white/60 bg-white/72 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_32px_80px_-36px_rgba(15,23,42,0.45)]">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-foreground">{value}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{caption}</p>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="mt-2 text-4xl font-bold tracking-[-0.04em] text-foreground">{value}</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{caption}</p>
           </div>
-          <div className={`rounded-2xl p-3 ${iconClassName}`}>
+          <div className={`rounded-2xl p-3 transition-colors ${iconClassName}`}>
             <Icon className="size-5" />
           </div>
         </div>
@@ -128,7 +128,7 @@ export function LevelBadge({ level }: { level: LogLevel }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.18em]",
+        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold tracking-[0.15em]",
         getLevelTone(level),
       )}
     >

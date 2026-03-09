@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "loglens",
+        "title": "LogLens",
         "width": 1024,
         "height": 768,
         "minWidth": 800,
