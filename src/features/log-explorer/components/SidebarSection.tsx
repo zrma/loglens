@@ -456,12 +456,13 @@ export function SidebarSection({
                   <button
                     key={column.id}
                     onClick={() => onToggleBuiltinEventColumn(column.id)}
+                    title={column.label}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                      "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
                       isActive ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground"
                     )}
                   >
-                    {column.label}
+                    <span className="block truncate whitespace-nowrap">{column.label}</span>
                   </button>
                 );
               })}
@@ -482,12 +483,13 @@ export function SidebarSection({
                       key={label}
                       type="button"
                       onClick={() => onToggleEventFieldColumn(label)}
+                      title={label}
                       className={cn(
-                        "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                        "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
                         isPinned ? "border-primary/20 bg-primary/10 text-primary" : "border-border/60 bg-white/50 text-muted-foreground",
                       )}
                     >
-                      {label}
+                      <span className="block truncate whitespace-nowrap">{label}</span>
                     </button>
                   );
                 })}
@@ -528,12 +530,13 @@ export function SidebarSection({
                   <button
                     key={label}
                     onClick={() => onToggleFieldVisibility(label)}
+                    title={label}
                     className={cn(
-                      "rounded-full border px-2.5 py-1 text-[10px] font-medium transition",
+                      "min-w-0 max-w-full overflow-hidden rounded-full border px-2.5 py-1 text-[10px] font-medium leading-tight transition",
                       isHidden ? "border-dashed border-border/50 text-muted-foreground" : "border-primary/10 bg-primary/5 text-primary/80"
                     )}
                   >
-                    {label}
+                    <span className="block truncate whitespace-nowrap">{label}</span>
                   </button>
                 );
               })}

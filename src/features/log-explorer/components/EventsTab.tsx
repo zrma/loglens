@@ -161,7 +161,7 @@ export function EventsTab({
 }: EventsTabProps) {
   return (
     <div className="min-w-0 grid gap-6 min-[1820px]:grid-cols-[minmax(0,1.28fr)_340px]">
-      <Card className="min-w-0 overflow-hidden border-white/60 bg-white/78 shadow-none">
+      <Card className="min-w-0 h-[clamp(34rem,72vh,52rem)] overflow-hidden border-white/60 bg-white/78 shadow-none min-[1820px]:h-[calc(100vh-7rem)]">
         <CardHeader className="border-b border-border/70 pb-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -203,7 +203,7 @@ export function EventsTab({
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="flex min-h-0 flex-1 flex-col p-0">
           {filteredEvents.length > 0 ? (
             <VirtualizedEventStream
               columns={eventStreamColumns}
@@ -214,7 +214,7 @@ export function EventsTab({
               onSelectEvent={onSelectEvent}
             />
           ) : (
-            <div className="flex h-[620px] items-center justify-center p-10">
+            <div className="flex min-h-0 flex-1 items-center justify-center p-10">
               <div className="max-w-md text-center">
                 <p className="text-lg font-medium tracking-[-0.03em] text-foreground">
                   필터 조건에 맞는 이벤트가 없습니다

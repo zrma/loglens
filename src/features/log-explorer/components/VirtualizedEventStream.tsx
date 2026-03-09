@@ -18,7 +18,7 @@ type VirtualizedEventStreamProps = {
   onSelectEvent: (eventId: string) => void;
 };
 
-const EVENT_ROW_HEIGHT = 152;
+const EVENT_ROW_HEIGHT = 144;
 const EVENT_HEADER_HEIGHT = 44;
 const OVERSCAN = 6;
 
@@ -31,6 +31,8 @@ export function VirtualizedEventStream({
   onSelectEvent,
 }: VirtualizedEventStreamProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const pendingScrollTopRef = useRef(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(560);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -57,6 +59,14 @@ export function VirtualizedEventStream({
 
     return () => {
       resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
     };
   }, []);
 
@@ -195,10 +205,21 @@ export function VirtualizedEventStream({
   return (
     <div
       ref={viewportRef}
-      className="relative h-[640px] min-h-0 overflow-auto"
+      className="relative min-h-0 flex-1 overflow-auto"
       role="listbox"
       aria-label="로그 이벤트 스트림"
-      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+      onScroll={(event) => {
+        pendingScrollTopRef.current = event.currentTarget.scrollTop;
+
+        if (scrollFrameRef.current !== null) {
+          return;
+        }
+
+        scrollFrameRef.current = requestAnimationFrame(() => {
+          scrollFrameRef.current = null;
+          setScrollTop(pendingScrollTopRef.current);
+        });
+      }}
     >
       <div className="relative" style={{ height: `${totalHeight}px`, width: `${contentWidth}px` }}>
         <div
