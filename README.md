@@ -97,6 +97,8 @@
 
 현재 구현 상태와 다음 우선순위를 한 장으로 보려면 [`docs/status.md`](./docs/status.md)를 참고하세요.
 
+다음 구현 배치의 상세 스펙은 [`docs/next-phase-spec.md`](./docs/next-phase-spec.md)에 정리했습니다.
+
 ## 실행
 
 ```bash

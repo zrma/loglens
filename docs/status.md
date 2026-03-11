@@ -120,36 +120,37 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-### 1. 파서 신뢰성 강화
+상세 구현 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)를 기준으로 합니다.
 
-- 언어별 stack trace fixture 확대
-- nested JSON 필드 정규화
+### 1. Custom Alias Override UI
+
+- 세션 단위 alias override 추가
+- preset 위에 사용자 매핑 덮어쓰기
+- override 적용 시 즉시 재파싱
+
+### 2. Parser Diagnostics 강화
+
 - 파싱 실패 이유 분류 세분화
-- correlation ID 규칙 확대
+- timestamp/structured fallback 설명 강화
+- alias override와 연결되는 진단 힌트 추가
 
-### 2. 다중 파일 및 관계 추적 고도화
+### 3. Analysis Drill-down 연결
 
-- 여러 로그 파일을 더 안정적으로 정렬/클러스터링하기
-- trace/request/correlation 기준 cross-file correlation UX 강화
-- 현재 facet 조건을 파일 경계 넘어 유지하고 저장하기
+- 차트 클릭으로 필터 반영
+- 카드/분포와 facet 상태 연결
+- 이벤트 탭과 분석 탭 간 drill-down 상태 유지
 
-### 3. 대용량 파일 대응
+### 4. Cross-file Trace Diff
 
-- 현재 windowed list와 라인 스트리밍 파서를 실제 큰 fixture 기준으로 튜닝
-- 파일 스트리밍 이후 단계의 집계/필터 메모리 비용 절감
-- 세션 크기 커질 때 필터/집계 비용 줄이기
+- trace 기준 source별 비교 카드
+- trace가 없을 때 derived flow fallback
+- source coverage를 diff 수준으로 확장
 
-### 4. 시각화 고도화
+### 5. 대용량 세션 메모리 최적화
 
-- span timeline 상호작용 강화
-- trace 비교 뷰
-- request/correlation 중심 탐색 패널
-
-### 5. 테스트 확장
-
-- 실제 파일 열기 플로우 mock test
-- 필터 조합 시나리오 test
-- trace/span 집계 경계 케이스 test
+- large fixture 도입
+- 파생 계산 캐시/지연 계산
+- 필터/집계 메모리 비용 절감
 
 ## 지금 당장 하지 않아도 되는 것
 
