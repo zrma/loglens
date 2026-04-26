@@ -126,6 +126,67 @@ describe("App smoke", () => {
     expect(await screen.findByText(/Trace 요약/i)).toBeInTheDocument();
   });
 
+  it("applies and clears analysis drill-down filters", async () => {
+    async function clickFirstRowButton(label: RegExp) {
+      const button = (await screen.findAllByText(label))
+        .map((element) => element.closest("button"))
+        .find((element): element is HTMLButtonElement => element !== null);
+
+      if (!button) {
+        throw new Error(`No analysis row button found for ${label}`);
+      }
+
+      fireEvent.click(button);
+    }
+
+    renderApp();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
+    });
+
+    const analysisTab = await screen.findByRole("tab", { name: /연관 분석/i });
+
+    await act(async () => {
+      fireEvent.mouseDown(analysisTab, { button: 0, ctrlKey: false });
+      fireEvent.click(analysisTab);
+    });
+
+    await act(async () => {
+      await clickFirstRowButton(/^ERROR$/i);
+    });
+
+    expect(await screen.findByRole("button", { name: /Level ERROR/i })).toBeInTheDocument();
+
+    await act(async () => {
+      const tab = screen.getByRole("tab", { name: /이벤트 스트림/i });
+      fireEvent.mouseDown(tab, { button: 0, ctrlKey: false });
+      fireEvent.click(tab);
+    });
+
+    expect(await screen.findByText(/필터 결과 2개 이벤트/i)).toBeInTheDocument();
+
+    await act(async () => {
+      const tab = screen.getByRole("tab", { name: /연관 분석/i });
+      fireEvent.mouseDown(tab, { button: 0, ctrlKey: false });
+      fireEvent.click(tab);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Level ERROR/i }));
+    });
+
+    expect(await screen.findByText(/전체 분석 범위/i)).toBeInTheDocument();
+
+    await act(async () => {
+      await clickFirstRowButton(/^ERROR$/i);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /분석 조건만 해제/i }));
+    });
+
+    expect(await screen.findByText(/전체 분석 범위/i)).toBeInTheDocument();
+  });
+
   it("streams selected files line by line and merges them into one session", async () => {
     tauriMocks.openMock.mockResolvedValue([
       "file:///tmp/checkout.log",

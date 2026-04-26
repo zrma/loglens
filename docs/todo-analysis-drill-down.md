@@ -6,16 +6,16 @@
 
 ## 구현 항목
 
-- [ ] `DrillDownFilter` 상태 모델을 추가한다.
-- [ ] hour bucket, level, service, request, diagnostic 조건을 기존 이벤트 필터 결과에 결합한다.
-- [ ] 분석 탭 상단에 현재 분석 범위 chip 영역을 추가한다.
-- [ ] hour chart 클릭 시 시간 bucket drill-down을 적용한다.
-- [ ] level/service/request 분포 row 클릭 시 대응 필터를 적용한다.
-- [ ] Parser Diagnostics 분포 row 클릭 시 diagnostic kind 필터를 적용한다.
-- [ ] drill-down 조건을 개별 해제할 수 있게 한다.
-- [ ] `분석 조건만 해제`와 기존 `모든 조건 초기화`가 구분되게 한다.
-- [ ] 이벤트 탭과 분석 탭 전환 후에도 drill-down 상태가 유지되게 한다.
-- [ ] App smoke test에 분석 탭 drill-down 적용/해제 흐름을 추가한다.
+- [x] `DrillDownFilter` 상태 모델을 추가한다.
+- [x] hour bucket, level, service, request, diagnostic 조건을 기존 이벤트 필터 결과에 결합한다.
+- [x] 분석 탭 상단에 현재 분석 범위 chip 영역을 추가한다.
+- [x] hour chart 클릭 시 시간 bucket drill-down을 적용한다.
+- [x] level/service/request 분포 row 클릭 시 대응 필터를 적용한다.
+- [x] Parser Diagnostics 분포 row 클릭 시 diagnostic kind 필터를 적용한다.
+- [x] drill-down 조건을 개별 해제할 수 있게 한다.
+- [x] `분석 조건만 해제`와 기존 `모든 조건 초기화`가 구분되게 한다.
+- [x] 이벤트 탭과 분석 탭 전환 후에도 drill-down 상태가 유지되게 한다.
+- [x] App smoke test에 분석 탭 drill-down 적용/해제 흐름을 추가한다.
 
 ## 수용 기준
 
