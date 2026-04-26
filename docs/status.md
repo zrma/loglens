@@ -225,7 +225,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - `src/App.tsx` 필터 상태 분리 완료: [`docs/todo-app-state-split.md`](./todo-app-state-split.md)
 - `src/App.tsx` view configuration 상태 분리 완료
 - `src/App.tsx` 파생 계산 view model hook 분리 완료: [`docs/todo-derived-view-model-split.md`](./todo-derived-view-model-split.md)
-- 디자인 시스템 컴포넌트 사용 범위 재점검
+- 디자인 시스템 컴포넌트 사용 범위 재점검 완료: [`docs/todo-design-system-gc.md`](./todo-design-system-gc.md)
+- raw `<button>` explicit type 규칙을 `pnpm check:agent-gc`에 추가 완료
 - `pnpm check:bundle` 기반 JavaScript chunk size budget 확인 완료
 
 ## 지금 당장 하지 않아도 되는 것

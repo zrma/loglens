@@ -524,8 +524,8 @@ export function EventsTab({
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate font-mono text-[10px] font-bold text-muted-foreground">{key}</span>
                         <div className="flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button onClick={() => onAddFieldFilter(key, value, "include")} className="rounded-full border border-primary bg-background px-2.5 py-0.5 text-[10px] font-bold text-primary shadow-sm transition-colors hover:bg-accent">포함</button>
-                          <button onClick={() => onAddFieldFilter(key, value, "exclude")} className="rounded-full border border-amber-200/50 bg-background px-2.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-50">제외</button>
+                          <button type="button" onClick={() => onAddFieldFilter(key, value, "include")} className="rounded-full border border-primary bg-background px-2.5 py-0.5 text-[10px] font-bold text-primary shadow-sm transition-colors hover:bg-accent">포함</button>
+                          <button type="button" onClick={() => onAddFieldFilter(key, value, "exclude")} className="rounded-full border border-amber-200/50 bg-background px-2.5 py-0.5 text-[10px] font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-50">제외</button>
                         </div>
                       </div>
                       <p className="mt-1 break-all font-mono text-xs text-foreground">{value}</p>
