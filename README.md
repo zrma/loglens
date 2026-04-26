@@ -131,6 +131,7 @@ pnpm tauri build
 
 ```bash
 pnpm check
+pnpm check:harness
 pnpm lint
 pnpm lint:js
 pnpm lint:rust
@@ -141,6 +142,7 @@ pnpm format:rust
 ```
 
 `pnpm check`는 `lint + test + build + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
+이 명령에는 `pnpm check:harness`도 포함되며, 에이전트 운영 계약, 문서 지도, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
 
 ## VCS 워크플로
 
@@ -178,7 +180,7 @@ jj git push --remote origin -b master
 ## 권한과 보안 메모
 
 - Tauri capability에는 `dialog`, `fs`, `opener` 권한이 선언되어 있습니다.
-- Rust 커맨드 `allow_file_access`가 사용자가 선택한 파일만 파일 시스템 scope에 추가합니다.
+- 프런트엔드는 선택된 각 파일을 읽기 전에 Rust 커맨드 `allow_file_access`를 호출하고, 이 커맨드가 canonicalized 일반 파일만 파일 시스템 scope에 추가합니다.
 - 제품 수준으로 발전시킬 때는 접근 기록, 다중 파일 세션, 분석 로직 분리까지 함께 설계하는 것이 좋습니다.
 
 ## 개발자 메모

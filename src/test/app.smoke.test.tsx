@@ -112,6 +112,8 @@ describe("App smoke", () => {
     });
 
     await waitFor(() => {
+      expect(tauriMocks.invokeMock).toHaveBeenCalledWith("allow_file_access", { path: "/tmp/checkout.log" });
+      expect(tauriMocks.invokeMock).toHaveBeenCalledWith("allow_file_access", { path: "/tmp/auth.log" });
       expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledWith("/tmp/checkout.log");
       expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledWith("/tmp/auth.log");
     });

@@ -15,6 +15,7 @@ pnpm check
 ```
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 순서대로 실행합니다.
+중간에 `pnpm check:harness`도 실행되어 에이전트 운영 계약과 주요 문서/코드 경계가 어긋나지 않는지 확인합니다.
 
 ## 커밋 메시지 컨벤션
 

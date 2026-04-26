@@ -59,6 +59,7 @@
 5. **검증**
    - 반복 중에는 focused check를 사용합니다.
    - commit/push 전에는 docs-only 변경이어도 `pnpm check`를 실행합니다. publish되는 상태에는 명확한 품질 신호가 남아야 합니다.
+   - harness나 운영 문서를 바꿨다면 `pnpm check:harness` 실패를 먼저 해소한 뒤 전체 gate로 넘어갑니다.
 
 6. **Publish**
    - change description을 쓰기 전에 `jj diff`를 검토합니다.
@@ -86,6 +87,8 @@ pnpm check
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
 
+`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, publish gate, 선택 파일 접근 scope, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
+
 UI 비중이 큰 변경은 가능하면 앱을 실행해 변경된 흐름을 확인합니다. 별도 fixture가 필요하지 않다면 sample trace session을 기본 확인 대상으로 사용합니다.
 
 ## 실패 복구
@@ -104,6 +107,7 @@ UI 비중이 큰 변경은 가능하면 앱을 실행해 변경된 흐름을 확
 
 - LogLens는 local desktop log analysis workbench이며 server-backed observability platform이 아닙니다.
 - 사용자가 선택한 파일이 trust boundary입니다. 구체적인 작업과 security note 없이 filesystem access를 넓히지 않습니다.
+- 프런트엔드 파일 읽기 경로는 `allow_file_access`를 먼저 호출해 선택된 일반 파일만 Tauri fs scope에 추가한 뒤 `readTextFileLines()` 또는 fallback 읽기를 사용합니다.
 - Parser heuristic은 설명 가능해야 합니다. 조용한 추측보다 diagnostics와 test를 우선합니다.
 - Large-log 작업은 memory와 rendering cost를 함께 고려합니다.
 - 새 visualization은 debugging을 위한 dense하고 scan-friendly한 workflow를 유지해야 합니다.

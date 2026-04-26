@@ -42,3 +42,39 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs};
+
+    use super::resolve_allowed_file_path;
+
+    #[test]
+    fn resolves_regular_files_only() {
+        let path = env::temp_dir().join(format!(
+            "loglens-allow-file-access-{}.log",
+            std::process::id()
+        ));
+        fs::write(&path, "2026-03-08T10:00:00Z ok").expect("write temp log");
+
+        let resolved_path =
+            resolve_allowed_file_path(path.to_str().expect("temp path is utf8")).expect("resolve");
+
+        assert!(resolved_path.is_absolute());
+        assert!(resolved_path.is_file());
+
+        fs::remove_file(path).expect("remove temp log");
+    }
+
+    #[test]
+    fn rejects_directories() {
+        let error = resolve_allowed_file_path(
+            env::temp_dir()
+                .to_str()
+                .expect("temp directory path is utf8"),
+        )
+        .expect_err("directories must be rejected");
+
+        assert!(error.contains("일반 파일만 허용"));
+    }
+}
