@@ -6,16 +6,16 @@
 
 ## 구현 항목
 
-- [ ] traceId가 있는 선택 이벤트에 대해 source별 diff row를 계산한다.
-- [ ] traceId가 없는 선택 이벤트는 requestId 또는 derived flow 기준으로 diff row를 계산한다.
-- [ ] source별 event count, first seen, last seen, duration, issue count를 표시한다.
-- [ ] source별 service, span, route/method coverage를 비교한다.
-- [ ] 현재 선택 이벤트가 속한 source를 강조한다.
-- [ ] 다른 source에는 있는데 현재 source에는 없는 span/service/route를 missing hint로 표시한다.
-- [ ] 기존 Source 커버리지 카드를 Trace Diff 카드로 확장하거나 대체한다.
-- [ ] trace diff analysis 유틸 테스트를 추가한다.
-- [ ] 다중 파일 세션 smoke test에 Trace Diff 표시를 추가한다.
-- [ ] README, docs/status.md, docs/repository-overview.md, docs/next-phase-spec.md에 구현 상태를 반영한다.
+- [x] traceId가 있는 선택 이벤트에 대해 source별 diff row를 계산한다.
+- [x] traceId가 없는 선택 이벤트는 requestId 또는 derived flow 기준으로 diff row를 계산한다.
+- [x] source별 event count, first seen, last seen, duration, issue count를 표시한다.
+- [x] source별 service, span, route/method coverage를 비교한다.
+- [x] 현재 선택 이벤트가 속한 source를 강조한다.
+- [x] 다른 source에는 있는데 현재 source에는 없는 span/service/route를 missing hint로 표시한다.
+- [x] 기존 Source 커버리지 카드를 Trace Diff 카드로 확장하거나 대체한다.
+- [x] trace diff analysis 유틸 테스트를 추가한다.
+- [x] 다중 파일 세션 smoke test에 Trace Diff 표시를 추가한다.
+- [x] README, docs/status.md, docs/repository-overview.md, docs/next-phase-spec.md에 구현 상태를 반영한다.
 
 ## 수용 기준
 
@@ -35,4 +35,10 @@
 - `pnpm test -- src/lib/logs/parser.test.ts src/test/app.smoke.test.tsx`
 - `pnpm lint:js`
 - `pnpm build`
+- `pnpm check`
+
+완료 시점 검증:
+
+- `pnpm test -- src/lib/logs/parser.test.ts`
+- `pnpm test -- src/test/app.smoke.test.tsx`
 - `pnpm check`

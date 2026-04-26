@@ -54,7 +54,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 관계 추적 UI
   - trace group 요약
   - derived flow group 요약
-  - trace source coverage
+  - cross-file Trace Diff
+  - source별 missing span/service/route/method hint
   - span topology 트리
   - span timeline
 - 분석 UI
@@ -77,6 +78,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
     - 3,000-event 대용량 UI windowing row bound
   - async line stream parser test
   - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
+  - cross-file Trace Diff analysis fallback test
+  - 다중 파일 세션 Trace Diff UI smoke test
   - nested JSON / Go panic stack fixture test
   - timestamp missing/parse failed, JSON fallback, alias override diagnostic test
 - 에이전트 하네스 검증
@@ -119,7 +122,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - multiline 오류를 하나의 이벤트로 읽기
 - trace 내 span 부모/자식 관계 확인
 - trace 내 span 상대 시간축 확인
-- 같은 trace가 여러 source에 걸쳐 있는지 비교하기
+- 같은 trace가 여러 source에 걸쳐 있는지 source별 event/duration/missing hint로 비교하기
+- trace가 없을 때 requestId 또는 derived flow 기준으로 source별 차이 비교하기
 - trace가 없어도 route/resource/request 기준으로 REST 흐름 묶어 보기
 
 ## 아직 부족한 것
@@ -133,7 +137,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - event stream은 windowed list지만 상세/집계는 점진 계산이 아님
 - 시각화가 아직 기본형
   - span timeline은 있지만 gantt 수준 상호작용 없음
-  - trace 간 비교 없음
+  - source diff는 있지만 trace 간 비교 없음
 - 테스트 범위가 아직 얕음
   - 선택 파일 플로우는 runtime smoke로 보강됐지만, 실제 Tauri 데스크톱 창 자동화는 아직 없음
   - 필터 상호작용은 issue-only와 sample analysis smoke부터 보강된 상태
@@ -173,13 +177,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 카드/분포와 facet 상태 연결
 - 이벤트 탭과 분석 탭 간 drill-down 상태 유지
 
-### 1. Cross-file Trace Diff
+### 완료. Cross-file Trace Diff
 
 - trace 기준 source별 비교 카드
-- trace가 없을 때 derived flow fallback
+- trace가 없을 때 requestId 또는 derived flow fallback
 - source coverage를 diff 수준으로 확장
 
-### 2. 대용량 세션 메모리 최적화
+### 1. 대용량 세션 메모리 최적화
 
 - large fixture 도입
 - 파생 계산 캐시/지연 계산
