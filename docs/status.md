@@ -224,7 +224,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - README와 상태 문서의 대용량 최적화 설명 드리프트 정리 완료
 - `src/App.tsx` 필터 상태 분리 완료: [`docs/todo-app-state-split.md`](./todo-app-state-split.md)
 - `src/App.tsx` view configuration 상태 분리 완료
-- 다음 배치에서 파생 계산 추가 분리 여부 재검토
+- `src/App.tsx` 파생 계산 view model hook 분리 완료: [`docs/todo-derived-view-model-split.md`](./todo-derived-view-model-split.md)
 - 디자인 시스템 컴포넌트 사용 범위 재점검
 - `pnpm check:bundle` 기반 JavaScript chunk size budget 확인 완료
 

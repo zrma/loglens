@@ -11,7 +11,7 @@
 - [x] README의 "아직 구현되지 않은 부분"을 현재 대용량 최적화 상태에 맞춰 다시 쓴다.
 - [x] `src/App.tsx` 필터 상태를 전용 hook으로 분리한다. 세부 범위는 [`docs/todo-app-state-split.md`](./todo-app-state-split.md)에 둔다.
 - [x] `src/App.tsx` view configuration 상태를 전용 hook으로 분리한다.
-- [ ] `src/App.tsx` 파생 계산의 추가 분리 여부를 실제 반복 변경 비용 기준으로 재검토한다.
+- [x] `src/App.tsx` 파생 계산을 view model hook으로 분리한다. 세부 범위는 [`docs/todo-derived-view-model-split.md`](./todo-derived-view-model-split.md)에 둔다.
 - [ ] 디자인 시스템 컴포넌트 사용 범위를 한 번 훑고, 손쉬운 불일치만 정리한다.
 - [x] 번들 split 이후 청크 크기와 lazy boundary를 500 KiB JavaScript chunk budget으로 검증한다.
 - [ ] 품질 GC 규칙이 반복 부채를 충분히 잡는지 재점검하고, 기계적으로 잡을 수 있는 항목만 하네스에 추가한다.
@@ -42,3 +42,4 @@
 - 2026-04-26: 검색/필터/drill-down 상태를 `useLogExplorerFilters()`로 분리하고, 남은 App 분리 후보를 view configuration과 view model로 좁혔다.
 - 2026-04-26: event stream column과 field visibility 상태를 `useLogExplorerViewConfig()`로 분리했다.
 - 2026-04-26: `pnpm check:bundle`을 추가해 build 산출물의 JavaScript chunk가 500 KiB 예산을 넘지 않는지 확인하게 했다.
+- 2026-04-26: `useLogExplorerViewModel()`로 필터 결과, facet snapshot, trace/source diff, metric 카드 계산을 분리했다.

@@ -53,7 +53,7 @@
 - sidebar/analysis 상위 trace/derived-flow 목록은 표시 개수에 맞춘 bounded preview로 계산
 - 이벤트/분석 탭 전환
 
-`App.tsx`는 상태와 데이터 파이프 조립을 맡고, 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
+`App.tsx`는 세션 로딩, 탭, 선택 이벤트 상태를 연결하고, 필터 상태는 `useLogExplorerFilters()`, 표시 설정은 `useLogExplorerViewConfig()`, 파생 view data는 `useLogExplorerViewModel()`이 맡습니다. 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
 
 ### Tauri / Rust
 
