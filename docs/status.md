@@ -86,6 +86,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - nested JSON / Go panic stack fixture test
   - timestamp missing/parse failed, JSON fallback, alias override diagnostic test
   - documented timestamp format regression test
+  - out-of-order trace와 missing-parent span forest edge test
 - 에이전트 하네스 검증
   - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, selected-file runtime smoke, UI smoke coverage, 대용량 분석 fixture, 대용량 UI windowing fixture, ordered backlog, 주요 문서 드리프트 확인
 - 자율 실행 하네스
@@ -211,8 +212,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - 지원 timestamp 형식과 parse failure 규칙 문서화 완료: [`docs/log-format-support.md`](./log-format-support.md)
 - timestamp 변형과 parse failure 분류 parser test 보강 완료
+- trace/span 집계 edge case test 보강 완료
 - 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장
-- trace 그룹화/집계 로직 테스트 확장
 - 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강
 
 ## 지금 당장 하지 않아도 되는 것
