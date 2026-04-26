@@ -8,14 +8,9 @@ import {
   type AnalysisDrillDownFilter,
   eventMatchesAnalysisDrillDownFilters,
 } from "@/features/log-explorer/analysis-drill-down";
-import {
-  buildEventStreamColumns,
-  DEFAULT_EVENT_STREAM_COLUMNS,
-  normalizeBuiltinEventStreamColumns,
-  type EventStreamBuiltinColumnId,
-} from "@/features/log-explorer/event-stream-columns";
 import { useLogSession } from "@/features/log-explorer/hooks/useLogSession";
 import { useLogExplorerFilters } from "@/features/log-explorer/hooks/useLogExplorerFilters";
+import { useLogExplorerViewConfig } from "@/features/log-explorer/hooks/useLogExplorerViewConfig";
 import {
   type MetricCardProps,
   getDirectoryPath,
@@ -133,9 +128,6 @@ function App() {
     sourceFilter,
     traceFilter,
   } = useLogExplorerFilters();
-  const [hiddenFieldKeys, setHiddenFieldKeys] = useState<string[]>([]);
-  const [eventStreamBuiltinColumns, setEventStreamBuiltinColumns] = useState<EventStreamBuiltinColumnId[]>([...DEFAULT_EVENT_STREAM_COLUMNS]);
-  const [pinnedEventFieldColumns, setPinnedEventFieldColumns] = useState<string[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
 
@@ -215,10 +207,21 @@ function App() {
   const fieldFacetKeys = useMemo(() => facetFieldKeyOptions.slice(0, 8), [facetFieldKeyOptions]);
   const fieldLensKeys = useMemo(() => fieldKeyOptions.slice(0, 12), [fieldKeyOptions]);
   const eventColumnFieldOptions = useMemo(() => sessionFieldKeyOptions.slice(0, 10), [sessionFieldKeyOptions]);
-  const eventStreamColumns = useMemo(
-    () => buildEventStreamColumns(eventStreamBuiltinColumns, pinnedEventFieldColumns),
-    [eventStreamBuiltinColumns, pinnedEventFieldColumns],
-  );
+  const {
+    eventStreamBuiltinColumns,
+    eventStreamColumns,
+    hiddenFieldKeys,
+    hideAllFieldVisibility,
+    pinnedEventFieldColumns,
+    resetEventColumns,
+    resetFieldVisibility,
+    toggleBuiltinEventColumn,
+    toggleEventFieldColumn,
+    toggleFieldVisibility,
+  } = useLogExplorerViewConfig({
+    fieldKeyOptions,
+    sessionFieldKeyOptions,
+  });
   const sourceCount = session?.sources.length ?? 0;
   const showSourceContext = sourceCount > 1;
   const shouldBuildEventDetails = activeTab === "events";
@@ -382,42 +385,10 @@ function App() {
     () => (selectedEventId ? filteredEvents.some((event) => event.id === selectedEventId) : false),
     [filteredEvents, selectedEventId],
   );
-  const toggleFieldVisibility = useCallback((fieldKey: string) => {
-    setHiddenFieldKeys((current) => (
-      current.includes(fieldKey)
-        ? current.filter((key) => key !== fieldKey)
-        : [...current, fieldKey]
-    ));
-  }, []);
-  const hideAllFieldVisibility = useCallback(() => {
-    setHiddenFieldKeys(fieldKeyOptions.map(({ label }) => label));
-  }, [fieldKeyOptions]);
-  const resetFieldVisibility = useCallback(() => {
-    setHiddenFieldKeys([]);
-  }, []);
   const addFieldFilter = useCallback((fieldKey: string, fieldValue: string, operator: FieldFilter["operator"] = "include") => {
     addFieldFilterState(fieldKey, fieldValue, operator);
     setActiveTab("events");
   }, [addFieldFilterState]);
-  const toggleBuiltinEventColumn = useCallback((columnId: EventStreamBuiltinColumnId) => {
-    setEventStreamBuiltinColumns((current) => normalizeBuiltinEventStreamColumns(
-      current.includes(columnId)
-        ? current.filter((value) => value !== columnId)
-        : [...current, columnId],
-      pinnedEventFieldColumns,
-    ));
-  }, [pinnedEventFieldColumns]);
-  const toggleEventFieldColumn = useCallback((fieldKey: string) => {
-    setPinnedEventFieldColumns((current) => (
-      current.includes(fieldKey)
-        ? current.filter((value) => value !== fieldKey)
-        : [...current, fieldKey]
-    ));
-  }, []);
-  const resetEventColumns = useCallback(() => {
-    setEventStreamBuiltinColumns([...DEFAULT_EVENT_STREAM_COLUMNS]);
-    setPinnedEventFieldColumns([]);
-  }, []);
 
   useEffect(() => {
     if (!session) {
@@ -425,10 +396,10 @@ function App() {
     }
 
     resetFilters();
-    setHiddenFieldKeys([]);
+    resetFieldVisibility();
     setSelectedEventId(pickPreferredEventId(session.events));
     setActiveTab("events");
-  }, [resetFilters, session]);
+  }, [resetFieldVisibility, resetFilters, session]);
 
   useEffect(() => {
     if (facetFieldKeyOptions.length === 0) {
@@ -453,12 +424,6 @@ function App() {
       setSelectedEventId(preferredFilteredEventId);
     }
   }, [hasSelectedEvent, preferredFilteredEventId, selectedEventId]);
-
-  useEffect(() => {
-    const availableFieldKeys = new Set(sessionFieldKeyOptions.map(({ label }) => label));
-
-    setPinnedEventFieldColumns((current) => current.filter((fieldKey) => availableFieldKeys.has(fieldKey)));
-  }, [sessionFieldKeyOptions]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
