@@ -26,6 +26,14 @@ type FacetCount = {
   count: number;
 };
 
+type LogEventMatcher = (event: LogEvent) => boolean;
+
+type FieldFacetSnapshotOptions = {
+  fieldFilters?: FieldFilter[];
+  matchesBaseEvent?: LogEventMatcher;
+  selectedFieldKey: string | "all";
+};
+
 type MutableSpanNode = Omit<SpanNode, "children" | "depth" | "requestIds"> & {
   childIds: Set<string>;
   requestIds: Set<string>;
@@ -269,10 +277,16 @@ export function eventMatchesLogFilters(event: LogEvent, filters: LogFilters) {
   return eventMatchesNormalizedLogFilters(event, filters, filters.searchTerm.trim().toLowerCase());
 }
 
-export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
+export function createLogEventMatcher(filters: LogFilters): LogEventMatcher {
   const normalizedSearch = filters.searchTerm.trim().toLowerCase();
 
-  return events.filter((event) => eventMatchesNormalizedLogFilters(event, filters, normalizedSearch));
+  return (event) => eventMatchesNormalizedLogFilters(event, filters, normalizedSearch);
+}
+
+export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
+  const matchesLogEvent = createLogEventMatcher(filters);
+
+  return events.filter(matchesLogEvent);
 }
 
 export function matchesFieldFilters(event: LogEvent, filters: FieldFilter[]) {
@@ -314,6 +328,44 @@ export function buildFieldValueCounts(events: LogEvent[], fieldKey: string | "al
   }
 
   return materializeFacetCounts(counter);
+}
+
+export function buildFieldFacetSnapshot(events: LogEvent[], options: FieldFacetSnapshotOptions) {
+  const matchesBaseEvent = options.matchesBaseEvent ?? (() => true);
+  const fieldFilters = options.fieldFilters ?? [];
+  const selectedFieldFilters = options.selectedFieldKey === "all"
+    ? fieldFilters
+    : fieldFilters.filter((filter) => filter.key !== options.selectedFieldKey);
+  const keyCounter = new Map<string, number>();
+  const valueCounter = new Map<string, number>();
+
+  for (const event of events) {
+    if (!matchesBaseEvent(event)) {
+      continue;
+    }
+
+    for (const key in event.fields) {
+      keyCounter.set(key, (keyCounter.get(key) ?? 0) + 1);
+    }
+
+    if (options.selectedFieldKey === "all" || !matchesFieldFilters(event, selectedFieldFilters)) {
+      continue;
+    }
+
+    const value = event.fields[options.selectedFieldKey];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    const label = value.trim() ? value : "none";
+    valueCounter.set(label, (valueCounter.get(label) ?? 0) + 1);
+  }
+
+  return {
+    fieldKeyCounts: materializeFacetCounts(keyCounter),
+    fieldValueCounts: materializeFacetCounts(valueCounter),
+  };
 }
 
 export function buildHourlyChartData(events: LogEvent[]) {

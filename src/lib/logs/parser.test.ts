@@ -7,8 +7,10 @@ import {
   buildLevelCounts,
   buildSpanForest,
   buildDerivedFlowGroupForEvent,
+  buildFieldFacetSnapshot,
   buildTopDerivedFlowGroupPreviews,
   buildTopTraceGroupPreviews,
+  createLogEventMatcher,
   getRelatedEvents,
   getDerivedFlowGroupForEvent,
   buildTraceSourceDiff,
@@ -43,6 +45,7 @@ async function* generateMixedLargeJsonLines(count: number) {
       requestId: `req-large-${Math.floor(index / 10)}`,
       message: `${service} handled ${route} item ${index}`,
       route,
+      tenant: `team-${index % 3}`,
     });
   }
 }
@@ -214,6 +217,36 @@ describe("parseLogContent", () => {
       family: "/checkout",
     });
     expect(selectedFlowGroup?.eventIds).toHaveLength(5);
+  });
+
+  it("builds selected field facets without scoped event arrays", async () => {
+    const session = await parseLogLineStream(generateMixedLargeJsonLines(3000), {
+      reportInterval: 1000,
+    });
+    const matchesBaseEvent = createLogEventMatcher({
+      searchTerm: "handled",
+      level: "all",
+      source: "all",
+      service: "api-1",
+      traceId: "all",
+      requestId: "all",
+      fieldFilters: [],
+      issuesOnly: false,
+    });
+    const snapshot = buildFieldFacetSnapshot(session.events, {
+      fieldFilters: [
+        { key: "tenant", value: "team-1", operator: "include" },
+        { key: "route", value: "/checkout", operator: "include" },
+      ],
+      matchesBaseEvent,
+      selectedFieldKey: "route",
+    });
+
+    expect(snapshot.fieldKeyCounts).toEqual(expect.arrayContaining([
+      { label: "route", count: 750 },
+      { label: "tenant", count: 750 },
+    ]));
+    expect(snapshot.fieldValueCounts).toEqual([{ label: "/login", count: 250 }]);
   });
 
   it("filters and facets by arbitrary structured fields", () => {
