@@ -6,6 +6,8 @@
 
 기본 형태는 harness engineering 방식에 맞춥니다. 짧은 `AGENTS.md`는 지도 역할만 하고, 오래 유지되어야 하는 지식은 versioned docs에 두며, 가능한 피드백 루프는 실행 가능한 명령으로 둡니다.
 
+구체적인 end-to-end 실행 절차, 데스크톱 검증, PR/CI 피드백 처리, 품질 GC는 `docs/agent-autonomy-playbook.md`를 따릅니다.
+
 ## 기본 자율성 정책
 
 작업을 아래 정보로 해결할 수 있으면 에이전트는 자율적으로 계속 진행합니다.
@@ -60,6 +62,7 @@
    - 반복 중에는 focused check를 사용합니다.
    - commit/push 전에는 docs-only 변경이어도 `pnpm check`를 실행합니다. publish되는 상태에는 명확한 품질 신호가 남아야 합니다.
    - harness나 운영 문서를 바꿨다면 `pnpm check:harness` 실패를 먼저 해소한 뒤 전체 gate로 넘어갑니다.
+   - 자율 실행 절차나 품질 GC 기준을 바꿨다면 `pnpm check:agent-gc` 실패를 먼저 해소합니다.
 
 6. **Publish**
    - change description을 쓰기 전에 `jj diff`를 검토합니다.
@@ -99,6 +102,8 @@ pnpm check
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
 
 `pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, selected-file runtime smoke, UI smoke coverage, large-log analysis fixture, large UI windowing fixture, ordered backlog, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
+
+`pnpm check:agent-gc`는 자율 실행 플레이북, PR/CI 피드백 루프, 품질 GC 기준, unresolved debt marker, 개인 절대 경로 누출을 확인합니다. 이 검증은 큰 제품 판단을 대신하지 않고, 반복되는 드리프트를 초기에 잡는 방어선입니다.
 
 UI 비중이 큰 변경은 가능하면 앱을 실행해 변경된 흐름을 확인합니다. 별도 fixture가 필요하지 않다면 sample trace session을 기본 확인 대상으로 사용합니다.
 
@@ -151,3 +156,5 @@ Commit message 규칙:
 ## 지속 개선
 
 에이전트가 누락된 맥락, 반복되는 tool failure, 불명확한 architecture, 애매한 acceptance criteria 때문에 막히면 task를 해결한 뒤 harness도 보강합니다. 보통 이 문서, 관련 status/spec 문서, 또는 `.agents/skills/loglens/SKILL.md`에 짧은 규칙을 추가합니다.
+
+반복되는 품질 부채나 문서 드리프트는 `docs/agent-autonomy-playbook.md`의 품질 GC 루프에 따라 정리하고, 필요한 경우 `scripts/check-agent-gc.mjs`에 기계적 검사를 추가합니다.

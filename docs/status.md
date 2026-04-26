@@ -67,6 +67,9 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - nested JSON / Go panic stack fixture test
 - 에이전트 하네스 검증
   - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, selected-file runtime smoke, UI smoke coverage, 대용량 분석 fixture, 대용량 UI windowing fixture, ordered backlog, 주요 문서 드리프트 확인
+- 자율 실행 하네스
+  - `docs/agent-autonomy-playbook.md`로 end-to-end 실행, 데스크톱 검증, PR/CI 피드백 루프, 품질 GC 절차 문서화
+  - `pnpm check:agent-gc`로 자율 실행 플레이북, 품질 GC 기준, unresolved debt marker, 개인 절대 경로 누출 확인
 - 번들 최적화
   - `AnalysisTab` lazy load 분리
   - 기존 chunk size warning 제거
@@ -125,7 +128,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
 - custom alias override UI는 아직 없음
 - Tauri 실제 데스크톱 창 자동화는 아직 없고, 선택 파일 계약은 focused runtime smoke로 보강된 상태
-- 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
+- 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture, 자율 실행 플레이북 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
+- PR/CI 피드백 루프는 문서화됐지만 GitHub 인증이나 PR 생성 권한은 실행 환경에 따라 별도 확인이 필요함
 - `jj`는 clone마다 `jj git init --colocate`를 한 번 해줘야 한다
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
@@ -188,7 +192,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 pnpm check
 ```
 
-`pnpm check`는 `pnpm lint`, `pnpm check:harness`, `pnpm test`, `pnpm build`, `pnpm test:rust`를 순서대로 실행합니다. `lefthook pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
+`pnpm check`는 `pnpm lint`, `pnpm check:harness`, `pnpm check:agent-gc`, `pnpm test`, `pnpm build`, `pnpm test:rust`를 순서대로 실행합니다. `lefthook pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
 
 선택 파일 런타임 계약만 빠르게 확인하려면 아래 명령을 사용합니다.
 

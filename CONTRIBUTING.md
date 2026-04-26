@@ -6,6 +6,8 @@ LogLens에서 자동화 에이전트는 기본적으로 자율 진행합니다. 
 
 작업을 시작할 때는 [`AGENTS.md`](./AGENTS.md)를 짧은 지도처럼 읽고, 상세 맥락은 `docs/`와 [`.agents/skills/loglens/SKILL.md`](./.agents/skills/loglens/SKILL.md)를 따릅니다.
 
+PR/CI 피드백 처리, 데스크톱 검증, 반복 품질 정리까지 포함한 end-to-end 루프는 [`docs/agent-autonomy-playbook.md`](./docs/agent-autonomy-playbook.md)를 따릅니다.
+
 ## 검증
 
 기본 검증은 아래 명령입니다.
@@ -15,7 +17,7 @@ pnpm check
 ```
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 순서대로 실행합니다.
-중간에 `pnpm check:harness`도 실행되어 에이전트 운영 계약과 주요 문서/코드 경계가 어긋나지 않는지 확인합니다.
+중간에 `pnpm check:harness`와 `pnpm check:agent-gc`도 실행되어 에이전트 운영 계약, 자율 실행 플레이북, 주요 문서/코드 경계가 어긋나지 않는지 확인합니다.
 
 ## 커밋 메시지 컨벤션
 

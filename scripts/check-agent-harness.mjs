@@ -41,7 +41,9 @@ check("publish gate includes harness validation", () => {
 
   assert(packageJson.scripts["check:harness"] === "node scripts/check-agent-harness.mjs", "package.json must define check:harness.");
   assert(packageJson.scripts["check:runtime-smoke"]?.includes("src/test/runtime-harness.test.tsx"), "package.json must define a focused runtime smoke command.");
+  assert(packageJson.scripts["check:agent-gc"] === "node scripts/check-agent-gc.mjs", "package.json must define check:agent-gc.");
   assert(packageJson.scripts.check.includes("pnpm check:harness"), "pnpm check must run check:harness.");
+  assert(packageJson.scripts.check.includes("pnpm check:agent-gc"), "pnpm check must run check:agent-gc.");
 });
 
 check("CI and pre-push use the same publish gate", () => {
@@ -100,6 +102,22 @@ check("status and next phase docs keep the autonomous backlog aligned", () => {
   assert(nextPhase.includes("## 구현 순서"), "docs/next-phase-spec.md must preserve ordered implementation guidance.");
   assert(nextPhase.includes("1. custom alias override UI"), "docs/next-phase-spec.md must keep custom alias override first.");
   assert(nextPhase.includes("수용 기준"), "docs/next-phase-spec.md must provide acceptance criteria for autonomous implementation.");
+});
+
+check("agent autonomy playbook covers the full feedback loop", () => {
+  const agents = readText("AGENTS.md");
+  const contract = readText("docs/agent-operating-contract.md");
+  const skill = readText(".agents/skills/loglens/SKILL.md");
+  const playbook = readText("docs/agent-autonomy-playbook.md");
+
+  assert(agents.includes("docs/agent-autonomy-playbook.md"), "AGENTS.md must route full lifecycle work to docs/agent-autonomy-playbook.md.");
+  assert(contract.includes("docs/agent-autonomy-playbook.md"), "agent operating contract must link to the autonomy playbook.");
+  assert(skill.includes("docs/agent-autonomy-playbook.md"), "repo-local skill must include the autonomy playbook in the first-read map.");
+  assert(playbook.includes("## End-to-end 루프"), "autonomy playbook must define the end-to-end loop.");
+  assert(playbook.includes("## 데스크톱 검증"), "autonomy playbook must define desktop validation handling.");
+  assert(playbook.includes("## PR/CI 피드백 루프"), "autonomy playbook must define PR/CI feedback handling.");
+  assert(playbook.includes("## 품질 GC"), "autonomy playbook must define recurring quality garbage collection.");
+  assert(playbook.includes("## 에스컬레이션 패킷"), "autonomy playbook must define escalation packets.");
 });
 
 check("repository docs reflect the current streaming and windowing behavior", () => {

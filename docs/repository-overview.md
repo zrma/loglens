@@ -90,6 +90,7 @@
 - [`src-tauri/capabilities/default.json`](../src-tauri/capabilities/default.json) 에 파일 열기와 파일 시스템 접근 권한이 선언되어 있습니다.
 - [`src-tauri/src/lib.rs`](../src-tauri/src/lib.rs) 는 `allow_file_access` 커맨드로 사용자가 고른 파일만 접근 허용합니다.
 - [`src/App.css`](../src/App.css) 에도 기본 템플릿 스타일 흔적이 남아 있지만, 현재 엔트리포인트에서는 `index.css`만 import합니다.
+- [`docs/agent-autonomy-playbook.md`](./agent-autonomy-playbook.md)는 PR/CI 피드백 루프, 데스크톱 검증, 품질 GC 절차의 source of truth입니다.
 
 ## 다음에 손대기 좋은 영역
 
