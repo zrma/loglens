@@ -24,8 +24,8 @@ import {
 import {
   buildFacetCounts,
   buildDerivedFlowGroupForEvent,
+  buildFieldFacetSnapshot,
   buildFieldKeyCounts,
-  buildFieldValueCounts,
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
@@ -33,8 +33,7 @@ import {
   buildTopTraceGroupPreviews,
   buildTraceSourceDiff,
   buildTraceGroups,
-  eventMatchesLogFilters,
-  filterLogEvents,
+  createLogEventMatcher,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
 import { CANONICAL_LOG_ALIAS_FIELDS } from "@/lib/logs/aliases";
@@ -77,12 +76,14 @@ function filterLogEventsWithDrillDown(
   filters: LogFilters,
   drillDownFilters: AnalysisDrillDownFilter[],
 ) {
+  const matchesLogEvent = createLogEventMatcher(filters);
+
   if (drillDownFilters.length === 0) {
-    return filterLogEvents(events, filters);
+    return events.filter(matchesLogEvent);
   }
 
   return events.filter((event) => (
-    eventMatchesLogFilters(event, filters)
+    matchesLogEvent(event)
     && eventMatchesAnalysisDrillDownFilters(event, drillDownFilters)
   ));
 }
@@ -156,20 +157,14 @@ function App() {
     requestId: requestFilter,
     issuesOnly,
   }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, sourceFilter, traceFilter]);
-  const scopedEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
-    ...sharedFilters,
-    fieldFilters: [],
-  }, analysisDrillDownFilters), [analysisDrillDownFilters, events, sharedFilters]);
-  const fieldFacetContextEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
-    ...sharedFilters,
-    fieldFilters: facetFieldKey === "all"
-      ? fieldFilters
-      : fieldFilters.filter((filter) => filter.key !== facetFieldKey),
-  }, analysisDrillDownFilters), [analysisDrillDownFilters, events, facetFieldKey, fieldFilters, sharedFilters]);
   const filteredEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
     ...sharedFilters,
     fieldFilters,
   }, analysisDrillDownFilters), [analysisDrillDownFilters, events, fieldFilters, sharedFilters]);
+  const scopedEventMatcher = useMemo(() => createLogEventMatcher({
+    ...sharedFilters,
+    fieldFilters: [],
+  }), [sharedFilters]);
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const topFilteredTraceGroups = useMemo(() => buildTopTraceGroupPreviews(filteredEvents, 4), [filteredEvents]);
@@ -213,7 +208,15 @@ function App() {
     [events],
   );
   const sessionFieldKeyOptions = useMemo(() => buildFieldKeyCounts(events), [events]);
-  const fieldKeyOptions = useMemo(() => buildFieldKeyCounts(scopedEvents), [scopedEvents]);
+  const fieldFacetSnapshot = useMemo(() => buildFieldFacetSnapshot(events, {
+    fieldFilters,
+    matchesBaseEvent: (event) => (
+      scopedEventMatcher(event)
+      && eventMatchesAnalysisDrillDownFilters(event, analysisDrillDownFilters)
+    ),
+    selectedFieldKey: facetFieldKey,
+  }), [analysisDrillDownFilters, events, facetFieldKey, fieldFilters, scopedEventMatcher]);
+  const fieldKeyOptions = fieldFacetSnapshot.fieldKeyCounts;
   const facetFieldKeyOptions = useMemo(() => {
     const counter = new Map(fieldKeyOptions.map(({ label, count }) => [label, count]));
 
@@ -225,10 +228,7 @@ function App() {
       .map(([label, count]) => ({ label, count }))
       .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
   }, [fieldFilters, fieldKeyOptions]);
-  const fieldValueOptions = useMemo(
-    () => buildFieldValueCounts(fieldFacetContextEvents, facetFieldKey),
-    [facetFieldKey, fieldFacetContextEvents],
-  );
+  const fieldValueOptions = fieldFacetSnapshot.fieldValueCounts;
   const fieldFacetKeys = useMemo(() => facetFieldKeyOptions.slice(0, 8), [facetFieldKeyOptions]);
   const fieldLensKeys = useMemo(() => fieldKeyOptions.slice(0, 12), [fieldKeyOptions]);
   const eventColumnFieldOptions = useMemo(() => sessionFieldKeyOptions.slice(0, 10), [sessionFieldKeyOptions]);
