@@ -168,7 +168,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 후속 유지보수 작업은 [`docs/todo-maintenance-gc.md`](./todo-maintenance-gc.md)를 기준으로 진행합니다.
+완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 후속 제품 확장은 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)부터 진행합니다.
 
 ### 완료. Custom Alias Override UI
 
@@ -228,6 +228,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 디자인 시스템 컴포넌트 사용 범위 재점검 완료: [`docs/todo-design-system-gc.md`](./todo-design-system-gc.md)
 - raw `<button>` explicit type 규칙을 `pnpm check:agent-gc`에 추가 완료
 - `pnpm check:bundle` 기반 JavaScript chunk size budget 확인 완료
+
+### 3. Correlation 규칙 확장
+
+작업 목록은 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 둔다.
+
+- HTTP request ID와 B3 trace/span header alias 추가 완료
+- nested JSON과 key=value 입력 회귀 테스트 추가 완료
 
 ## 지금 당장 하지 않아도 되는 것
 
