@@ -8,7 +8,7 @@
 
 - [ ] 현재 대용량 fixture와 UI windowing smoke가 잡는 범위와 빠지는 범위를 정리한다.
 - [ ] large fixture 기준으로 파생 계산별 입력 크기와 재계산 경로를 문서화한다.
-- [ ] 이벤트 목록, field facet, analysis chart, trace/derived flow, source diff 계산의 중복 배열 생성을 줄인다.
+- [x] 이벤트 목록, field facet, analysis chart, trace/derived flow, source diff 계산의 중복 배열 생성을 줄인다.
 - [x] 선택 이벤트가 없거나 상세 패널에 필요하지 않은 trace/span/source diff 계산을 지연한다.
 - [ ] sidebar top trace/derived flow 계산을 현재 필터 범위와 표시 개수에 맞춰 bounded path로 분리한다.
 - [ ] field key/value facet 계산을 선택된 facet key 중심으로 좁히거나 cache한다.
@@ -44,3 +44,4 @@
 ## 진행 메모
 
 - 2026-04-26: 이벤트 탭이 활성화된 경우에만 선택 이벤트 상세 계산을 수행하고, Trace Diff는 다중 source 세션에서만 계산하도록 좁혔다. Focused 검증은 `pnpm test -- src/test/runtime-harness.test.tsx src/test/app.smoke.test.tsx`로 통과했다.
+- 2026-04-26: `filterLogEvents`와 analysis drill-down을 한 predicate 경로로 결합해 최종 이벤트 필터 결과를 만들기 전 중간 배열 생성을 줄였다. Focused 검증은 `pnpm test -- src/lib/logs/parser.test.ts src/test/app.smoke.test.tsx`로 통과했다.
