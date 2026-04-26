@@ -11,7 +11,7 @@
 - [x] analysis drill-down filter 추가/삭제/초기화 상태를 `useLogExplorerFilters()`로 이동한다.
 - [x] `App.tsx`에는 탭 전환이 필요한 field filter 래퍼만 남긴다.
 - [x] event stream column, field visibility 같은 view configuration 상태를 `useLogExplorerViewConfig()`로 분리한다.
-- [ ] `App.tsx`의 파생 계산 묶음을 view model hook으로 분리할지 재검토한다.
+- [x] `App.tsx`의 파생 계산 묶음을 `useLogExplorerViewModel()`으로 분리한다.
 
 ## 수용 기준
 
@@ -38,3 +38,4 @@
 
 - 2026-04-26: 필터와 analysis drill-down 상태를 `useLogExplorerFilters()`로 분리했다. 탭 전환과 연결된 field filter 적용만 App에서 감싸도록 유지했다.
 - 2026-04-26: event stream column과 field visibility 상태를 `useLogExplorerViewConfig()`로 분리했다. App에는 세션/탭/선택 이벤트 조립과 파생 계산이 남아 있다.
+- 2026-04-26: `useLogExplorerViewModel()`을 추가해 App에 남은 파생 계산을 옮겼다. App에는 세션/탭/선택 이벤트 조립과 사용자 동작 wiring만 남긴다.
