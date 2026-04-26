@@ -215,7 +215,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - timestamp 변형과 parse failure 분류 parser test 보강 완료
 - trace/span 집계 edge case test 보강 완료
 - 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장 완료
-- 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강
+- 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강 완료
 
 ## 지금 당장 하지 않아도 되는 것
 

@@ -82,6 +82,7 @@ check("UI smoke tests cover agent-legible runtime workflows", () => {
   assert(appSmoke.includes("필터 결과 2개 이벤트"), "App smoke tests must assert filtered event counts.");
   assert(appSmoke.includes("연관 분석"), "App smoke tests must cover analysis tab navigation.");
   assert(appSmoke.includes("allow_file_access"), "App smoke tests must cover scoped Tauri file access.");
+  assert(appSmoke.includes("selected-file search, level, source, and field facet filters"), "App smoke tests must cover selected-file filter combinations.");
 });
 
 check("parser tests cover large-log analysis behavior", () => {
@@ -106,11 +107,19 @@ check("runtime smoke covers selected-file and large UI contracts", () => {
 
 check("status and next phase docs keep the autonomous backlog aligned", () => {
   const agents = readText("AGENTS.md");
+  const logFormatSupport = readText("docs/log-format-support.md");
   const status = readText("docs/status.md");
   const nextPhase = readText("docs/next-phase-spec.md");
+  const roadmap = readText("docs/roadmap.md");
+  const reliabilityTodo = readText("docs/todo-reliability-hardening.md");
 
   assert(agents.includes("docs/next-phase-spec.md"), "AGENTS.md must route broad work to docs/next-phase-spec.md.");
   assert(status.includes("Custom Alias Override UI"), "docs/status.md must name the next autonomous implementation target.");
+  assert(status.includes("docs/todo-reliability-hardening.md"), "docs/status.md must link the active reliability todo.");
+  assert(roadmap.includes("docs/todo-reliability-hardening.md"), "docs/roadmap.md must link the active reliability todo.");
+  assert(nextPhase.includes("docs/todo-reliability-hardening.md"), "docs/next-phase-spec.md must route follow-up reliability work to the reliability todo.");
+  assert(reliabilityTodo.includes("docs/log-format-support.md"), "reliability todo must track timestamp support documentation.");
+  assert(logFormatSupport.includes("timestamp_missing") && logFormatSupport.includes("timestamp_parse_failed"), "timestamp support docs must describe diagnostic split.");
   assert(nextPhase.includes("## 구현 순서"), "docs/next-phase-spec.md must preserve ordered implementation guidance.");
   assert(nextPhase.includes("1. custom alias override UI"), "docs/next-phase-spec.md must keep custom alias override first.");
   assert(nextPhase.includes("수용 기준"), "docs/next-phase-spec.md must provide acceptance criteria for autonomous implementation.");
@@ -137,11 +146,13 @@ check("repository docs reflect the current streaming and windowing behavior", ()
   const status = readText("docs/status.md");
   const readme = readText("README.md");
 
+  assert(repositoryOverview.includes("docs/log-format-support.md"), "docs/repository-overview.md must link log format support docs.");
   assert(repositoryOverview.includes("라인 스트리밍"), "docs/repository-overview.md must describe line streaming file loading.");
   assert(repositoryOverview.includes("windowed"), "docs/repository-overview.md must describe windowed event rendering.");
   assert(status.includes("라인 스트리밍"), "docs/status.md must describe line streaming file loading.");
   assert(status.includes("issue-only"), "docs/status.md must describe issue filter smoke coverage.");
   assert(status.includes("대용량 분석 fixture"), "docs/status.md must describe large analysis fixture coverage.");
+  assert(readme.includes("docs/log-format-support.md"), "README.md must link log format support docs.");
   assert(readme.includes("windowed"), "README.md must describe windowed event rendering.");
   assert(readme.includes("agent-legible"), "README.md must describe agent-legible smoke coverage.");
 });
