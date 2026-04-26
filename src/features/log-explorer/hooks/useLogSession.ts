@@ -1,4 +1,5 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, readTextFileLines } from "@tauri-apps/plugin-fs";
 import { getFileName } from "@/features/log-explorer/presentation";
@@ -90,6 +91,10 @@ function summarizeSessionSources(paths: string[]) {
     path: null,
     title: `${paths.length}개 파일 세션`,
   };
+}
+
+async function allowSelectedFileAccess(path: string) {
+  await invoke("allow_file_access", { path });
 }
 
 export function useLogSession() {
@@ -196,6 +201,8 @@ export function useLogSession() {
           eventCount: 0,
           diagnosticCount: 0,
         });
+
+        await allowSelectedFileAccess(path);
 
         try {
           const lineStream = await readTextFileLines(path);

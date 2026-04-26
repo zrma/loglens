@@ -43,6 +43,7 @@ pnpm check
 집중 검증:
 
 ```bash
+pnpm check:harness
 pnpm lint:js
 pnpm lint:rust
 pnpm test
