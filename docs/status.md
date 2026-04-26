@@ -60,11 +60,15 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 분석 UI
   - 시간대 분포 차트
   - level/service/request/Parser Diagnostics 분포
+  - analysis drill-down filter chip
+  - 차트/분포 클릭 기반 이벤트 범위 좁히기
+  - 분석 조건 개별 해제와 분석 조건만 해제
 - 샘플 trace 세션 fixture
 - 테스트
   - parser/analysis smoke test
   - jsdom 기반 App smoke test
   - sample session 기반 issue-only 필터와 분석 탭 전환 smoke test
+  - analysis drill-down 적용/해제 smoke test
   - Tauri 파일 선택/라인 스트리밍 경로 mock smoke test
   - selected-file runtime smoke
     - Tauri `allow_file_access` 호출 후 line-stream 읽기
@@ -108,6 +112,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 세션 요약, 분석 탭, 이벤트 상세에서 Parser Diagnostics kind/severity 확인하기
 - 문제 이벤트만 골라 보기
 - 특정 source/service/request/trace 기준으로 좁혀 보기
+- 분석 탭의 시간대/level/service/request/diagnostic 분포를 클릭해 이벤트 범위 좁히기
+- 분석 탭에서 만든 drill-down 조건을 chip으로 확인하고 개별 또는 전체 해제하기
 - 특정 structured field key/value facet으로 누적 조건 걸기
 - 특정 structured field 값을 제외 조건으로 빼고 보기
 - multiline 오류를 하나의 이벤트로 읽기
@@ -161,19 +167,19 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - timestamp/structured fallback 설명 강화
 - alias override와 연결되는 진단 힌트 추가
 
-### 1. Analysis Drill-down 연결
+### 완료. Analysis Drill-down 연결
 
 - 차트 클릭으로 필터 반영
 - 카드/분포와 facet 상태 연결
 - 이벤트 탭과 분석 탭 간 drill-down 상태 유지
 
-### 2. Cross-file Trace Diff
+### 1. Cross-file Trace Diff
 
 - trace 기준 source별 비교 카드
 - trace가 없을 때 derived flow fallback
 - source coverage를 diff 수준으로 확장
 
-### 3. 대용량 세션 메모리 최적화
+### 2. 대용량 세션 메모리 최적화
 
 - large fixture 도입
 - 파생 계산 캐시/지연 계산
