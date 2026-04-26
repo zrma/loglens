@@ -76,9 +76,13 @@ describe("parseLogContent", () => {
     });
     expect(cacheMiss?.rawLine).toContain("Caused by: RedisTimeoutError");
     expect(cacheMiss?.message).toContain("(+3 lines)");
-    expect(cacheMiss?.parseIssues.some((issue) => issue.kind === "multiline")).toBe(true);
+    expect(cacheMiss?.parseIssues.some((issue) => issue.kind === "multiline_merged")).toBe(true);
     expect(session.diagnostics.some((diagnostic) =>
-      diagnostic.kind === "multiline" && diagnostic.lineNumber === 9 && diagnostic.endLineNumber === 12
+      diagnostic.kind === "multiline_merged"
+      && diagnostic.lineNumber === 9
+      && diagnostic.endLineNumber === 12
+      && diagnostic.severity === "info"
+      && diagnostic.eventId === cacheMiss?.id
     )).toBe(true);
   });
 
@@ -392,6 +396,64 @@ run batch service....
       timestampText: "2026-03-08T12:34:56.000Z",
       traceId: "trace-custom-1",
     });
+    expect(session.events[0]?.parseIssues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "alias_override_applied",
+        metadata: expect.objectContaining({
+          alias: "when",
+          canonicalField: "timestamp",
+        }),
+        severity: "info",
+      }),
+    ]));
+  });
+
+  it("separates missing and unparseable timestamp diagnostics", () => {
+    const session = parseLogContent(`
+{"level":"info","service":"api","message":"missing timestamp","traceId":"trace-ts-1"}
+{"timestamp":"not-a-date","level":"info","service":"api","message":"bad timestamp","traceId":"trace-ts-1"}
+    `.trim());
+
+    expect(session.events[0]?.parseIssues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "timestamp_missing",
+        severity: "warning",
+      }),
+    ]));
+    expect(session.events[1]?.parseIssues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "timestamp_parse_failed",
+        metadata: expect.objectContaining({
+          key: "timestamp",
+          value: "not-a-date",
+        }),
+        severity: "warning",
+      }),
+    ]));
+    expect(session.events[1]?.parseIssues.some((issue) => issue.kind === "timestamp_missing")).toBe(false);
+  });
+
+  it("keeps json fallback diagnostics on the recovered plain event", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:34:56.000Z","level":"info","message":"broken json"
+    `.trim());
+
+    expect(session.events).toHaveLength(1);
+    expect(session.events[0]?.format).toBe("plain");
+    expect(session.events[0]?.parseIssues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "json_parse_failed",
+        severity: "warning",
+      }),
+      expect.objectContaining({
+        kind: "structured_parse_fallback",
+        severity: "info",
+      }),
+    ]));
+    expect(session.diagnostics.map((diagnostic) => diagnostic.kind)).toEqual(expect.arrayContaining([
+      "json_parse_failed",
+      "structured_parse_fallback",
+    ]));
   });
 
   it("gives session alias overrides priority over the selected preset", () => {
@@ -471,7 +533,7 @@ main.chargeCard()
     });
     expect(session.events[0]?.rawLine).toContain("goroutine 19 [running]:");
     expect(session.events[0]?.rawLine).toContain("/app/cmd/server/main.go:42 +0x1af");
-    expect(session.events[0]?.parseIssues.some((issue) => issue.kind === "multiline")).toBe(true);
+    expect(session.events[0]?.parseIssues.some((issue) => issue.kind === "multiline_merged")).toBe(true);
   });
 
   it("scopes nearby related events to the same source in merged sessions", () => {

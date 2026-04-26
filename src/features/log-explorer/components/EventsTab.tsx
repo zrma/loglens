@@ -450,9 +450,9 @@ export function EventsTab({
                 <div className="space-y-3">
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground text-amber-700">분석 특이사항</p>
                   <div className="space-y-2">
-                    {selectedEvent.parseIssues.map((issue) => (
+                    {selectedEvent.parseIssues.map((issue, index) => (
                       <div
-                        key={`${selectedEvent.id}-${issue.kind}`}
+                        key={`${selectedEvent.id}-${issue.kind}-${index}`}
                         className="rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-2 text-[11px] leading-relaxed text-amber-800"
                       >
                         {issue.message}

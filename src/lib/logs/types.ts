@@ -15,12 +15,26 @@ export const PARSED_LOG_FORMAT_VALUES = ["json", "keyvalue", "plain"] as const;
 export type ParsedLogFormat = (typeof PARSED_LOG_FORMAT_VALUES)[number];
 
 export const PARSE_ISSUE_KIND_VALUES = [
-  "multiline",
-  "invalid_json",
+  "alias_override_applied",
+  "correlation_field_missing",
+  "field_collision",
+  "json_parse_failed",
+  "key_value_partial_parse",
+  "multiline_merged",
+  "structured_parse_fallback",
   "timestamp_missing",
+  "timestamp_parse_failed",
 ] as const;
 
 export type ParseIssueKind = (typeof PARSE_ISSUE_KIND_VALUES)[number];
+
+export const PARSER_DIAGNOSTIC_SEVERITY_VALUES = [
+  "info",
+  "warning",
+  "error",
+] as const;
+
+export type ParserDiagnosticSeverity = (typeof PARSER_DIAGNOSTIC_SEVERITY_VALUES)[number];
 
 export type LogFieldMap = Record<string, string>;
 
@@ -40,14 +54,20 @@ export function isParseIssueKind(value: string): value is ParseIssueKind {
 export type ParseIssue = {
   kind: ParseIssueKind;
   message: string;
+  metadata?: Record<string, string | number | boolean>;
+  severity: ParserDiagnosticSeverity;
 };
 
 export type ParseDiagnostic = {
   id: string;
   kind: ParseIssueKind;
+  severity: ParserDiagnosticSeverity;
+  sourceId?: string;
+  eventId?: string;
   lineNumber: number;
   endLineNumber: number;
   message: string;
+  metadata?: Record<string, string | number | boolean>;
 };
 
 export type LogSource = {

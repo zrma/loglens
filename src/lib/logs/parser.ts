@@ -8,6 +8,7 @@ import type {
   ParsedLogSession,
 } from "@/lib/logs/types";
 import {
+  CANONICAL_LOG_ALIAS_FIELDS,
   buildLogFieldAliases,
   detectAutoAliasOverrides,
   extendLogFieldAliases,
@@ -33,7 +34,12 @@ type ParseSourceMeta = LogSourceRef;
 
 type FieldLookup = {
   fields: LogFieldMap;
-  normalizedValues: Map<string, string>;
+  normalizedValues: Map<string, { key: string; value: string }>;
+};
+
+type FieldMatch = {
+  key: string;
+  value: string;
 };
 
 type ParseLogOptions = {
@@ -218,14 +224,14 @@ function flattenObject(value: unknown, prefix = "", acc: LogFieldMap = {}) {
 }
 
 function createFieldLookup(fields: LogFieldMap): FieldLookup {
-  const normalizedValues = new Map<string, string>();
+  const normalizedValues = new Map<string, FieldMatch>();
 
   for (const [key, value] of Object.entries(fields)) {
     let candidateKey = key.toLowerCase();
 
     while (candidateKey) {
       if (!normalizedValues.has(candidateKey)) {
-        normalizedValues.set(candidateKey, value);
+        normalizedValues.set(candidateKey, { key, value });
       }
 
       const nextDotIndex = candidateKey.indexOf(".");
@@ -243,14 +249,17 @@ function createFieldLookup(fields: LogFieldMap): FieldLookup {
   };
 }
 
-function pickField(fieldLookup: FieldLookup, candidates: string[]) {
+function pickFieldMatch(fieldLookup: FieldLookup, candidates: string[]): FieldMatch | null {
   const { fields, normalizedValues } = fieldLookup;
 
   for (const candidate of candidates) {
     const directValue = fields[candidate];
 
     if (directValue) {
-      return directValue;
+      return {
+        key: candidate,
+        value: directValue,
+      };
     }
   }
 
@@ -263,6 +272,35 @@ function pickField(fieldLookup: FieldLookup, candidates: string[]) {
   }
 
   return null;
+}
+
+function pickField(fieldLookup: FieldLookup, candidates: string[]) {
+  return pickFieldMatch(fieldLookup, candidates)?.value ?? null;
+}
+
+function collectFieldMatches(fieldLookup: FieldLookup, candidates: string[]) {
+  const matches: FieldMatch[] = [];
+  const seen = new Set<string>();
+
+  for (const candidate of candidates) {
+    const directValue = fieldLookup.fields[candidate];
+
+    if (directValue && !seen.has(candidate)) {
+      matches.push({ key: candidate, value: directValue });
+      seen.add(candidate);
+    }
+  }
+
+  for (const candidate of candidates) {
+    const match = fieldLookup.normalizedValues.get(candidate.toLowerCase());
+
+    if (match && !seen.has(match.key)) {
+      matches.push(match);
+      seen.add(match.key);
+    }
+  }
+
+  return matches;
 }
 
 function parseKeyValueFields(rawLine: string) {
@@ -332,8 +370,36 @@ function deriveMessage(
   return formatMessageSummary(normalized, continuationLineCount);
 }
 
-function createIssue(kind: ParseIssue["kind"], message: string): ParseIssue {
-  return { kind, message };
+function getDefaultSeverity(kind: ParseIssue["kind"]): ParseIssue["severity"] {
+  switch (kind) {
+    case "alias_override_applied":
+    case "correlation_field_missing":
+    case "multiline_merged":
+    case "structured_parse_fallback":
+      return "info";
+    case "field_collision":
+    case "json_parse_failed":
+    case "key_value_partial_parse":
+    case "timestamp_missing":
+    case "timestamp_parse_failed":
+      return "warning";
+    default:
+      return "warning";
+  }
+}
+
+function createIssue(
+  kind: ParseIssue["kind"],
+  message: string,
+  metadata?: ParseIssue["metadata"],
+  severity: ParseIssue["severity"] = getDefaultSeverity(kind),
+): ParseIssue {
+  return {
+    kind,
+    message,
+    metadata,
+    severity,
+  };
 }
 
 function dedupeIssues(issues: ParseIssue[]) {
@@ -358,12 +424,14 @@ function createEvent(
   aliases: LogFieldAliases,
   baseIssues: ParseIssue[] = [],
   source: ParseSourceMeta = { id: "session", label: "session", path: null },
+  aliasOverrides: LogFieldAliasOverrides = {},
 ): LogEvent {
   const headerLine = record.lines[0] ?? record.text;
   const issues = [...baseIssues];
   const continuationLineCount = Math.max(record.lines.length - 1, 0);
   const fieldLookup = createFieldLookup(fields);
-  const timestampText = pickField(fieldLookup, aliases.timestamp) ?? headerLine.match(TIMESTAMP_PATTERN)?.[0] ?? null;
+  const timestampFieldMatch = pickFieldMatch(fieldLookup, aliases.timestamp);
+  const timestampText = timestampFieldMatch?.value ?? headerLine.match(TIMESTAMP_PATTERN)?.[0] ?? null;
   const timestampMs = parseTimestamp(timestampText);
   const levelText = pickField(fieldLookup, aliases.level) ?? headerLine.match(LEVEL_PATTERN)?.[0] ?? null;
   const service = pickField(fieldLookup, aliases.service) ?? deriveServiceFromText(headerLine);
@@ -376,11 +444,61 @@ function createEvent(
   const requestId = pickField(fieldLookup, aliases.requestId);
 
   if (record.lines.length > 1) {
-    issues.push(createIssue("multiline", `${record.lines.length}줄을 하나의 이벤트로 병합했습니다.`));
+    issues.push(createIssue("multiline_merged", `${record.lines.length}줄을 하나의 이벤트로 병합했습니다.`, {
+      lineCount: record.lines.length,
+    }));
   }
 
   if (!timestampText) {
-    issues.push(createIssue("timestamp_missing", "timestamp를 인식하지 못해 시간 기반 정렬과 duration 계산이 제한됩니다."));
+    issues.push(createIssue("timestamp_missing", "timestamp 후보를 찾지 못해 시간 기반 정렬과 duration 계산이 제한됩니다.", {
+      checkedKeys: aliases.timestamp.slice(0, 8).join(", "),
+      hint: "필드 매핑에서 timestamp alias를 추가하면 해결될 수 있습니다.",
+    }));
+  } else if (timestampMs === null) {
+    issues.push(createIssue("timestamp_parse_failed", "timestamp 후보를 찾았지만 지원하는 시간 포맷으로 파싱하지 못했습니다.", {
+      key: timestampFieldMatch?.key ?? "raw",
+      value: timestampText,
+    }));
+  }
+
+  for (const field of CANONICAL_LOG_ALIAS_FIELDS) {
+    const overrideAliases = aliasOverrides[field];
+
+    if (!overrideAliases || overrideAliases.length === 0) {
+      continue;
+    }
+
+    const match = pickFieldMatch(fieldLookup, overrideAliases);
+
+    if (match) {
+      issues.push(createIssue("alias_override_applied", `${field} 필드에 세션 alias override '${match.key}'를 적용했습니다.`, {
+        alias: match.key,
+        canonicalField: field,
+      }));
+    }
+  }
+
+  for (const field of CANONICAL_LOG_ALIAS_FIELDS) {
+    const matches = collectFieldMatches(fieldLookup, aliases[field]);
+    const distinctValues = new Set(matches.map((match) => match.value));
+
+    if (distinctValues.size > 1) {
+      issues.push(createIssue("field_collision", `${field} 후보 필드가 여러 값으로 충돌해 첫 번째 값을 사용했습니다.`, {
+        canonicalField: field,
+        keys: matches.map((match) => match.key).join(", "),
+      }));
+    }
+  }
+
+  if (!traceId && !spanId && !requestId) {
+    issues.push(createIssue("correlation_field_missing", "trace/span/request 필드를 찾지 못해 연관 흐름 탐색이 제한됩니다.", {
+      checkedKeys: [
+        ...aliases.traceId.slice(0, 4),
+        ...aliases.spanId.slice(0, 4),
+        ...aliases.requestId.slice(0, 4),
+      ].join(", "),
+      hint: "필드 매핑에서 traceId, spanId, requestId alias를 추가하면 해결될 수 있습니다.",
+    }));
   }
 
   return {
@@ -427,6 +545,7 @@ function parseJsonEvent(
   inheritedIssues: ParseIssue[],
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
+  aliasOverrides: LogFieldAliasOverrides,
   source?: ParseSourceMeta,
 ) {
   const firstLine = record.lines[0]?.trimStart() ?? "";
@@ -443,13 +562,28 @@ function parseJsonEvent(
     }
 
     const fields = flattenObject(parsed);
-    return createEvent(record, "json", fields, resolveEventAliases(fields, aliases, aliasPresetId), inheritedIssues, source);
+    return createEvent(
+      record,
+      "json",
+      fields,
+      resolveEventAliases(fields, aliases, aliasPresetId),
+      inheritedIssues,
+      source,
+      aliasOverrides,
+    );
   } catch {
     inheritedIssues.push(
-      createIssue("invalid_json", "JSON으로 보이는 입력을 파싱하지 못해 다른 포맷으로 fallback 했습니다."),
+      createIssue("json_parse_failed", "JSON으로 보이는 입력을 파싱하지 못했습니다.", {
+        hint: "따옴표, 쉼표, 중괄호가 유효한 JSON인지 확인하세요.",
+      }),
+      createIssue("structured_parse_fallback", "구조화 파싱 실패 후 다른 포맷으로 fallback 했습니다."),
     );
     return null;
   }
+}
+
+function hasUnclosedKeyValueQuote(rawLine: string) {
+  return /(?:^|\s)[A-Za-z0-9_.@-]+=(["'])(?:(?!\1).)*$/.test(rawLine);
 }
 
 function parseKeyValueEvent(
@@ -457,13 +591,29 @@ function parseKeyValueEvent(
   inheritedIssues: ParseIssue[],
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
+  aliasOverrides: LogFieldAliasOverrides,
   source?: ParseSourceMeta,
 ) {
   const headerLine = record.lines[0] ?? record.text;
   const fields = parseKeyValueFields(headerLine);
 
   if (Object.keys(fields).length === 0) {
+    if (headerLine.includes("=")) {
+      inheritedIssues.push(
+        createIssue("key_value_partial_parse", "key=value 형태의 입력을 완전히 구조화하지 못했습니다.", {
+          hint: "따옴표가 닫혔는지, 값 사이 공백이 있는지 확인하세요.",
+        }),
+        createIssue("structured_parse_fallback", "key=value 파싱 실패 후 plain text로 fallback 했습니다."),
+      );
+    }
+
     return null;
+  }
+
+  if (hasUnclosedKeyValueQuote(headerLine)) {
+    inheritedIssues.push(createIssue("key_value_partial_parse", "일부 key=value 필드만 파싱했습니다.", {
+      hint: "닫히지 않은 따옴표 때문에 뒤쪽 필드가 누락될 수 있습니다.",
+    }));
   }
 
   const timestampMatch = headerLine.match(TIMESTAMP_PATTERN);
@@ -479,7 +629,7 @@ function parseKeyValueEvent(
     fields.level = levelMatch[0];
   }
 
-  return createEvent(record, "keyvalue", fields, effectiveAliases, inheritedIssues, source);
+  return createEvent(record, "keyvalue", fields, effectiveAliases, inheritedIssues, source, aliasOverrides);
 }
 
 function parsePlainEvent(
@@ -487,6 +637,7 @@ function parsePlainEvent(
   inheritedIssues: ParseIssue[],
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
+  aliasOverrides: LogFieldAliasOverrides,
   source?: ParseSourceMeta,
 ) {
   const headerLine = record.lines[0] ?? record.text;
@@ -527,7 +678,15 @@ function parsePlainEvent(
     fields.service = service;
   }
 
-  return createEvent(record, "plain", fields, resolveEventAliases(fields, aliases, aliasPresetId), inheritedIssues, source);
+  return createEvent(
+    record,
+    "plain",
+    fields,
+    resolveEventAliases(fields, aliases, aliasPresetId),
+    inheritedIssues,
+    source,
+    aliasOverrides,
+  );
 }
 
 function looksLikeEventStart(line: string) {
@@ -573,15 +732,19 @@ function appendEventToSession(session: ParsedLogSession, event: LogEvent) {
   session.events.push(event);
   session.formatCounts[event.format] += 1;
 
-  for (const issue of event.parseIssues) {
+  event.parseIssues.forEach((issue, index) => {
     session.diagnostics.push({
-      id: `${event.id}-${issue.kind}`,
+      id: `${event.id}-${issue.kind}-${index}`,
+      eventId: event.id,
       kind: issue.kind,
       lineNumber: event.lineNumber,
       endLineNumber: event.endLineNumber,
+      metadata: issue.metadata,
       message: issue.message,
+      severity: issue.severity,
+      sourceId: event.sourceId,
     });
-  }
+  });
 }
 
 function createSourceEntry(source: ParseSourceMeta): LogSource {
@@ -669,11 +832,12 @@ function updateSourceCounts(session: ParsedLogSession) {
 function createSessionAccumulator(
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
+  aliasOverrides: LogFieldAliasOverrides,
   source?: ParseSourceMeta,
 ) {
   const session = createEmptySession(source ? [createSourceEntry(source)] : []);
   const accumulator = createRecordAccumulator((record) => {
-    appendEventToSession(session, parseLogRecord(record, aliases, aliasPresetId, source));
+    appendEventToSession(session, parseLogRecord(record, aliases, aliasPresetId, aliasOverrides, source));
   });
 
   return {
@@ -722,13 +886,14 @@ function parseLogRecord(
   record: RawRecord,
   aliases: LogFieldAliases,
   aliasPresetId: LogAliasPresetId,
+  aliasOverrides: LogFieldAliasOverrides,
   source?: ParseSourceMeta,
 ) {
   const inheritedIssues: ParseIssue[] = [];
 
-  return parseJsonEvent(record, inheritedIssues, aliases, aliasPresetId, source)
-    ?? parseKeyValueEvent(record, inheritedIssues, aliases, aliasPresetId, source)
-    ?? parsePlainEvent(record, inheritedIssues, aliases, aliasPresetId, source);
+  return parseJsonEvent(record, inheritedIssues, aliases, aliasPresetId, aliasOverrides, source)
+    ?? parseKeyValueEvent(record, inheritedIssues, aliases, aliasPresetId, aliasOverrides, source)
+    ?? parsePlainEvent(record, inheritedIssues, aliases, aliasPresetId, aliasOverrides, source);
 }
 
 export function parseLogLine(rawLine: string, lineNumber: number, options: ParseLogOptions = {}) {
@@ -741,13 +906,13 @@ export function parseLogLine(rawLine: string, lineNumber: number, options: Parse
     endLineNumber: lineNumber,
     lines: [normalizedLine],
     text: normalizedLine,
-  }, aliases, aliasPresetId, options.source);
+  }, aliases, aliasPresetId, options.aliasOverrides ?? {}, options.source);
 }
 
 export function parseLogContent(content: string, options: ParseLogOptions = {}): ParsedLogSession {
   const aliasPresetId = options.aliasPresetId ?? "auto";
   const aliases = buildLogFieldAliases(aliasPresetId, options.aliasOverrides);
-  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.source);
+  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.aliasOverrides ?? {}, options.source);
 
   forEachContentLine(content, sessionAccumulator.pushLine);
   return sessionAccumulator.finish();
@@ -765,7 +930,7 @@ export async function parseLogLineStream(
 ): Promise<ParsedLogSession> {
   const aliasPresetId = options.aliasPresetId ?? "auto";
   const aliases = buildLogFieldAliases(aliasPresetId, options.aliasOverrides);
-  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.source);
+  const sessionAccumulator = createSessionAccumulator(aliases, aliasPresetId, options.aliasOverrides ?? {}, options.source);
   const reportInterval = options.reportInterval ?? 1000;
   let lineCount = 0;
 

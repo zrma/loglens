@@ -38,9 +38,15 @@ const AnalysisTab = lazy(async () => {
 });
 
 const DIAGNOSTIC_LABELS = {
-  invalid_json: "JSON fallback",
-  multiline: "멀티라인 병합",
+  alias_override_applied: "Alias override",
+  correlation_field_missing: "Correlation 누락",
+  field_collision: "필드 충돌",
+  json_parse_failed: "JSON 파싱 실패",
+  key_value_partial_parse: "Key/value 일부 파싱",
+  multiline_merged: "멀티라인 병합",
+  structured_parse_fallback: "구조화 fallback",
   timestamp_missing: "타임스탬프 누락",
+  timestamp_parse_failed: "타임스탬프 파싱 실패",
 } as const;
 
 function pickPreferredEventId(events: LogEvent[]) {
