@@ -137,6 +137,32 @@ describe("parseLogContent", () => {
     ]));
   });
 
+  it("orders trace events by timestamp and keeps missing-parent spans visible", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T10:00:03.000Z","level":"error","service":"worker","traceId":"trace-edge-1","spanId":"span-late","parentSpanId":"span-root","requestId":"req-edge-1","message":"late error"}
+{"timestamp":"2026-03-08T10:00:01.000Z","level":"info","service":"api","traceId":"trace-edge-1","spanId":"span-root","requestId":"req-edge-1","message":"root start"}
+{"timestamp":"2026-03-08T10:00:02.000Z","level":"info","service":"worker","traceId":"trace-edge-1","spanId":"span-orphan","parentSpanId":"span-missing","requestId":"req-edge-1","message":"missing parent child"}
+    `.trim());
+    const [traceGroup] = buildTraceGroups(session.events);
+    const spanForest = buildSpanForest(session.events, "trace-edge-1");
+
+    expect(traceGroup).toMatchObject({
+      traceId: "trace-edge-1",
+      eventCount: 3,
+      issueCount: 1,
+      requestIds: ["req-edge-1"],
+      spanCount: 3,
+    });
+    expect(traceGroup?.eventIds).toEqual([
+      session.events[1]?.id,
+      session.events[2]?.id,
+      session.events[0]?.id,
+    ]);
+    expect(spanForest?.roots.map((node) => node.spanId)).toEqual(["span-root", "span-orphan"]);
+    expect(spanForest?.roots[0]?.children.map((node) => node.spanId)).toEqual(["span-late"]);
+    expect(spanForest?.maxDepth).toBe(1);
+  });
+
   it("parses large logs from an async line stream and reports progress", async () => {
     const progressMarks: number[] = [];
     const session = await parseLogLineStream(generateLargeLogLines(2400), {
