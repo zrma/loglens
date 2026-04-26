@@ -621,6 +621,36 @@ run batch service....
     expect(session.events[1]?.parseIssues.some((issue) => issue.kind === "timestamp_missing")).toBe(false);
   });
 
+  it("accepts documented timestamp formats without diagnostics", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:34:56.000Z","level":"info","service":"api","message":"iso zulu","traceId":"trace-time-1"}
+{"timestamp":"2026-03-08T12:34:56+09:00","level":"info","service":"api","message":"iso offset","traceId":"trace-time-1"}
+{"timestamp":"2026/03/08 12:34:56","level":"info","service":"api","message":"slash local","traceId":"trace-time-1"}
+timestamp=1741437296 level=info service=api trace_id=trace-time-1 message="epoch seconds"
+timestamp=1741437296000 level=info service=api trace_id=trace-time-1 message="epoch millis"
+timestamp=1741437296000123 level=info service=api trace_id=trace-time-1 message="epoch micros"
+2026-03-08 12:34:56 INFO api trace_id=trace-time-1 message="plain prefix"
+    `.trim());
+
+    expect(session.events).toHaveLength(7);
+    expect(session.events.map((event) => event.timestampMs)).toEqual([
+      Date.UTC(2026, 2, 8, 12, 34, 56),
+      Date.UTC(2026, 2, 8, 3, 34, 56),
+      expect.any(Number),
+      1741437296000,
+      1741437296000,
+      1741437296000,
+      expect.any(Number),
+    ]);
+    expect(session.events.every((event) => event.timestampMs !== null)).toBe(true);
+    expect(session.events.every((event) => (
+      !event.parseIssues.some((issue) => (
+        issue.kind === "timestamp_missing"
+        || issue.kind === "timestamp_parse_failed"
+      ))
+    ))).toBe(true);
+  });
+
   it("keeps json fallback diagnostics on the recovered plain event", () => {
     const session = parseLogContent(`
 {"timestamp":"2026-03-08T12:34:56.000Z","level":"info","message":"broken json"

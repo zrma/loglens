@@ -83,6 +83,7 @@
 - [`src/lib/logs`](../src/lib/logs): 로그 도메인 타입, 파서, 분석 로직, 샘플 fixture, 테스트
 - [`src-tauri`](../src-tauri): Tauri 설정과 Rust 엔트리포인트
 - [`public`](../public): 정적 에셋
+- [`docs/log-format-support.md`](./log-format-support.md): timestamp 지원 범위와 Parser Diagnostics 규칙
 
 ## 현재 한계
 
