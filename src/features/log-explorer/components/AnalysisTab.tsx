@@ -1,9 +1,19 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type AnalysisDrillDownFilter,
+  describeAnalysisDrillDownFilter,
+  getAnalysisDrillDownId,
+} from "@/features/log-explorer/analysis-drill-down";
 import { DistributionRow, formatTraceLabel } from "@/features/log-explorer/presentation";
 import { formatDuration } from "@/lib/logs/analysis";
 import type { ChartPoint, FacetCount } from "@/lib/logs/analysis";
 import type { TraceGroup } from "@/lib/logs/types";
+
+type AnalysisFacetCount = FacetCount & {
+  value?: string;
+};
 
 type AnalysisTabProps = {
   hourlyChart: {
@@ -13,26 +23,90 @@ type AnalysisTabProps = {
   levelCounts: FacetCount[];
   serviceCounts: FacetCount[];
   requestCounts: FacetCount[];
-  diagnosticCounts: FacetCount[];
+  diagnosticCounts: AnalysisFacetCount[];
   filteredTraceGroups: TraceGroup[];
+  activeDrillDownFilters: AnalysisDrillDownFilter[];
+  filteredEventCount: number;
+  onApplyDrillDownFilter: (filter: AnalysisDrillDownFilter) => void;
+  onClearDrillDownFilters: () => void;
+  onRemoveDrillDownFilter: (filter: AnalysisDrillDownFilter) => void;
+  onResetAllFilters: () => void;
 };
 
+function hasActiveDrillDownFilter(
+  activeDrillDownFilters: AnalysisDrillDownFilter[],
+  filter: AnalysisDrillDownFilter,
+) {
+  const filterId = getAnalysisDrillDownId(filter);
+  return activeDrillDownFilters.some((activeFilter) => getAnalysisDrillDownId(activeFilter) === filterId);
+}
+
 export function AnalysisTab({
+  activeDrillDownFilters,
   hourlyChart,
   levelCounts,
   serviceCounts,
   requestCounts,
   diagnosticCounts,
   filteredTraceGroups,
+  filteredEventCount,
+  onApplyDrillDownFilter,
+  onClearDrillDownFilters,
+  onRemoveDrillDownFilter,
+  onResetAllFilters,
 }: AnalysisTabProps) {
   return (
     <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.1fr)_340px]">
       <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="border-b border-border pb-4">
-          <CardTitle className="text-2xl tracking-[-0.04em]">시간대별 분포</CardTitle>
-          <CardDescription className="pt-2 leading-6">
-            {hourlyChart.parsedCount.toLocaleString()}개 이벤트 기준
-          </CardDescription>
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <CardTitle className="text-2xl tracking-[-0.04em]">시간대별 분포</CardTitle>
+              <CardDescription className="pt-2 leading-6">
+                {hourlyChart.parsedCount.toLocaleString()}개 이벤트 기준 · 현재 범위 {filteredEventCount.toLocaleString()}개
+              </CardDescription>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                disabled={activeDrillDownFilters.length === 0}
+                onClick={onClearDrillDownFilters}
+              >
+                분석 조건만 해제
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={onResetAllFilters}
+              >
+                모든 조건 초기화
+              </Button>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-border bg-muted p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">현재 분석 범위</span>
+              {activeDrillDownFilters.length > 0 ? activeDrillDownFilters.map((filter) => (
+                <button
+                  key={getAnalysisDrillDownId(filter)}
+                  type="button"
+                  onClick={() => onRemoveDrillDownFilter(filter)}
+                  className="max-w-full truncate rounded-full border border-primary bg-accent px-3 py-1 text-xs font-medium text-primary transition hover:bg-background"
+                >
+                  {describeAnalysisDrillDownFilter(filter)}
+                </button>
+              )) : (
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+                  전체 분석 범위
+                </span>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           <div className="h-[430px] rounded-[26px] border border-border bg-[linear-gradient(180deg,var(--card),var(--muted))] p-4">
@@ -40,6 +114,13 @@ export function AnalysisTab({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={hourlyChart.data}
+                  onClick={(state) => {
+                    const activeLabel = typeof state?.activeLabel === "string" ? state.activeLabel : null;
+
+                    if (activeLabel) {
+                      onApplyDrillDownFilter({ kind: "hourBucket", value: activeLabel });
+                    }
+                  }}
                   margin={{ top: 18, right: 18, left: 0, bottom: 8 }}
                 >
                   <CartesianGrid stroke="var(--border)" strokeOpacity={0.5} vertical={false} />
@@ -106,9 +187,12 @@ export function AnalysisTab({
             {levelCounts.length > 0 ? levelCounts.map(({ label, count }) => (
               <DistributionRow
                 key={label}
+                actionLabel={`${label} level 분석 범위 적용`}
+                active={hasActiveDrillDownFilter(activeDrillDownFilters, { kind: "level", value: label })}
                 label={label.toUpperCase()}
                 count={count}
                 maxCount={levelCounts[0]?.count ?? count}
+                onClick={() => onApplyDrillDownFilter({ kind: "level", value: label })}
               />
             )) : (
               <p className="text-sm text-muted-foreground">레벨 정보가 있는 이벤트가 없습니다.</p>
@@ -127,9 +211,12 @@ export function AnalysisTab({
             {serviceCounts.slice(0, 5).map(({ label, count }) => (
               <DistributionRow
                 key={label}
+                actionLabel={`${label} service 분석 범위 적용`}
+                active={hasActiveDrillDownFilter(activeDrillDownFilters, { kind: "service", value: label })}
                 label={label}
                 count={count}
                 maxCount={serviceCounts[0]?.count ?? count}
+                onClick={() => onApplyDrillDownFilter({ kind: "service", value: label })}
               />
             ))}
           </CardContent>
@@ -146,9 +233,12 @@ export function AnalysisTab({
             {requestCounts.slice(0, 4).map(({ label, count }) => (
               <DistributionRow
                 key={label}
+                actionLabel={`${label} request 분석 범위 적용`}
+                active={hasActiveDrillDownFilter(activeDrillDownFilters, { kind: "request", value: label })}
                 label={label}
                 count={count}
                 maxCount={requestCounts[0]?.count ?? count}
+                onClick={() => onApplyDrillDownFilter({ kind: "request", value: label })}
               />
             ))}
             {requestCounts.length === 0 && (
@@ -165,12 +255,15 @@ export function AnalysisTab({
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
-            {diagnosticCounts.slice(0, 4).map(({ label, count }) => (
+            {diagnosticCounts.slice(0, 4).map(({ label, count, value }) => (
               <DistributionRow
                 key={label}
+                actionLabel={`${label} diagnostic 분석 범위 적용`}
+                active={hasActiveDrillDownFilter(activeDrillDownFilters, { kind: "diagnostic", value: value ?? label })}
                 label={label}
                 count={count}
                 maxCount={diagnosticCounts[0]?.count ?? count}
+                onClick={() => onApplyDrillDownFilter({ kind: "diagnostic", value: value ?? label })}
               />
             ))}
             {diagnosticCounts.length === 0 && (

@@ -5,6 +5,12 @@ import { EventsTab } from "@/features/log-explorer/components/EventsTab";
 import { OverviewSection } from "@/features/log-explorer/components/OverviewSection";
 import { SidebarSection } from "@/features/log-explorer/components/SidebarSection";
 import {
+  type AnalysisDrillDownFilter,
+  applyAnalysisDrillDownFilters,
+  getAnalysisDrillDownId,
+  upsertAnalysisDrillDownFilter,
+} from "@/features/log-explorer/analysis-drill-down";
+import {
   buildEventStreamColumns,
   DEFAULT_EVENT_STREAM_COLUMNS,
   normalizeBuiltinEventStreamColumns,
@@ -49,6 +55,14 @@ const DIAGNOSTIC_LABELS = {
   timestamp_parse_failed: "타임스탬프 파싱 실패",
 } as const;
 
+function buildDiagnosticCounts(kinds: string[]) {
+  return buildFacetCounts(kinds, "없음").map(({ label, count }) => ({
+    count,
+    label: DIAGNOSTIC_LABELS[label as keyof typeof DIAGNOSTIC_LABELS] ?? label,
+    value: label,
+  }));
+}
+
 function pickPreferredEventId(events: LogEvent[]) {
   return events.find((event) => (
     event.timestampMs !== null
@@ -87,6 +101,7 @@ function App() {
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
+  const [analysisDrillDownFilters, setAnalysisDrillDownFilters] = useState<AnalysisDrillDownFilter[]>([]);
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const resetFilters = useCallback(() => {
@@ -99,6 +114,19 @@ function App() {
     setFieldFilters([]);
     setFacetFieldKey("all");
     setIssuesOnly(false);
+    setAnalysisDrillDownFilters([]);
+  }, []);
+  const applyAnalysisDrillDownFilter = useCallback((filter: AnalysisDrillDownFilter) => {
+    setAnalysisDrillDownFilters((current) => upsertAnalysisDrillDownFilter(current, filter));
+  }, []);
+  const removeAnalysisDrillDownFilter = useCallback((filter: AnalysisDrillDownFilter) => {
+    const filterId = getAnalysisDrillDownId(filter);
+    setAnalysisDrillDownFilters((current) => (
+      current.filter((currentFilter) => getAnalysisDrillDownId(currentFilter) !== filterId)
+    ));
+  }, []);
+  const clearAnalysisDrillDownFilters = useCallback(() => {
+    setAnalysisDrillDownFilters([]);
   }, []);
 
   const events = useMemo(() => session?.events ?? [], [session]);
@@ -111,20 +139,24 @@ function App() {
     requestId: requestFilter,
     issuesOnly,
   }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, sourceFilter, traceFilter]);
-  const scopedEvents = useMemo(() => filterLogEvents(events, {
+  const scopedEvents = useMemo(() => applyAnalysisDrillDownFilters(filterLogEvents(events, {
     ...sharedFilters,
     fieldFilters: [],
-  }), [events, sharedFilters]);
-  const fieldFacetContextEvents = useMemo(() => filterLogEvents(events, {
+  }), analysisDrillDownFilters), [analysisDrillDownFilters, events, sharedFilters]);
+  const fieldFacetContextEvents = useMemo(() => applyAnalysisDrillDownFilters(filterLogEvents(events, {
     ...sharedFilters,
     fieldFilters: facetFieldKey === "all"
       ? fieldFilters
       : fieldFilters.filter((filter) => filter.key !== facetFieldKey),
-  }), [events, facetFieldKey, fieldFilters, sharedFilters]);
-  const filteredEvents = useMemo(() => filterLogEvents(events, {
+  }), analysisDrillDownFilters), [analysisDrillDownFilters, events, facetFieldKey, fieldFilters, sharedFilters]);
+  const baseFilteredEvents = useMemo(() => filterLogEvents(events, {
     ...sharedFilters,
     fieldFilters,
   }), [events, fieldFilters, sharedFilters]);
+  const filteredEvents = useMemo(
+    () => applyAnalysisDrillDownFilters(baseFilteredEvents, analysisDrillDownFilters),
+    [analysisDrillDownFilters, baseFilteredEvents],
+  );
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
@@ -141,10 +173,12 @@ function App() {
       .filter((requestId): requestId is string => Boolean(requestId)),
     "none",
   ), [filteredEvents]);
-  const diagnosticCounts = useMemo(() => buildFacetCounts(
-    session?.diagnostics.map((diagnostic) => DIAGNOSTIC_LABELS[diagnostic.kind]) ?? [],
-    "없음",
+  const sessionDiagnosticCounts = useMemo(() => buildDiagnosticCounts(
+    session?.diagnostics.map((diagnostic) => diagnostic.kind) ?? [],
   ), [session]);
+  const diagnosticCounts = useMemo(() => buildDiagnosticCounts(
+    filteredEvents.flatMap((event) => event.parseIssues.map((issue) => issue.kind)),
+  ), [filteredEvents]);
   const diagnosticSeverityCounts = useMemo(() => buildFacetCounts(
     session?.diagnostics.map((diagnostic) => diagnostic.severity) ?? [],
     "none",
@@ -296,7 +330,7 @@ function App() {
       value: events.length.toLocaleString(),
     },
     {
-      caption: searchTerm || levelFilter !== "all" || sourceFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || issuesOnly
+      caption: searchTerm || levelFilter !== "all" || sourceFilter !== "all" || serviceFilter !== "all" || traceFilter !== "all" || requestFilter !== "all" || fieldFilters.length > 0 || analysisDrillDownFilters.length > 0 || issuesOnly
         ? "필터 적용 결과"
         : "현재 탐색 범위",
       icon: Filter,
@@ -320,6 +354,7 @@ function App() {
     },
   ], [
     events.length,
+    analysisDrillDownFilters.length,
     fieldFilters.length,
     filteredEvents.length,
     issuesOnly,
@@ -445,7 +480,7 @@ function App() {
           multilineCount={multilineCount}
           formatBadges={formatBadges}
           metrics={metrics}
-          diagnosticKindCounts={diagnosticCounts}
+          diagnosticKindCounts={sessionDiagnosticCounts}
           diagnosticSeverityCounts={diagnosticSeverityCounts}
           errorMessage={errorMessage}
           aliasOverrides={aliasOverrides}
@@ -594,12 +629,18 @@ function App() {
                     )}
                   >
                     <AnalysisTab
+                      activeDrillDownFilters={analysisDrillDownFilters}
                       hourlyChart={hourlyChart}
                       levelCounts={levelCounts}
                       serviceCounts={serviceCounts}
                       requestCounts={requestCounts}
                       diagnosticCounts={diagnosticCounts}
+                      filteredEventCount={filteredEvents.length}
                       filteredTraceGroups={filteredTraceGroups}
+                      onApplyDrillDownFilter={applyAnalysisDrillDownFilter}
+                      onClearDrillDownFilters={clearAnalysisDrillDownFilters}
+                      onRemoveDrillDownFilter={removeAnalysisDrillDownFilter}
+                      onResetAllFilters={resetFilters}
                     />
                   </Suspense>
                 </TabsContent>

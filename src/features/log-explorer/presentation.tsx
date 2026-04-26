@@ -138,18 +138,23 @@ export function LevelBadge({ level }: { level: LogLevel }) {
 }
 
 export function DistributionRow({
+  active = false,
+  actionLabel,
   label,
   count,
   maxCount,
+  onClick,
 }: {
+  active?: boolean;
+  actionLabel?: string;
   label: string;
   count: number;
   maxCount: number;
+  onClick?: () => void;
 }) {
   const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
-
-  return (
-    <div className="space-y-2">
+  const content = (
+    <>
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium text-foreground">{label}</span>
         <span className="text-muted-foreground">{count.toLocaleString()}</span>
@@ -160,6 +165,30 @@ export function DistributionRow({
           style={{ width: `${width}%` }}
         />
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        aria-label={actionLabel ?? `${label} drill down`}
+        onClick={onClick}
+        className={cn(
+          "w-full space-y-2 rounded-2xl border p-3 text-left transition",
+          active
+            ? "border-primary bg-accent"
+            : "border-transparent hover:border-primary hover:bg-accent",
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {content}
     </div>
   );
 }
