@@ -224,10 +224,19 @@ function App() {
     () => buildEventStreamColumns(eventStreamBuiltinColumns, pinnedEventFieldColumns),
     [eventStreamBuiltinColumns, pinnedEventFieldColumns],
   );
+  const sourceCount = session?.sources.length ?? 0;
+  const showSourceContext = sourceCount > 1;
+  const shouldBuildEventDetails = activeTab === "events";
   const traceOptions = useMemo(() => traceGroups.map((group) => group.traceId), [traceGroups]);
   const selectedEvent = useMemo(
-    () => filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null,
-    [filteredEvents, selectedEventId],
+    () => {
+      if (!shouldBuildEventDetails) {
+        return null;
+      }
+
+      return filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null;
+    },
+    [filteredEvents, selectedEventId, shouldBuildEventDetails],
   );
   const selectedTraceGroup = useMemo(() => (
     selectedEvent?.traceId
@@ -239,8 +248,12 @@ function App() {
     [derivedFlowGroups, selectedEvent],
   );
   const selectedTraceSourceDiff = useMemo(
-    () => buildTraceSourceDiff(events, selectedEvent, selectedDerivedFlowGroup),
-    [events, selectedDerivedFlowGroup, selectedEvent],
+    () => (
+      shouldBuildEventDetails && showSourceContext
+        ? buildTraceSourceDiff(events, selectedEvent, selectedDerivedFlowGroup)
+        : null
+    ),
+    [events, selectedDerivedFlowGroup, selectedEvent, shouldBuildEventDetails, showSourceContext],
   );
   const relatedEvents = useMemo(() => {
     if (!selectedEvent) {
@@ -319,8 +332,6 @@ function App() {
     [hiddenFieldKeys, selectedEvent?.fields],
   );
   const sessionTitle = sourceLabel ?? "세션 없음";
-  const sourceCount = session?.sources.length ?? 0;
-  const showSourceContext = sourceCount > 1;
   const metrics: MetricCardProps[] = useMemo(() => [
     {
       caption: sourceLabel ? "세션 전체" : "세션을 불러오면 집계됩니다",

@@ -308,7 +308,7 @@ type DrillDownFilter =
 
 ## 5. 대용량 세션 메모리 최적화
 
-상태: 2026-04-26 계획 수립. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
+상태: 2026-04-26 진행 중. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
 
 ### 목표
 
