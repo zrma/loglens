@@ -115,6 +115,30 @@ check("repo text does not accumulate unresolved debt markers", () => {
   assert(offenders.length === 0, `remove unresolved debt markers or move them into docs/roadmap.md: ${offenders.join(", ")}`);
 });
 
+check("tsx buttons declare explicit types", () => {
+  const buttonTagPattern = /<button\b[\s\S]*?>/g;
+  const offenders = [];
+
+  for (const path of projectFiles()) {
+    if (!path.endsWith(".tsx")) {
+      continue;
+    }
+
+    const text = readText(path);
+
+    for (const match of text.matchAll(buttonTagPattern)) {
+      if (/\btype=/.test(match[0])) {
+        continue;
+      }
+
+      const lineNumber = text.slice(0, match.index).split("\n").length;
+      offenders.push(`${path}:${lineNumber}`);
+    }
+  }
+
+  assert(offenders.length === 0, `add type="button" to raw button elements: ${offenders.join(", ")}`);
+});
+
 check("repo guidance does not leak machine-specific home paths", () => {
   const pathPattern = /\/Users\/[A-Za-z0-9._-]+|\/home\/[A-Za-z0-9._-]+/;
   const offenders = [];

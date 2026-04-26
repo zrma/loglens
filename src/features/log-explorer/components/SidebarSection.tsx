@@ -455,6 +455,7 @@ export function SidebarSection({
                 return (
                   <button
                     key={column.id}
+                    type="button"
                     onClick={() => onToggleBuiltinEventColumn(column.id)}
                     title={column.label}
                     className={cn(
@@ -529,6 +530,7 @@ export function SidebarSection({
                 return (
                   <button
                     key={label}
+                    type="button"
                     onClick={() => onToggleFieldVisibility(label)}
                     title={label}
                     className={cn(

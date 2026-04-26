@@ -12,9 +12,9 @@
 - [x] `src/App.tsx` 필터 상태를 전용 hook으로 분리한다. 세부 범위는 [`docs/todo-app-state-split.md`](./todo-app-state-split.md)에 둔다.
 - [x] `src/App.tsx` view configuration 상태를 전용 hook으로 분리한다.
 - [x] `src/App.tsx` 파생 계산을 view model hook으로 분리한다. 세부 범위는 [`docs/todo-derived-view-model-split.md`](./todo-derived-view-model-split.md)에 둔다.
-- [ ] 디자인 시스템 컴포넌트 사용 범위를 한 번 훑고, 손쉬운 불일치만 정리한다.
+- [x] 디자인 시스템 컴포넌트 사용 범위를 한 번 훑고, 손쉬운 불일치만 정리한다. 세부 범위는 [`docs/todo-design-system-gc.md`](./todo-design-system-gc.md)에 둔다.
 - [x] 번들 split 이후 청크 크기와 lazy boundary를 500 KiB JavaScript chunk budget으로 검증한다.
-- [ ] 품질 GC 규칙이 반복 부채를 충분히 잡는지 재점검하고, 기계적으로 잡을 수 있는 항목만 하네스에 추가한다.
+- [x] 품질 GC 규칙이 반복 부채를 충분히 잡는지 재점검하고, 기계적으로 잡을 수 있는 항목만 하네스에 추가한다.
 
 ## 수용 기준
 
@@ -43,3 +43,4 @@
 - 2026-04-26: event stream column과 field visibility 상태를 `useLogExplorerViewConfig()`로 분리했다.
 - 2026-04-26: `pnpm check:bundle`을 추가해 build 산출물의 JavaScript chunk가 500 KiB 예산을 넘지 않는지 확인하게 했다.
 - 2026-04-26: `useLogExplorerViewModel()`로 필터 결과, facet snapshot, trace/source diff, metric 카드 계산을 분리했다.
+- 2026-04-26: 디자인 시스템 사용 범위를 재점검하고 raw `<button>` explicit type 규칙을 `check:agent-gc`에 추가했다.
