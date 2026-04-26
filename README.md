@@ -151,6 +151,7 @@ pnpm check
 pnpm check:harness
 pnpm check:agent-gc
 pnpm check:runtime-smoke
+pnpm check:bundle
 pnpm test:large-regression
 pnpm bench:large-session
 pnpm lint
@@ -162,8 +163,10 @@ pnpm format
 pnpm format:rust
 ```
 
-`pnpm check`는 `lint + test + build + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
+`pnpm check`는 `lint + test + build + bundle size check + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
 이 명령에는 `pnpm check:harness`와 `pnpm check:agent-gc`도 포함되며, 에이전트 운영 계약, 문서 지도, 자체 리뷰 루프, PR/CI 피드백 절차, 품질 GC 기준, UI smoke coverage, selected-file runtime smoke, 대용량 분석 fixture, 대용량 UI windowing fixture, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
+
+`pnpm check:bundle`은 `pnpm build` 뒤의 `dist/assets/*.js` chunk가 500 KiB 예산을 넘지 않는지 확인합니다. 단독 실행 전에는 먼저 `pnpm build`를 실행해야 합니다.
 
 런타임에 가까운 선택 파일 경로만 빠르게 다시 확인하려면:
 
