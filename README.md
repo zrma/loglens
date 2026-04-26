@@ -27,6 +27,8 @@
 - 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
 - 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
+- sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
+- 대용량 파서/분석 경계는 large-log fixture로 필터, 분포, 시간대 집계를 검증한다.
 
 ## 현재 구현 상태
 
@@ -142,7 +144,7 @@ pnpm format:rust
 ```
 
 `pnpm check`는 `lint + test + build + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
-이 명령에는 `pnpm check:harness`도 포함되며, 에이전트 운영 계약, 문서 지도, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
+이 명령에는 `pnpm check:harness`도 포함되며, 에이전트 운영 계약, 문서 지도, 자체 리뷰 루프, UI smoke coverage, 대용량 분석 fixture, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
 
 ## VCS 워크플로
 

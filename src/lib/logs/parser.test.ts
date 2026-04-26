@@ -3,6 +3,8 @@ import {
   buildDerivedFlowGroups,
   buildFieldKeyCounts,
   buildFieldValueCounts,
+  buildHourlyChartData,
+  buildLevelCounts,
   buildSpanForest,
   getRelatedEvents,
   getDerivedFlowGroupForEvent,
@@ -17,6 +19,27 @@ import { SAMPLE_LOG_CONTENT } from "@/lib/logs/sample";
 async function* generateLargeLogLines(count: number) {
   for (let index = 0; index < count; index += 1) {
     yield `2026-03-08 12:${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")} INFO api-service trace_id=trace-${Math.floor(index / 5)} span_id=span-${index} request_id=req-${Math.floor(index / 5)} message="processed item ${index}"`;
+  }
+}
+
+async function* generateMixedLargeJsonLines(count: number) {
+  const startMs = Date.UTC(2026, 2, 8, 12, 0, 0);
+
+  for (let index = 0; index < count; index += 1) {
+    const route = index % 2 === 0 ? "/checkout" : "/login";
+    const service = `api-${index % 4}`;
+    const level = index % 25 === 0 ? "error" : "info";
+
+    yield JSON.stringify({
+      timestamp: new Date(startMs + (index * 1000)).toISOString(),
+      level,
+      service,
+      traceId: `trace-large-${Math.floor(index / 10)}`,
+      spanId: `span-large-${index}`,
+      requestId: `req-large-${Math.floor(index / 10)}`,
+      message: `${service} handled ${route} item ${index}`,
+      route,
+    });
   }
 }
 
@@ -115,6 +138,49 @@ describe("parseLogContent", () => {
     expect(session.events).toHaveLength(2400);
     expect(session.formatCounts.keyvalue).toBe(2400);
     expect(progressMarks).toEqual([600, 1200, 1800, 2400, 2400]);
+  });
+
+  it("keeps large parsed sessions analyzable with deterministic counts", async () => {
+    const session = await parseLogLineStream(generateMixedLargeJsonLines(3000), {
+      reportInterval: 1000,
+    });
+
+    const issueEvents = filterLogEvents(session.events, {
+      searchTerm: "",
+      level: "all",
+      source: "all",
+      service: "all",
+      traceId: "all",
+      requestId: "all",
+      fieldFilters: [],
+      issuesOnly: true,
+    });
+    const serviceEvents = filterLogEvents(session.events, {
+      searchTerm: "",
+      level: "all",
+      source: "all",
+      service: "api-1",
+      traceId: "all",
+      requestId: "all",
+      fieldFilters: [],
+      issuesOnly: false,
+    });
+    const hourlyChart = buildHourlyChartData(session.events);
+
+    expect(session.events).toHaveLength(3000);
+    expect(session.diagnostics).toHaveLength(0);
+    expect(issueEvents).toHaveLength(120);
+    expect(serviceEvents).toHaveLength(750);
+    expect(buildLevelCounts(session.events)).toEqual(expect.arrayContaining([
+      { label: "error", count: 120 },
+      { label: "info", count: 2880 },
+    ]));
+    expect(buildFieldValueCounts(session.events, "route")).toEqual(expect.arrayContaining([
+      { label: "/checkout", count: 1500 },
+      { label: "/login", count: 1500 },
+    ]));
+    expect(hourlyChart.parsedCount).toBe(3000);
+    expect(hourlyChart.data.reduce((total, point) => total + point.count, 0)).toBe(3000);
   });
 
   it("filters and facets by arbitrary structured fields", () => {

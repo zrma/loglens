@@ -34,6 +34,49 @@ Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
   value: vi.fn(),
 });
 
+Object.defineProperty(window.HTMLElement.prototype, "clientWidth", {
+  configurable: true,
+  get() {
+    return 1024;
+  },
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "clientHeight", {
+  configurable: true,
+  get() {
+    return 768;
+  },
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "offsetWidth", {
+  configurable: true,
+  get() {
+    return 1024;
+  },
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "offsetHeight", {
+  configurable: true,
+  get() {
+    return 768;
+  },
+});
+
+Object.defineProperty(window.HTMLElement.prototype, "getBoundingClientRect", {
+  configurable: true,
+  value: () => ({
+    bottom: 768,
+    height: 768,
+    left: 0,
+    right: 1024,
+    toJSON: vi.fn(),
+    top: 0,
+    width: 1024,
+    x: 0,
+    y: 0,
+  }),
+});
+
 Object.defineProperty(window.SVGElement.prototype, "getBBox", {
   configurable: true,
   value: () => ({

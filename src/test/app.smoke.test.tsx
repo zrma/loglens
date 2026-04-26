@@ -94,6 +94,35 @@ describe("App smoke", () => {
     expect(within(eventStream).getByText("Source")).toBeInTheDocument();
   });
 
+  it("keeps issue filtering and analysis tab navigation agent-legible", async () => {
+    renderApp();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
+    });
+
+    expect(await screen.findByText(/필터 결과 11개 이벤트/i)).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /모든 로그/i }));
+    });
+
+    expect(await screen.findByText(/필터 결과 2개 이벤트/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/payment provider timeout/i)).length).toBeGreaterThan(0);
+
+    const analysisTab = screen.getByRole("tab", { name: /연관 분석/i });
+
+    await act(async () => {
+      fireEvent.mouseDown(analysisTab, { button: 0, ctrlKey: false });
+      fireEvent.click(analysisTab);
+    });
+
+    expect(analysisTab).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText(/시간대별 분포/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Level 분포/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Trace 요약/i)).toBeInTheDocument();
+  });
+
   it("streams selected files line by line and merges them into one session", async () => {
     tauriMocks.openMock.mockResolvedValue([
       "file:///tmp/checkout.log",

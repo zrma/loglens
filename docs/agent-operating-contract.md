@@ -67,6 +67,17 @@
    - bookmark 이동은 사용자가 요청했거나 publish 요청으로 이미 암시된 경우에만 수행합니다.
    - push는 `jj git push --remote origin -b <bookmark>`를 사용합니다.
 
+## 자체 리뷰 루프
+
+publish 가능한 상태로 보기 전에 에이전트는 로컬에서 자체 리뷰 루프를 한 번 닫습니다.
+
+1. `jj diff`로 의도하지 않은 파일 변경, 민감 정보, unrelated churn이 없는지 확인합니다.
+2. 변경 범위에 맞는 focused check를 먼저 실행하고 실패하면 같은 루프 안에서 수정합니다.
+3. UI 흐름이 바뀌면 sample session 기반 smoke test나 수동 앱 확인으로 사용자가 볼 동작을 검증합니다.
+4. 대용량/성능 경계가 걸린 변경은 작은 fixture만 보지 말고 large-log fixture나 동등한 대체 검증을 실행합니다.
+5. 마지막 publish gate는 `pnpm check`입니다.
+6. push 이후 CI나 리뷰 피드백을 확인할 수 있는 상황이면 실패/피드백을 다시 작업 루프에 넣고, 접근 권한이 없거나 제품 판단이 필요한 경우에만 에스컬레이션합니다.
+
 ## 검증 계층
 
 반복 중에는 실패 가능성이 가장 높은 부분을 잡는 가장 작은 검증을 사용합니다.
@@ -87,7 +98,7 @@ pnpm check
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
 
-`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, publish gate, 선택 파일 접근 scope, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
+`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, UI smoke coverage, large-log analysis fixture, ordered backlog, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
 
 UI 비중이 큰 변경은 가능하면 앱을 실행해 변경된 흐름을 확인합니다. 별도 fixture가 필요하지 않다면 sample trace session을 기본 확인 대상으로 사용합니다.
 

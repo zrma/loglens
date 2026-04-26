@@ -55,11 +55,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 테스트
   - parser/analysis smoke test
   - jsdom 기반 App smoke test
+  - sample session 기반 issue-only 필터와 분석 탭 전환 smoke test
   - Tauri 파일 선택/라인 스트리밍 경로 mock smoke test
   - async line stream parser test
+  - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
   - nested JSON / Go panic stack fixture test
 - 에이전트 하네스 검증
-  - `pnpm check:harness`로 AGENTS 지도, 운영 계약, publish gate, 파일 access scope, 주요 문서 드리프트 확인
+  - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, UI smoke coverage, 대용량 분석 fixture, ordered backlog, 주요 문서 드리프트 확인
 - 번들 최적화
   - `AnalysisTab` lazy load 분리
   - 기존 chunk size warning 제거
@@ -108,8 +110,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - trace 간 비교 없음
 - 테스트 범위가 아직 얕음
   - 실제 파일 열기 플로우는 mock smoke test 수준만 있음
-  - 필터 상호작용 시나리오 부족
-  - 대용량 fixture 없음
+  - 필터 상호작용은 issue-only와 sample analysis smoke부터 보강된 상태
+  - 대용량 fixture는 parser/analysis count 중심이며 실제 UI 렌더링 fixture는 없음
 
 ## 현재 리스크
 
@@ -118,7 +120,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
 - custom alias override UI는 아직 없음
 - Tauri 실제 런타임 연동은 smoke test가 아니라 수동 확인 비중이 큼
-- 하네스 검증은 핵심 문서/코드 신호만 확인하므로, UI 동작 전체를 대신하지는 않음
+- 하네스 검증은 UI smoke와 대용량 분석 fixture 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
 - `jj`는 clone마다 `jj git init --colocate`를 한 번 해줘야 한다
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
