@@ -9,7 +9,8 @@
 - [x] 현재 엔트리포인트에서 import하지 않는 `src/App.css` 템플릿 잔재를 삭제한다.
 - [x] README, docs/status.md, docs/roadmap.md, docs/repository-overview.md에서 `src/App.css` 관련 stale 설명을 제거한다.
 - [x] README의 "아직 구현되지 않은 부분"을 현재 대용량 최적화 상태에 맞춰 다시 쓴다.
-- [ ] `src/App.tsx` 상태 관리 추가 분리 여부를 실제 반복 변경 비용 기준으로 재검토한다.
+- [x] `src/App.tsx` 필터 상태를 전용 hook으로 분리한다. 세부 범위는 [`docs/todo-app-state-split.md`](./todo-app-state-split.md)에 둔다.
+- [ ] `src/App.tsx` view configuration 또는 파생 계산의 추가 분리 여부를 실제 반복 변경 비용 기준으로 재검토한다.
 - [ ] 디자인 시스템 컴포넌트 사용 범위를 한 번 훑고, 손쉬운 불일치만 정리한다.
 - [ ] 번들 split 이후 청크 크기와 lazy boundary가 현재 기능 배치에 맞는지 다시 점검한다.
 - [ ] 품질 GC 규칙이 반복 부채를 충분히 잡는지 재점검하고, 기계적으로 잡을 수 있는 항목만 하네스에 추가한다.
@@ -37,3 +38,4 @@
 ## 진행 메모
 
 - 2026-04-26: next-phase와 신뢰성 보강 todo가 모두 완료된 상태를 확인하고, 후속 작업을 유지보수 GC로 전환했다.
+- 2026-04-26: 검색/필터/drill-down 상태를 `useLogExplorerFilters()`로 분리하고, 남은 App 분리 후보를 view configuration과 view model로 좁혔다.
