@@ -1,11 +1,38 @@
-# 커밋 메시지 컨벤션
+# 기여 가이드
+
+## 에이전트 작업 원칙
+
+LogLens에서 자동화 에이전트는 기본적으로 자율 진행합니다. 사용자에게 되묻는 경우는 [`docs/agent-operating-contract.md`](./docs/agent-operating-contract.md)의 에스컬레이션 조건으로 제한합니다.
+
+작업을 시작할 때는 [`AGENTS.md`](./AGENTS.md)를 짧은 지도처럼 읽고, 상세 맥락은 `docs/`와 [`.agents/skills/loglens/SKILL.md`](./.agents/skills/loglens/SKILL.md)를 따릅니다.
+
+## 검증
+
+기본 검증은 아래 명령입니다.
+
+```bash
+pnpm check
+```
+
+`pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 순서대로 실행합니다.
+
+## 커밋 메시지 컨벤션
 
 이 프로젝트는 다음과 같은 커밋 메시지 컨벤션을 따릅니다:
 
 - feat: 새로운 기능 추가
 - fix: 버그 수정
 - docs: 문서 변경
-- style: 코드 포맷팅, 세미콜론 누락 등
 - refactor: 코드 리팩토링
 - test: 테스트 코드 추가/수정
+- build: 빌드 프로세스 또는 의존성 변경
+- ci: CI 설정 변경
 - chore: 빌드 프로세스 또는 보조 도구 변경
+
+메시지 형식은 `<type>: <summary>`이고 scope 괄호는 쓰지 않습니다.
+
+Codex가 메시지를 작성하거나 수정할 때는 마지막에 아래 trailer를 정확히 한 번 포함합니다.
+
+```text
+Co-authored-by: Codex (AI-generated) <codex@1day1coding.com>
+```
