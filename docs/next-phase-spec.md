@@ -14,6 +14,8 @@
 4. cross-file trace diff
 5. 대용량 세션 메모리 최적화
 
+위 5개 항목은 2026-04-26 기준 구현 완료다. 후속 신뢰성 보강은 [`docs/todo-reliability-hardening.md`](./todo-reliability-hardening.md)를 기준으로 진행한다.
+
 이 순서는 의도적으로 고정합니다. 1, 2가 먼저 안정되어야 3, 4의 상관관계 UX가 신뢰성을 가질 수 있고, 5는 앞선 기능을 실제 데이터 규모에서 버티게 만드는 단계입니다.
 
 ## 공통 원칙
