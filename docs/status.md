@@ -80,6 +80,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
   - 대용량 세션 top trace/derived-flow preview와 선택 flow lazy materialization test
   - 대용량 세션 field facet 단일 scan snapshot test
+  - opt-in 200k-line large session benchmark candidate
   - cross-file Trace Diff analysis fallback test
   - 다중 파일 세션 Trace Diff UI smoke test
   - nested JSON / Go panic stack fixture test
@@ -100,6 +101,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - sidebar/analysis의 상위 trace/derived-flow 목록을 bounded preview로 계산
   - 선택 이벤트 상세에서 필요한 derived-flow만 lazy materialize
   - field facet key/value count를 단일 snapshot 계산으로 결합
+  - 빠른 large regression과 느린 200k-line benchmark 후보 분리
 
 ## 현재 구현 수준
 
@@ -148,7 +150,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 테스트 범위가 아직 얕음
   - 선택 파일 플로우는 runtime smoke로 보강됐지만, 실제 Tauri 데스크톱 창 자동화는 아직 없음
   - 필터 상호작용은 issue-only와 sample analysis smoke부터 보강된 상태
-  - 대용량 fixture는 parser/analysis count와 UI windowing smoke 중심이며, 실제 브라우저/데스크톱 렌더링 성능 측정은 아직 없음
+  - 대용량 fixture는 parser/analysis count, UI windowing smoke, opt-in 200k-line benchmark candidate 중심이며, 실제 브라우저/데스크톱 렌더링 성능 측정은 아직 없음
 
 ## 현재 리스크
 
@@ -190,16 +192,24 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - trace가 없을 때 requestId 또는 derived flow fallback
 - source coverage를 diff 수준으로 확장
 
-### 1. 대용량 세션 메모리 최적화
+### 완료. 대용량 세션 메모리 최적화
 
 - 이벤트 탭이 활성화된 경우에만 상세 패널 전용 선택 이벤트 계산 수행
 - Trace Diff는 다중 source 세션에서만 계산
 - 이벤트 필터와 analysis drill-down을 한 pass로 결합해 중간 배열 생성 축소
 - sidebar/analysis의 top trace/derived-flow는 표시 개수에 맞춘 bounded preview 사용
 - field facet key/value count는 선택 facet key 기준 단일 scan snapshot 사용
-- large fixture 도입
+- fast large regression은 3,000-event parser/runtime fixture로 유지
+- 200k-line large session benchmark 후보는 `pnpm bench:large-session`으로 opt-in 실행
 - 파생 계산 캐시/지연 계산
 - 필터/집계 메모리 비용 절감
+
+### 1. 신뢰성 보강
+
+- 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장
+- trace 그룹화/집계 로직 테스트 확장
+- 지원 timestamp 형식과 parse failure 규칙 문서화
+- 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강
 
 ## 지금 당장 하지 않아도 되는 것
 
@@ -232,4 +242,11 @@ pnpm check
 
 ```bash
 pnpm check:runtime-smoke
+```
+
+대용량 경계는 기본 gate에 들어가는 빠른 회귀와 opt-in benchmark로 나눕니다.
+
+```bash
+pnpm test:large-regression
+pnpm bench:large-session
 ```
