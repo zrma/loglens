@@ -15,6 +15,19 @@ export type LogFieldAliases = Record<LogAliasField, string[]>;
 
 export type LogFieldAliasOverrides = Partial<LogFieldAliases>;
 
+export const CANONICAL_LOG_ALIAS_FIELDS = [
+  "timestamp",
+  "level",
+  "service",
+  "message",
+  "traceId",
+  "spanId",
+  "parentSpanId",
+  "requestId",
+] as const satisfies readonly LogAliasField[];
+
+export type CanonicalLogAliasField = (typeof CANONICAL_LOG_ALIAS_FIELDS)[number];
+
 export type LogAliasPresetId = "auto" | "default" | "zap-short-json";
 
 export type LogAliasPreset = {

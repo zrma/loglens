@@ -17,6 +17,7 @@
 - Tauri 파일 선택 다이얼로그로 로그 파일 하나 이상을 연다.
 - 선택한 텍스트 로그를 구조화 이벤트로 파싱한다.
 - parser preset을 바꿔 같은 세션을 다른 alias 규칙으로 다시 읽을 수 있다.
+- 세션 단위 field alias override로 팀별 short key나 변형 필드명을 보정할 수 있다.
 - 여러 파일을 하나의 세션으로 병합하고 source 단위로 구분한다.
 - 이벤트 목록과 상세 패널을 함께 보여준다.
 - 이벤트 스트림 컬럼을 바꾸고 structured field를 컬럼으로 고정할 수 있다.
@@ -38,7 +39,7 @@
 - `.log`, `.txt` 파일 다중 선택
 - 라인 스트리밍 기반 로컬 파일 읽기
 - 다중 파일 병합 세션과 source 표시/필터
-- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, alias preset(auto/default/zap-short-json), zap-style short key(`T/L/N/M/rid`) 지원, `traceparent` fallback, multiline stack trace 병합)
+- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, alias preset(auto/default/zap-short-json), 세션 단위 custom alias override, zap-style short key(`T/L/N/M/rid`) 지원, `traceparent` fallback, multiline stack trace 병합)
 - 검색어, level, service, trace, request, structured field facet, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
@@ -68,7 +69,7 @@
 
 현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
 
-현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, `traceparent` fallback, 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
+현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, 세션 단위 custom alias override, `traceparent` fallback, 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 
 ## 구조 요약
 

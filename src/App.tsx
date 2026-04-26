@@ -29,6 +29,7 @@ import {
   getDerivedFlowGroupForEvent,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
+import { CANONICAL_LOG_ALIAS_FIELDS } from "@/lib/logs/aliases";
 import type { FieldFilter, LogEvent, LogLevel } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
@@ -51,13 +52,16 @@ function pickPreferredEventId(events: LogEvent[]) {
 
 function App() {
   const {
+    aliasOverrides,
     errorMessage,
     loadProgress,
     loadSampleSession,
     parserPreset,
     parserPresetId,
     parserPresetOptions,
+    resetAliasOverrides,
     selectLogFile,
+    setAliasOverrides,
     setParserPresetId,
     session,
     sourceLabel,
@@ -230,6 +234,11 @@ function App() {
     [events],
   );
   const parserNoteCount = session?.diagnostics.length ?? 0;
+  const activeAliasOverrideCount = useMemo(() => (
+    CANONICAL_LOG_ALIAS_FIELDS.reduce((total, field) => (
+      total + (aliasOverrides[field]?.length ?? 0)
+    ), 0)
+  ), [aliasOverrides]);
   const errorCount = useMemo(
     () => events.filter((event) => event.level === "error" || event.level === "fatal").length,
     [events],
@@ -427,12 +436,16 @@ function App() {
           formatBadges={formatBadges}
           metrics={metrics}
           errorMessage={errorMessage}
+          aliasOverrides={aliasOverrides}
+          activeAliasOverrideCount={activeAliasOverrideCount}
           parserPreset={parserPreset}
           parserPresetId={parserPresetId}
           parserPresetOptions={parserPresetOptions}
           loadProgress={loadProgress}
           onSelectLogFile={selectLogFile}
           onLoadSampleSession={loadSampleSession}
+          onApplyAliasOverrides={setAliasOverrides}
+          onResetAliasOverrides={resetAliasOverrides}
           onParserPresetChange={setParserPresetId}
         />
 

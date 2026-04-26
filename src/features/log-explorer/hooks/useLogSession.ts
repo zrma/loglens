@@ -6,6 +6,7 @@ import { getFileName } from "@/features/log-explorer/presentation";
 import {
   getLogAliasPreset,
   LOG_ALIAS_PRESETS,
+  type LogFieldAliasOverrides,
   type LogAliasPresetId,
 } from "@/lib/logs/aliases";
 import {
@@ -104,6 +105,7 @@ export function useLogSession() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState<LoadProgressState | null>(null);
   const [parserPresetId, setParserPresetIdState] = useState<LogAliasPresetId>("auto");
+  const [aliasOverrides, setAliasOverridesState] = useState<LogFieldAliasOverrides>({});
   const activeLoadIdRef = useRef(0);
   const isMountedRef = useRef(true);
   const lastLoadRequestRef = useRef<SessionLoadRequest | null>(null);
@@ -170,9 +172,11 @@ export function useLogSession() {
     label: string,
     path: string | null,
     presetId: LogAliasPresetId,
+    overrides: LogFieldAliasOverrides,
   ) => {
     const loadId = beginLoad();
     const parsedSession = parseLogContent(content, {
+      aliasOverrides: overrides,
       aliasPresetId: presetId,
       source: createSourceMeta(label, path),
     });
@@ -180,7 +184,11 @@ export function useLogSession() {
     applySession(loadId, parsedSession, label, path);
   }, [applySession, beginLoad]);
 
-  const loadSelectedPaths = useCallback(async (paths: string[], presetId: LogAliasPresetId) => {
+  const loadSelectedPaths = useCallback(async (
+    paths: string[],
+    presetId: LogAliasPresetId,
+    overrides: LogFieldAliasOverrides,
+  ) => {
     const loadId = beginLoad();
 
     try {
@@ -212,6 +220,7 @@ export function useLogSession() {
           }
 
           const parsedSession = await parseLogLineStream(lineStream, {
+            aliasOverrides: overrides,
             aliasPresetId: presetId,
             onProgress: (progress) => {
               setLoadProgressSafely(loadId, {
@@ -238,6 +247,7 @@ export function useLogSession() {
           }
 
           parsedSessions.push(parseLogContent(content, {
+            aliasOverrides: overrides,
             aliasPresetId: presetId,
             source: createSourceMeta(nextLabel, path),
           }));
@@ -264,13 +274,17 @@ export function useLogSession() {
     }
   }, [applySession, beginLoad, isActiveLoad, setErrorMessageSafely, setLoadProgressSafely]);
 
-  const reloadSession = useCallback(async (request: SessionLoadRequest, presetId: LogAliasPresetId) => {
+  const reloadSession = useCallback(async (
+    request: SessionLoadRequest,
+    presetId: LogAliasPresetId,
+    overrides: LogFieldAliasOverrides,
+  ) => {
     if (request.kind === "sample") {
-      parseSessionContent(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null, presetId);
+      parseSessionContent(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null, presetId, overrides);
       return;
     }
 
-    await loadSelectedPaths(request.paths, presetId);
+    await loadSelectedPaths(request.paths, presetId, overrides);
   }, [loadSelectedPaths, parseSessionContent]);
 
   const selectLogFile = useCallback(async () => {
@@ -297,17 +311,17 @@ export function useLogSession() {
 
       const request: SessionLoadRequest = { kind: "files", paths: selectedPaths };
       lastLoadRequestRef.current = request;
-      await reloadSession(request, parserPresetId);
+      await reloadSession(request, parserPresetId, aliasOverrides);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "로그 파일 선택 중 오류가 발생했습니다.");
     }
-  }, [parserPresetId, reloadSession]);
+  }, [aliasOverrides, parserPresetId, reloadSession]);
 
   const loadSampleSession = useCallback(() => {
     const request: SessionLoadRequest = { kind: "sample" };
     lastLoadRequestRef.current = request;
-    parseSessionContent(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null, parserPresetId);
-  }, [parseSessionContent, parserPresetId]);
+    parseSessionContent(SAMPLE_LOG_CONTENT, SAMPLE_LOG_FILE_NAME, null, parserPresetId, aliasOverrides);
+  }, [aliasOverrides, parseSessionContent, parserPresetId]);
 
   const setParserPresetId = useCallback((nextPresetId: LogAliasPresetId) => {
     if (nextPresetId === parserPresetId) {
@@ -322,8 +336,24 @@ export function useLogSession() {
       return;
     }
 
-    void reloadSession(lastLoadRequest, nextPresetId);
+    void reloadSession(lastLoadRequest, nextPresetId, aliasOverrides);
+  }, [aliasOverrides, parserPresetId, reloadSession]);
+
+  const setAliasOverrides = useCallback((nextOverrides: LogFieldAliasOverrides) => {
+    setAliasOverridesState(nextOverrides);
+
+    const lastLoadRequest = lastLoadRequestRef.current;
+
+    if (!lastLoadRequest) {
+      return;
+    }
+
+    void reloadSession(lastLoadRequest, parserPresetId, nextOverrides);
   }, [parserPresetId, reloadSession]);
+
+  const resetAliasOverrides = useCallback(() => {
+    setAliasOverrides({});
+  }, [setAliasOverrides]);
 
   const parserPreset = useMemo(
     () => getLogAliasPreset(parserPresetId),
@@ -334,10 +364,13 @@ export function useLogSession() {
     errorMessage,
     loadProgress,
     loadSampleSession,
+    aliasOverrides,
     parserPreset,
     parserPresetId,
     parserPresetOptions: LOG_ALIAS_PRESETS,
+    resetAliasOverrides,
     selectLogFile,
+    setAliasOverrides,
     setParserPresetId,
     session,
     sourceLabel,

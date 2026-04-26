@@ -33,6 +33,8 @@
 
 ## 1. Custom Alias Override UI
 
+상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-custom-alias-override.md`](./todo-custom-alias-override.md)에 남긴다.
+
 ### 목표
 
 사용자가 세션 단위로 canonical field 매핑을 직접 보정할 수 있게 한다.
