@@ -308,6 +308,8 @@ type DrillDownFilter =
 
 ## 5. 대용량 세션 메모리 최적화
 
+상태: 2026-04-26 계획 수립. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
+
 ### 목표
 
 현재 스트리밍 파싱 이후에도 남아 있는 전체 메모리 점유와 파생 계산 비용을 줄여, 실제 큰 세션에서 인터랙션을 유지한다.
