@@ -78,6 +78,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
     - 3,000-event 대용량 UI windowing row bound
   - async line stream parser test
   - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
+  - 대용량 세션 top trace/derived-flow preview와 선택 flow lazy materialization test
   - cross-file Trace Diff analysis fallback test
   - 다중 파일 세션 Trace Diff UI smoke test
   - nested JSON / Go panic stack fixture test
@@ -93,6 +94,10 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파일 로드 최적화
   - `readTextFileLines()` 기반 라인 스트리밍 파싱
   - 파싱 진행 상태 표시
+- 대용량 파생 계산 최적화
+  - 이벤트 필터와 analysis drill-down을 한 predicate 경로로 결합
+  - sidebar/analysis의 상위 trace/derived-flow 목록을 bounded preview로 계산
+  - 선택 이벤트 상세에서 필요한 derived-flow만 lazy materialize
 
 ## 현재 구현 수준
 
@@ -188,6 +193,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 이벤트 탭이 활성화된 경우에만 상세 패널 전용 선택 이벤트 계산 수행
 - Trace Diff는 다중 source 세션에서만 계산
 - 이벤트 필터와 analysis drill-down을 한 pass로 결합해 중간 배열 생성 축소
+- sidebar/analysis의 top trace/derived-flow는 표시 개수에 맞춘 bounded preview 사용
 - large fixture 도입
 - 파생 계산 캐시/지연 계산
 - 필터/집계 메모리 비용 절감

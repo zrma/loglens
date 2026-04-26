@@ -50,6 +50,7 @@
 - windowed 이벤트 스트림, 선택 이벤트 상세 패널, Parser Diagnostics, span topology, span timeline 렌더링
 - trace/request/derived flow 기준 source diff와 missing hint 렌더링
 - 시간대별 집계 차트, 분포 카드, analysis drill-down chip 렌더링
+- sidebar/analysis 상위 trace/derived-flow 목록은 표시 개수에 맞춘 bounded preview로 계산
 - 이벤트/분석 탭 전환
 
 `App.tsx`는 상태와 데이터 파이프 조립을 맡고, 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
@@ -87,7 +88,7 @@
 
 - 파서는 JSON line, key=value, plain text timestamp prefix와 일부 stack trace heuristics까지만 안정적으로 지원한다.
 - span 관계 시각화는 기본 트리와 상대 timeline 수준이고, gantt 수준 상호작용은 아직 없다.
-- 파일 읽기는 라인 스트리밍이고 이벤트 목록은 windowed 렌더링이지만, 전체 이벤트/집계는 여전히 메모리에 유지한다.
+- 파일 읽기는 라인 스트리밍이고 이벤트 목록은 windowed 렌더링이지만, 전체 이벤트/집계는 여전히 메모리에 유지한다. 다만 sidebar/analysis 상위 flow 목록과 선택 이벤트 derived-flow 상세는 bounded/lazy 경로로 분리되었다.
 - Trace Diff는 source별 coverage와 missing hint 중심이며 완전한 distributed trace 재구성은 아니다.
 - Parser Diagnostics는 timestamp, JSON fallback, alias override, correlation 누락을 설명하지만, 지원 로그 포맷 자체는 아직 제한적이다.
 - 테스트는 parser/trace smoke, jsdom 기반 파일 선택 UI smoke, selected-file runtime smoke, 3,000-event UI windowing smoke를 포함한다. 실제 Tauri 데스크톱 창 자동화는 아직 수동 확인 비중이 크다.

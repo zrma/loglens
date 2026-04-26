@@ -31,6 +31,7 @@
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
 - 대용량 파서/분석 경계는 large-log fixture로 필터, 분포, 시간대 집계를 검증한다.
+- 대용량 세션의 상위 trace/derived-flow 목록은 bounded preview 경로로 계산한다.
 - 선택 파일 line-stream, fallback, scope failure, 대용량 UI windowing은 runtime smoke harness로 검증한다.
 
 ## 현재 구현 상태
@@ -71,6 +72,7 @@
 - 실제 파일 열기 플로우와 필터 상호작용까지 포함한 더 넓은 fixture/test 세트
 
 현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
+sidebar와 analysis의 상위 trace/derived-flow 목록은 표시 개수에 맞춘 preview 계산을 사용하고, 선택 이벤트의 derived-flow 상세만 필요할 때 materialize합니다.
 
 현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, 세션 단위 custom alias override, `traceparent` fallback, 일부 multiline stack trace를 지원합니다. 파싱 과정에서 생기는 timestamp 누락/실패, JSON fallback, key=value partial parse, alias override 적용, correlation field 누락은 severity와 kind가 있는 Parser Diagnostics로 확인할 수 있습니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 

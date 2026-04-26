@@ -9,7 +9,7 @@ import {
 import { DistributionRow, formatTraceLabel } from "@/features/log-explorer/presentation";
 import { formatDuration } from "@/lib/logs/analysis";
 import type { ChartPoint, FacetCount } from "@/lib/logs/analysis";
-import type { TraceGroup } from "@/lib/logs/types";
+import type { TraceGroupPreview } from "@/lib/logs/types";
 
 type AnalysisFacetCount = FacetCount & {
   value?: string;
@@ -24,7 +24,7 @@ type AnalysisTabProps = {
   serviceCounts: FacetCount[];
   requestCounts: FacetCount[];
   diagnosticCounts: AnalysisFacetCount[];
-  filteredTraceGroups: TraceGroup[];
+  topTraceGroups: TraceGroupPreview[];
   activeDrillDownFilters: AnalysisDrillDownFilter[];
   filteredEventCount: number;
   onApplyDrillDownFilter: (filter: AnalysisDrillDownFilter) => void;
@@ -48,7 +48,7 @@ export function AnalysisTab({
   serviceCounts,
   requestCounts,
   diagnosticCounts,
-  filteredTraceGroups,
+  topTraceGroups,
   filteredEventCount,
   onApplyDrillDownFilter,
   onClearDrillDownFilters,
@@ -280,7 +280,7 @@ export function AnalysisTab({
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-3">
-            {filteredTraceGroups.slice(0, 4).map((group) => (
+            {topTraceGroups.map((group) => (
               <div
                 key={group.traceId}
                 className="rounded-3xl border border-border bg-card p-4"
@@ -298,7 +298,7 @@ export function AnalysisTab({
                 </p>
               </div>
             ))}
-            {filteredTraceGroups.length === 0 && (
+            {topTraceGroups.length === 0 && (
               <p className="text-sm text-muted-foreground">현재 범위에 trace 그룹이 없습니다.</p>
             )}
           </CardContent>

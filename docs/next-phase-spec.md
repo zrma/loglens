@@ -353,6 +353,7 @@ type DrillDownFilter =
 - `events` 원본과 필터 결과 외의 중복 배열 생성을 줄인다.
 - traceGroups, spanForest, facetCounts 같은 파생 계산은 선택 trace/선택 facet 범위에서만 계산한다.
 - 상세 패널이 닫혀 있거나 선택 이벤트가 없으면 관련 계산을 건너뛴다.
+- sidebar/analysis의 상위 trace/derived-flow 목록은 full group materialization 대신 표시 개수에 맞춘 preview 계산을 사용한다.
 - large fixture 전용 smoke benchmark를 추가한다.
 
 ### 수용 기준
