@@ -253,6 +253,8 @@ type DrillDownFilter =
 
 ## 4. Cross-file Trace Diff
 
+상태: 2026-04-26 계획 수립. 구현 세부 작업 목록은 [`docs/todo-cross-file-trace-diff.md`](./todo-cross-file-trace-diff.md)에 남긴다.
+
 ### 목표
 
 같은 trace 또는 derived flow가 여러 source에 걸쳐 있을 때, 어느 source에서 이벤트가 부족하거나 끊기는지 비교할 수 있게 만든다.
