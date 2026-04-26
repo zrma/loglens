@@ -206,6 +206,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ### 1. 신뢰성 보강
 
+작업 목록은 [`docs/todo-reliability-hardening.md`](./todo-reliability-hardening.md)에 둔다.
+
 - 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장
 - trace 그룹화/집계 로직 테스트 확장
 - 지원 timestamp 형식과 parse failure 규칙 문서화
