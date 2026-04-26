@@ -226,7 +226,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - `src/App.tsx` view configuration 상태 분리 완료
 - 다음 배치에서 파생 계산 추가 분리 여부 재검토
 - 디자인 시스템 컴포넌트 사용 범위 재점검
-- 번들 split 이후 청크 크기와 lazy boundary 재점검
+- `pnpm check:bundle` 기반 JavaScript chunk size budget 확인 완료
 
 ## 지금 당장 하지 않아도 되는 것
 
