@@ -7,6 +7,9 @@ import type {
   LogLevel,
   SpanForest,
   SpanNode,
+  TraceDiffBasis,
+  TraceSourceDiff,
+  TraceSourceDiffRow,
   TraceGroup,
   TraceSourceCoverage,
 } from "@/lib/logs/types";
@@ -43,6 +46,16 @@ type MutableTraceGroup = {
 
 type MutableTraceSourceCoverage = Omit<TraceSourceCoverage, "services"> & {
   services: Set<string>;
+};
+
+type MutableTraceSourceDiffRow = Omit<
+  TraceSourceDiffRow,
+  "methods" | "missingMethods" | "missingRoutes" | "missingServices" | "missingSpanIds" | "routes" | "services" | "spanIds"
+> & {
+  methods: Set<string>;
+  routes: Set<string>;
+  services: Set<string>;
+  spanIds: Set<string>;
 };
 
 const LEVEL_ORDER: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
@@ -110,6 +123,14 @@ function materializeFacetCounts(counter: Map<string, number>) {
   return [...counter.entries()]
     .map(([label, count]) => ({ label, count }))
     .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label));
+}
+
+function sortedSetValues(values: Set<string>) {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+function getMissingValues(sourceValues: Set<string>, allValues: Set<string>) {
+  return sortedSetValues(new Set([...allValues].filter((value) => !sourceValues.has(value))));
 }
 
 function matchesNormalizedSearch(value: string | null | undefined, normalizedSearch: string) {
@@ -668,6 +689,155 @@ export function buildTraceSourceCoverage(events: LogEvent[], traceId: string | n
       || right.eventCount - left.eventCount
       || left.sourceLabel.localeCompare(right.sourceLabel)
     ));
+}
+
+function getTraceDiffSelection(
+  events: LogEvent[],
+  selectedEvent: LogEvent | null,
+  selectedDerivedFlowGroup: DerivedFlowGroup | null,
+): { basis: TraceDiffBasis; events: LogEvent[] } | null {
+  if (!selectedEvent) {
+    return null;
+  }
+
+  if (selectedEvent.traceId) {
+    return {
+      basis: {
+        kind: "trace",
+        label: "Trace",
+        value: selectedEvent.traceId,
+      },
+      events: events.filter((event) => event.traceId === selectedEvent.traceId),
+    };
+  }
+
+  if (selectedEvent.requestId) {
+    return {
+      basis: {
+        kind: "request",
+        label: "Request",
+        value: selectedEvent.requestId,
+      },
+      events: events.filter((event) => event.requestId === selectedEvent.requestId),
+    };
+  }
+
+  if (!selectedDerivedFlowGroup) {
+    return null;
+  }
+
+  const eventIds = new Set(selectedDerivedFlowGroup.eventIds);
+
+  return {
+    basis: {
+      kind: "derivedFlow",
+      label: "Derived flow",
+      value: `${selectedDerivedFlowGroup.family} ${selectedDerivedFlowGroup.correlationKind}:${selectedDerivedFlowGroup.correlationValue}`,
+    },
+    events: events.filter((event) => eventIds.has(event.id)),
+  };
+}
+
+export function buildTraceSourceDiff(
+  events: LogEvent[],
+  selectedEvent: LogEvent | null,
+  selectedDerivedFlowGroup: DerivedFlowGroup | null = null,
+): TraceSourceDiff | null {
+  const selection = getTraceDiffSelection(events, selectedEvent, selectedDerivedFlowGroup);
+
+  if (!selection || selection.events.length === 0) {
+    return null;
+  }
+
+  const rows = new Map<string, MutableTraceSourceDiffRow>();
+  const allServices = new Set<string>();
+  const allSpanIds = new Set<string>();
+  const allRoutes = new Set<string>();
+  const allMethods = new Set<string>();
+  let issueCount = 0;
+
+  for (const event of selection.events.sort(compareEvents)) {
+    const current = rows.get(event.sourceId) ?? {
+      sourceId: event.sourceId,
+      sourceLabel: event.sourceLabel,
+      eventIds: [],
+      eventCount: 0,
+      issueCount: 0,
+      selected: event.sourceId === selectedEvent?.sourceId,
+      startMs: null,
+      endMs: null,
+      methods: new Set<string>(),
+      routes: new Set<string>(),
+      services: new Set<string>(),
+      spanIds: new Set<string>(),
+    };
+    const routeAndMethod = extractRouteAndMethod(event);
+    const normalizedRoute = normalizeRoutePath(routeAndMethod.route);
+    const hasIssue = isIssueLevel(event.level);
+
+    current.eventIds.push(event.id);
+    current.eventCount += 1;
+    current.issueCount += hasIssue ? 1 : 0;
+    issueCount += hasIssue ? 1 : 0;
+
+    if (event.timestampMs !== null) {
+      current.startMs = current.startMs === null ? event.timestampMs : Math.min(current.startMs, event.timestampMs);
+      current.endMs = current.endMs === null ? event.timestampMs : Math.max(current.endMs, event.timestampMs);
+    }
+
+    if (event.service) {
+      current.services.add(event.service);
+      allServices.add(event.service);
+    }
+
+    if (event.spanId) {
+      current.spanIds.add(event.spanId);
+      allSpanIds.add(event.spanId);
+    }
+
+    if (normalizedRoute) {
+      current.routes.add(normalizedRoute);
+      allRoutes.add(normalizedRoute);
+    }
+
+    if (routeAndMethod.method) {
+      current.methods.add(routeAndMethod.method);
+      allMethods.add(routeAndMethod.method);
+    }
+
+    rows.set(event.sourceId, current);
+  }
+
+  const materializedRows = [...rows.values()]
+    .map((row) => ({
+      ...row,
+      methods: sortedSetValues(row.methods),
+      missingMethods: getMissingValues(row.methods, allMethods),
+      missingRoutes: getMissingValues(row.routes, allRoutes),
+      missingServices: getMissingValues(row.services, allServices),
+      missingSpanIds: getMissingValues(row.spanIds, allSpanIds),
+      routes: sortedSetValues(row.routes),
+      services: sortedSetValues(row.services),
+      spanIds: sortedSetValues(row.spanIds),
+    }))
+    .sort((left, right) => (
+      Number(right.selected) - Number(left.selected)
+      || right.issueCount - left.issueCount
+      || right.eventCount - left.eventCount
+      || left.sourceLabel.localeCompare(right.sourceLabel)
+    ));
+
+  return {
+    basis: selection.basis,
+    eventCount: selection.events.length,
+    issueCount,
+    sourceCount: materializedRows.length,
+    methods: sortedSetValues(allMethods),
+    routes: sortedSetValues(allRoutes),
+    services: sortedSetValues(allServices),
+    spanIds: sortedSetValues(allSpanIds),
+    rows: materializedRows,
+  };
 }
 
 export function getRelatedEvents(events: LogEvent[], selectedEvent: LogEvent | null, limit = 8) {
