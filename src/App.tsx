@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, FileText, Filter, FolderOpen, GitBranch, ListTree } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
@@ -7,8 +7,6 @@ import { SidebarSection } from "@/features/log-explorer/components/SidebarSectio
 import {
   type AnalysisDrillDownFilter,
   eventMatchesAnalysisDrillDownFilters,
-  getAnalysisDrillDownId,
-  upsertAnalysisDrillDownFilter,
 } from "@/features/log-explorer/analysis-drill-down";
 import {
   buildEventStreamColumns,
@@ -17,6 +15,7 @@ import {
   type EventStreamBuiltinColumnId,
 } from "@/features/log-explorer/event-stream-columns";
 import { useLogSession } from "@/features/log-explorer/hooks/useLogSession";
+import { useLogExplorerFilters } from "@/features/log-explorer/hooks/useLogExplorerFilters";
 import {
   type MetricCardProps,
   getDirectoryPath,
@@ -37,7 +36,7 @@ import {
   getRelatedEvents,
 } from "@/lib/logs/analysis";
 import { CANONICAL_LOG_ALIAS_FIELDS } from "@/lib/logs/aliases";
-import type { FieldFilter, LogEvent, LogFilters, LogLevel } from "@/lib/logs/types";
+import type { FieldFilter, LogEvent, LogFilters } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
@@ -105,58 +104,42 @@ function App() {
     sourceLabel,
     sourcePath,
   } = useLogSession();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [levelFilter, setLevelFilter] = useState<LogLevel | "all">("all");
-  const [sourceFilter, setSourceFilter] = useState<string | "all">("all");
-  const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
-  const [traceFilter, setTraceFilter] = useState<string | "all">("all");
-  const [requestFilter, setRequestFilter] = useState<string | "all">("all");
-  const [fieldFilters, setFieldFilters] = useState<FieldFilter[]>([]);
-  const [facetFieldKey, setFacetFieldKey] = useState<string | "all">("all");
+  const {
+    analysisDrillDownFilters,
+    applyAnalysisDrillDownFilter,
+    clearAnalysisDrillDownFilters,
+    clearFieldFilters,
+    deferredSearchTerm,
+    facetFieldKey,
+    fieldFilters,
+    issuesOnly,
+    levelFilter,
+    removeAnalysisDrillDownFilter,
+    removeFieldFilter,
+    requestFilter,
+    resetFilters,
+    searchTerm,
+    serviceFilter,
+    setFacetFieldKey,
+    setIssuesOnly,
+    setLevelFilter,
+    setRequestFilter,
+    setSearchTerm,
+    setServiceFilter,
+    setSourceFilter,
+    setTraceFilter,
+    addFieldFilter: addFieldFilterState,
+    sharedFilters,
+    sourceFilter,
+    traceFilter,
+  } = useLogExplorerFilters();
   const [hiddenFieldKeys, setHiddenFieldKeys] = useState<string[]>([]);
   const [eventStreamBuiltinColumns, setEventStreamBuiltinColumns] = useState<EventStreamBuiltinColumnId[]>([...DEFAULT_EVENT_STREAM_COLUMNS]);
   const [pinnedEventFieldColumns, setPinnedEventFieldColumns] = useState<string[]>([]);
-  const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("events");
-  const [analysisDrillDownFilters, setAnalysisDrillDownFilters] = useState<AnalysisDrillDownFilter[]>([]);
-  const deferredSearchTerm = useDeferredValue(searchTerm);
-
-  const resetFilters = useCallback(() => {
-    setSearchTerm("");
-    setLevelFilter("all");
-    setSourceFilter("all");
-    setServiceFilter("all");
-    setTraceFilter("all");
-    setRequestFilter("all");
-    setFieldFilters([]);
-    setFacetFieldKey("all");
-    setIssuesOnly(false);
-    setAnalysisDrillDownFilters([]);
-  }, []);
-  const applyAnalysisDrillDownFilter = useCallback((filter: AnalysisDrillDownFilter) => {
-    setAnalysisDrillDownFilters((current) => upsertAnalysisDrillDownFilter(current, filter));
-  }, []);
-  const removeAnalysisDrillDownFilter = useCallback((filter: AnalysisDrillDownFilter) => {
-    const filterId = getAnalysisDrillDownId(filter);
-    setAnalysisDrillDownFilters((current) => (
-      current.filter((currentFilter) => getAnalysisDrillDownId(currentFilter) !== filterId)
-    ));
-  }, []);
-  const clearAnalysisDrillDownFilters = useCallback(() => {
-    setAnalysisDrillDownFilters([]);
-  }, []);
 
   const events = useMemo(() => session?.events ?? [], [session]);
-  const sharedFilters = useMemo(() => ({
-    searchTerm: deferredSearchTerm,
-    level: levelFilter,
-    source: sourceFilter,
-    service: serviceFilter,
-    traceId: traceFilter,
-    requestId: requestFilter,
-    issuesOnly,
-  }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, sourceFilter, traceFilter]);
   const filteredEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
     ...sharedFilters,
     fieldFilters,
@@ -413,19 +396,9 @@ function App() {
     setHiddenFieldKeys([]);
   }, []);
   const addFieldFilter = useCallback((fieldKey: string, fieldValue: string, operator: FieldFilter["operator"] = "include") => {
-    setFieldFilters((current) => {
-      const next = current.filter((filter) => filter.key !== fieldKey);
-      return [...next, { key: fieldKey, value: fieldValue, operator }];
-    });
-    setFacetFieldKey(fieldKey);
+    addFieldFilterState(fieldKey, fieldValue, operator);
     setActiveTab("events");
-  }, []);
-  const removeFieldFilter = useCallback((fieldKey: string) => {
-    setFieldFilters((current) => current.filter((filter) => filter.key !== fieldKey));
-  }, []);
-  const clearFieldFilters = useCallback(() => {
-    setFieldFilters([]);
-  }, []);
+  }, [addFieldFilterState]);
   const toggleBuiltinEventColumn = useCallback((columnId: EventStreamBuiltinColumnId) => {
     setEventStreamBuiltinColumns((current) => normalizeBuiltinEventStreamColumns(
       current.includes(columnId)

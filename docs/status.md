@@ -222,7 +222,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - 미사용 `src/App.css` 템플릿 잔재 삭제 완료
 - README와 상태 문서의 대용량 최적화 설명 드리프트 정리 완료
-- 다음 배치에서 `src/App.tsx` 상태 관리 추가 분리 여부 재검토
+- `src/App.tsx` 필터 상태 분리 완료: [`docs/todo-app-state-split.md`](./todo-app-state-split.md)
+- 다음 배치에서 view configuration 또는 파생 계산 추가 분리 여부 재검토
 - 디자인 시스템 컴포넌트 사용 범위 재점검
 - 번들 split 이후 청크 크기와 lazy boundary 재점검
 
