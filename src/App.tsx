@@ -6,7 +6,7 @@ import { OverviewSection } from "@/features/log-explorer/components/OverviewSect
 import { SidebarSection } from "@/features/log-explorer/components/SidebarSection";
 import {
   type AnalysisDrillDownFilter,
-  applyAnalysisDrillDownFilters,
+  eventMatchesAnalysisDrillDownFilters,
   getAnalysisDrillDownId,
   upsertAnalysisDrillDownFilter,
 } from "@/features/log-explorer/analysis-drill-down";
@@ -31,12 +31,13 @@ import {
   buildSpanForest,
   buildTraceSourceDiff,
   buildTraceGroups,
+  eventMatchesLogFilters,
   filterLogEvents,
   getDerivedFlowGroupForEvent,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
 import { CANONICAL_LOG_ALIAS_FIELDS } from "@/lib/logs/aliases";
-import type { FieldFilter, LogEvent, LogLevel } from "@/lib/logs/types";
+import type { FieldFilter, LogEvent, LogFilters, LogLevel } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
@@ -68,6 +69,21 @@ function pickPreferredEventId(events: LogEvent[]) {
     event.timestampMs !== null
     && !event.parseIssues.some((issue) => issue.kind === "timestamp_missing")
   ))?.id ?? events[0]?.id ?? null;
+}
+
+function filterLogEventsWithDrillDown(
+  events: LogEvent[],
+  filters: LogFilters,
+  drillDownFilters: AnalysisDrillDownFilter[],
+) {
+  if (drillDownFilters.length === 0) {
+    return filterLogEvents(events, filters);
+  }
+
+  return events.filter((event) => (
+    eventMatchesLogFilters(event, filters)
+    && eventMatchesAnalysisDrillDownFilters(event, drillDownFilters)
+  ));
 }
 
 function App() {
@@ -139,24 +155,20 @@ function App() {
     requestId: requestFilter,
     issuesOnly,
   }), [deferredSearchTerm, issuesOnly, levelFilter, requestFilter, serviceFilter, sourceFilter, traceFilter]);
-  const scopedEvents = useMemo(() => applyAnalysisDrillDownFilters(filterLogEvents(events, {
+  const scopedEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
     ...sharedFilters,
     fieldFilters: [],
-  }), analysisDrillDownFilters), [analysisDrillDownFilters, events, sharedFilters]);
-  const fieldFacetContextEvents = useMemo(() => applyAnalysisDrillDownFilters(filterLogEvents(events, {
+  }, analysisDrillDownFilters), [analysisDrillDownFilters, events, sharedFilters]);
+  const fieldFacetContextEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
     ...sharedFilters,
     fieldFilters: facetFieldKey === "all"
       ? fieldFilters
       : fieldFilters.filter((filter) => filter.key !== facetFieldKey),
-  }), analysisDrillDownFilters), [analysisDrillDownFilters, events, facetFieldKey, fieldFilters, sharedFilters]);
-  const baseFilteredEvents = useMemo(() => filterLogEvents(events, {
+  }, analysisDrillDownFilters), [analysisDrillDownFilters, events, facetFieldKey, fieldFilters, sharedFilters]);
+  const filteredEvents = useMemo(() => filterLogEventsWithDrillDown(events, {
     ...sharedFilters,
     fieldFilters,
-  }), [events, fieldFilters, sharedFilters]);
-  const filteredEvents = useMemo(
-    () => applyAnalysisDrillDownFilters(baseFilteredEvents, analysisDrillDownFilters),
-    [analysisDrillDownFilters, baseFilteredEvents],
-  );
+  }, analysisDrillDownFilters), [analysisDrillDownFilters, events, fieldFilters, sharedFilters]);
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
   const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);

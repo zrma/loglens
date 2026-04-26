@@ -180,44 +180,50 @@ export function isIssueLevel(level: LogLevel) {
   return level === "error" || level === "fatal";
 }
 
+function eventMatchesNormalizedLogFilters(event: LogEvent, filters: LogFilters, normalizedSearch: string) {
+  if (filters.level !== "all" && event.level !== filters.level) {
+    return false;
+  }
+
+  if (filters.source !== "all" && event.sourceId !== filters.source) {
+    return false;
+  }
+
+  if (filters.service !== "all" && (event.service ?? "미지정") !== filters.service) {
+    return false;
+  }
+
+  if (filters.traceId !== "all" && (event.traceId ?? "untracked") !== filters.traceId) {
+    return false;
+  }
+
+  if (filters.requestId !== "all" && (event.requestId ?? "none") !== filters.requestId) {
+    return false;
+  }
+
+  if (!matchesFieldFilters(event, filters.fieldFilters)) {
+    return false;
+  }
+
+  if (filters.issuesOnly && !isIssueLevel(event.level)) {
+    return false;
+  }
+
+  if (!normalizedSearch) {
+    return true;
+  }
+
+  return eventMatchesSearch(event, normalizedSearch);
+}
+
+export function eventMatchesLogFilters(event: LogEvent, filters: LogFilters) {
+  return eventMatchesNormalizedLogFilters(event, filters, filters.searchTerm.trim().toLowerCase());
+}
+
 export function filterLogEvents(events: LogEvent[], filters: LogFilters) {
   const normalizedSearch = filters.searchTerm.trim().toLowerCase();
 
-  return events.filter((event) => {
-    if (filters.level !== "all" && event.level !== filters.level) {
-      return false;
-    }
-
-    if (filters.source !== "all" && event.sourceId !== filters.source) {
-      return false;
-    }
-
-    if (filters.service !== "all" && (event.service ?? "미지정") !== filters.service) {
-      return false;
-    }
-
-    if (filters.traceId !== "all" && (event.traceId ?? "untracked") !== filters.traceId) {
-      return false;
-    }
-
-    if (filters.requestId !== "all" && (event.requestId ?? "none") !== filters.requestId) {
-      return false;
-    }
-
-    if (!matchesFieldFilters(event, filters.fieldFilters)) {
-      return false;
-    }
-
-    if (filters.issuesOnly && !isIssueLevel(event.level)) {
-      return false;
-    }
-
-    if (!normalizedSearch) {
-      return true;
-    }
-
-    return eventMatchesSearch(event, normalizedSearch);
-  });
+  return events.filter((event) => eventMatchesNormalizedLogFilters(event, filters, normalizedSearch));
 }
 
 export function matchesFieldFilters(event: LogEvent, filters: FieldFilter[]) {

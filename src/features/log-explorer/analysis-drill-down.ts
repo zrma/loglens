@@ -52,6 +52,13 @@ function matchesDrillDownFilter(event: LogEvent, filter: AnalysisDrillDownFilter
   }
 }
 
+export function eventMatchesAnalysisDrillDownFilters(
+  event: LogEvent,
+  filters: AnalysisDrillDownFilter[],
+) {
+  return filters.every((filter) => matchesDrillDownFilter(event, filter));
+}
+
 export function applyAnalysisDrillDownFilters(
   events: LogEvent[],
   filters: AnalysisDrillDownFilter[],
@@ -60,7 +67,7 @@ export function applyAnalysisDrillDownFilters(
     return events;
   }
 
-  return events.filter((event) => filters.every((filter) => matchesDrillDownFilter(event, filter)));
+  return events.filter((event) => eventMatchesAnalysisDrillDownFilters(event, filters));
 }
 
 export function upsertAnalysisDrillDownFilter(
