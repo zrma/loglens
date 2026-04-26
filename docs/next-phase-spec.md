@@ -121,6 +121,8 @@ type AliasOverrideMap = Partial<Record<CanonicalFieldKey, string[]>>;
 
 ## 2. Parser Diagnostics 강화
 
+상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-parser-diagnostics.md`](./todo-parser-diagnostics.md)에 남긴다.
+
 ### 목표
 
 파서가 무엇을 성공했고 무엇을 놓쳤는지, 사용자가 원인을 추적할 수 있게 만든다.

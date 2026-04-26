@@ -17,6 +17,14 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - nested JSON correlation field 추출
   - parser alias preset(`auto`, `default`, `zap-short-json`)
   - 세션 단위 custom alias override UI
+  - severity/kind 기반 Parser Diagnostics
+    - `timestamp_missing`
+    - `timestamp_parse_failed`
+    - `json_parse_failed`
+    - `structured_parse_fallback`
+    - `key_value_partial_parse`
+    - `alias_override_applied`
+    - `correlation_field_missing`
   - zap-style short key(`T/L/N/M/rid`) 처리
   - `traceparent` 기반 trace/span fallback
 - 이벤트 도메인 모델 정리
@@ -40,7 +48,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - event stream column 토글
   - structured field column pinning
   - 상세 이벤트 패널
-  - parser notes 표시
+  - Parser Diagnostics 표시
   - raw block 표시
   - field key visibility 토글
 - 관계 추적 UI
@@ -51,7 +59,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - span timeline
 - 분석 UI
   - 시간대 분포 차트
-  - level/service/request/parser note 분포
+  - level/service/request/Parser Diagnostics 분포
 - 샘플 trace 세션 fixture
 - 테스트
   - parser/analysis smoke test
@@ -66,6 +74,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - async line stream parser test
   - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
   - nested JSON / Go panic stack fixture test
+  - timestamp missing/parse failed, JSON fallback, alias override diagnostic test
 - 에이전트 하네스 검증
   - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, selected-file runtime smoke, UI smoke coverage, 대용량 분석 fixture, 대용량 UI windowing fixture, ordered backlog, 주요 문서 드리프트 확인
 - 자율 실행 하네스
@@ -96,6 +105,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - zap-style JSON access log를 request/service/timestamp 기준으로 읽기
 - parser preset을 바꿔 같은 세션을 다시 읽기
 - 필드 매핑 UI에서 세션 단위 alias override를 적용하고 다시 파싱하기
+- 세션 요약, 분석 탭, 이벤트 상세에서 Parser Diagnostics kind/severity 확인하기
 - 문제 이벤트만 골라 보기
 - 특정 source/service/request/trace 기준으로 좁혀 보기
 - 특정 structured field key/value facet으로 누적 조건 걸기
@@ -127,7 +137,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - 대용량 로그에서 렌더링/메모리 비용이 커질 수 있음
 - 대용량 로그에서 전체 이벤트 배열과 전체 집계는 여전히 메모리에 유지됨
-- 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
+- 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도와 일부 diagnostic 분류가 흔들릴 수 있음
 - custom alias override는 현재 세션 단위이며 영구 저장이나 import/export는 아직 없음
 - Tauri 실제 데스크톱 창 자동화는 아직 없고, 선택 파일 계약은 focused runtime smoke로 보강된 상태
 - 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture, 자율 실행 플레이북 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
@@ -145,25 +155,25 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - preset 위에 사용자 매핑 덮어쓰기
 - override 적용 시 즉시 재파싱
 
-### 1. Parser Diagnostics 강화
+### 완료. Parser Diagnostics 강화
 
 - 파싱 실패 이유 분류 세분화
 - timestamp/structured fallback 설명 강화
 - alias override와 연결되는 진단 힌트 추가
 
-### 2. Analysis Drill-down 연결
+### 1. Analysis Drill-down 연결
 
 - 차트 클릭으로 필터 반영
 - 카드/분포와 facet 상태 연결
 - 이벤트 탭과 분석 탭 간 drill-down 상태 유지
 
-### 3. Cross-file Trace Diff
+### 2. Cross-file Trace Diff
 
 - trace 기준 source별 비교 카드
 - trace가 없을 때 derived flow fallback
 - source coverage를 diff 수준으로 확장
 
-### 4. 대용량 세션 메모리 최적화
+### 3. 대용량 세션 메모리 최적화
 
 - large fixture 도입
 - 파생 계산 캐시/지연 계산
