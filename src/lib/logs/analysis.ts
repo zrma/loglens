@@ -1,6 +1,7 @@
 import type {
   DerivedFlowCorrelationKind,
   DerivedFlowGroup,
+  DerivedFlowGroupPreview,
   FieldFilter,
   LogEvent,
   LogFilters,
@@ -11,6 +12,7 @@ import type {
   TraceSourceDiff,
   TraceSourceDiffRow,
   TraceGroup,
+  TraceGroupPreview,
   TraceSourceCoverage,
 } from "@/lib/logs/types";
 
@@ -44,8 +46,33 @@ type MutableTraceGroup = {
   endMs: number | null;
 };
 
+type MutableTraceGroupPreview = {
+  traceId: string;
+  firstEvent: LogEvent | null;
+  issueCount: number;
+  eventCount: number;
+  startMs: number | null;
+  endMs: number | null;
+  levels: Set<LogLevel>;
+  requestIds: Set<string>;
+  services: Set<string>;
+  sources: Set<string>;
+  spanIds: Set<string>;
+};
+
 type MutableTraceSourceCoverage = Omit<TraceSourceCoverage, "services"> & {
   services: Set<string>;
+};
+
+type MutableDerivedFlowGroupPreview = Omit<
+  DerivedFlowGroupPreview,
+  "firstEventId" | "methods" | "routes" | "services" | "sources"
+> & {
+  firstEvent: LogEvent | null;
+  methods: Set<string>;
+  routes: Set<string>;
+  services: Set<string>;
+  sources: Set<string>;
 };
 
 type MutableTraceSourceDiffRow = Omit<
@@ -129,8 +156,30 @@ function sortedSetValues(values: Set<string>) {
   return [...values].sort((left, right) => left.localeCompare(right));
 }
 
+function orderedSetValues<T>(values: Set<T>) {
+  return [...values];
+}
+
 function getMissingValues(sourceValues: Set<string>, allValues: Set<string>) {
   return sortedSetValues(new Set([...allValues].filter((value) => !sourceValues.has(value))));
+}
+
+function updateFirstEvent<T extends { firstEvent: LogEvent | null }>(group: T, event: LogEvent) {
+  if (!group.firstEvent || compareEvents(event, group.firstEvent) < 0) {
+    group.firstEvent = event;
+  }
+}
+
+function updateTimeRange<T extends { startMs: number | null; endMs: number | null }>(
+  group: T,
+  timestampMs: number | null,
+) {
+  if (timestampMs === null) {
+    return;
+  }
+
+  group.startMs = group.startMs === null ? timestampMs : Math.min(group.startMs, timestampMs);
+  group.endMs = group.endMs === null ? timestampMs : Math.max(group.endMs, timestampMs);
 }
 
 function matchesNormalizedSearch(value: string | null | undefined, normalizedSearch: string) {
@@ -576,75 +625,296 @@ export function buildTraceGroups(events: LogEvent[]) {
   });
 }
 
-export function buildDerivedFlowGroups(events: LogEvent[]) {
-  const groups = new Map<string, MutableDerivedFlowGroup>();
+export function buildTopTraceGroupPreviews(events: LogEvent[], limit: number) {
+  if (limit <= 0) {
+    return [];
+  }
+
+  const groups = new Map<string, MutableTraceGroupPreview>();
 
   for (const event of events) {
-    const hint = deriveFlowHint(event);
-
-    if (!hint.family || !hint.correlationKind || !hint.correlationValue) {
+    if (!event.traceId) {
       continue;
     }
 
-    const flowKey = `${hint.family}::${hint.correlationKind}:${hint.correlationValue}`;
-    const current = groups.get(flowKey) ?? {
-      correlationKind: hint.correlationKind,
-      correlationValue: hint.correlationValue,
-      eventCount: 0,
-      eventIds: [],
-      family: hint.family,
-      flowKey,
+    const current = groups.get(event.traceId) ?? {
+      traceId: event.traceId,
+      firstEvent: null,
       issueCount: 0,
-      methods: new Set<string>(),
-      resourceId: hint.resourceId,
-      routes: new Set<string>(),
-      services: new Set<string>(),
-      sources: new Set<string>(),
+      eventCount: 0,
       startMs: null,
       endMs: null,
+      levels: new Set<LogLevel>(),
+      requestIds: new Set<string>(),
+      services: new Set<string>(),
+      sources: new Set<string>(),
+      spanIds: new Set<string>(),
     };
 
+    updateFirstEvent(current, event);
+    updateTimeRange(current, event.timestampMs);
     current.eventCount += 1;
-    current.eventIds.push(event.id);
     current.issueCount += isIssueLevel(event.level) ? 1 : 0;
-
-    if (hint.method) {
-      current.methods.add(hint.method);
-    }
-
-    if (hint.normalizedRoute) {
-      current.routes.add(hint.normalizedRoute);
-    }
+    current.levels.add(event.level);
+    current.sources.add(event.sourceLabel);
 
     if (event.service) {
       current.services.add(event.service);
     }
 
-    current.sources.add(event.sourceLabel);
-
-    if (event.timestampMs !== null) {
-      current.startMs = current.startMs === null ? event.timestampMs : Math.min(current.startMs, event.timestampMs);
-      current.endMs = current.endMs === null ? event.timestampMs : Math.max(current.endMs, event.timestampMs);
+    if (event.requestId) {
+      current.requestIds.add(event.requestId);
     }
 
+    if (event.spanId) {
+      current.spanIds.add(event.spanId);
+    }
+
+    groups.set(event.traceId, current);
+  }
+
+  return [...groups.values()]
+    .map((group): TraceGroupPreview => ({
+      traceId: group.traceId,
+      firstEventId: group.firstEvent?.id ?? null,
+      services: orderedSetValues(group.services),
+      sources: orderedSetValues(group.sources),
+      levels: orderedSetValues(group.levels),
+      requestIds: orderedSetValues(group.requestIds),
+      eventCount: group.eventCount,
+      spanCount: group.spanIds.size,
+      issueCount: group.issueCount,
+      startMs: group.startMs,
+      endMs: group.endMs,
+    }))
+    .sort((left, right) => {
+      if (right.issueCount !== left.issueCount) {
+        return right.issueCount - left.issueCount;
+      }
+
+      if (right.eventCount !== left.eventCount) {
+        return right.eventCount - left.eventCount;
+      }
+
+      return left.traceId.localeCompare(right.traceId);
+    })
+    .slice(0, limit);
+}
+
+function getDerivedFlowKey(hint: DerivedFlowHint) {
+  if (!hint.family || !hint.correlationKind || !hint.correlationValue) {
+    return null;
+  }
+
+  return `${hint.family}::${hint.correlationKind}:${hint.correlationValue}`;
+}
+
+function createMutableDerivedFlowGroup(flowKey: string, hint: DerivedFlowHint): MutableDerivedFlowGroup {
+  if (!hint.family || !hint.correlationKind || !hint.correlationValue) {
+    throw new Error("Cannot create a derived flow group without a complete flow hint.");
+  }
+
+  return {
+    correlationKind: hint.correlationKind,
+    correlationValue: hint.correlationValue,
+    eventCount: 0,
+    eventIds: [],
+    family: hint.family,
+    flowKey,
+    issueCount: 0,
+    methods: new Set<string>(),
+    resourceId: hint.resourceId,
+    routes: new Set<string>(),
+    services: new Set<string>(),
+    sources: new Set<string>(),
+    startMs: null,
+    endMs: null,
+  };
+}
+
+function addEventToDerivedFlowGroup(group: MutableDerivedFlowGroup, event: LogEvent, hint: DerivedFlowHint) {
+  group.eventCount += 1;
+  group.eventIds.push(event.id);
+  group.issueCount += isIssueLevel(event.level) ? 1 : 0;
+
+  if (hint.method) {
+    group.methods.add(hint.method);
+  }
+
+  if (hint.normalizedRoute) {
+    group.routes.add(hint.normalizedRoute);
+  }
+
+  if (event.service) {
+    group.services.add(event.service);
+  }
+
+  group.sources.add(event.sourceLabel);
+  updateTimeRange(group, event.timestampMs);
+}
+
+function materializeDerivedFlowGroup(group: MutableDerivedFlowGroup): DerivedFlowGroup {
+  return {
+    ...group,
+    methods: orderedSetValues(group.methods),
+    routes: orderedSetValues(group.routes),
+    services: orderedSetValues(group.services),
+    sources: orderedSetValues(group.sources),
+  };
+}
+
+export function buildDerivedFlowGroups(events: LogEvent[]) {
+  const groups = new Map<string, MutableDerivedFlowGroup>();
+
+  for (const event of events) {
+    const hint = deriveFlowHint(event);
+    const flowKey = getDerivedFlowKey(hint);
+
+    if (!flowKey) {
+      continue;
+    }
+
+    const current = groups.get(flowKey) ?? createMutableDerivedFlowGroup(flowKey, hint);
+
+    addEventToDerivedFlowGroup(current, event, hint);
     groups.set(flowKey, current);
   }
 
   return [...groups.values()]
     .filter((group) => group.eventCount > 1)
-    .map((group) => ({
-      ...group,
-      methods: [...group.methods],
-      routes: [...group.routes],
-      services: [...group.services],
-      sources: [...group.sources],
-    }))
+    .map(materializeDerivedFlowGroup)
     .sort((left, right) => (
       right.issueCount - left.issueCount
       || right.eventCount - left.eventCount
       || left.family.localeCompare(right.family)
       || left.correlationValue.localeCompare(right.correlationValue)
     ));
+}
+
+export function buildDerivedFlowGroupForEvent(events: LogEvent[], selectedEvent: LogEvent | null) {
+  if (!selectedEvent) {
+    return null;
+  }
+
+  const selectedHint = deriveFlowHint(selectedEvent);
+  const selectedFlowKey = getDerivedFlowKey(selectedHint);
+
+  if (!selectedFlowKey) {
+    return null;
+  }
+
+  const group = createMutableDerivedFlowGroup(selectedFlowKey, selectedHint);
+
+  for (const event of events) {
+    const hint = deriveFlowHint(event);
+
+    if (getDerivedFlowKey(hint) !== selectedFlowKey) {
+      continue;
+    }
+
+    addEventToDerivedFlowGroup(group, event, hint);
+  }
+
+  return group.eventCount > 1 ? materializeDerivedFlowGroup(group) : null;
+}
+
+function createMutableDerivedFlowGroupPreview(
+  flowKey: string,
+  hint: DerivedFlowHint,
+): MutableDerivedFlowGroupPreview {
+  if (!hint.family || !hint.correlationKind || !hint.correlationValue) {
+    throw new Error("Cannot create a derived flow preview without a complete flow hint.");
+  }
+
+  return {
+    correlationKind: hint.correlationKind,
+    correlationValue: hint.correlationValue,
+    eventCount: 0,
+    family: hint.family,
+    firstEvent: null,
+    flowKey,
+    issueCount: 0,
+    methods: new Set<string>(),
+    resourceId: hint.resourceId,
+    routes: new Set<string>(),
+    services: new Set<string>(),
+    sources: new Set<string>(),
+    startMs: null,
+    endMs: null,
+  };
+}
+
+function addEventToDerivedFlowPreview(
+  group: MutableDerivedFlowGroupPreview,
+  event: LogEvent,
+  hint: DerivedFlowHint,
+) {
+  updateFirstEvent(group, event);
+  updateTimeRange(group, event.timestampMs);
+  group.eventCount += 1;
+  group.issueCount += isIssueLevel(event.level) ? 1 : 0;
+
+  if (hint.method) {
+    group.methods.add(hint.method);
+  }
+
+  if (hint.normalizedRoute) {
+    group.routes.add(hint.normalizedRoute);
+  }
+
+  if (event.service) {
+    group.services.add(event.service);
+  }
+
+  group.sources.add(event.sourceLabel);
+}
+
+export function buildTopDerivedFlowGroupPreviews(events: LogEvent[], limit: number) {
+  if (limit <= 0) {
+    return [];
+  }
+
+  const groups = new Map<string, MutableDerivedFlowGroupPreview>();
+
+  for (const event of events) {
+    const hint = deriveFlowHint(event);
+    const flowKey = getDerivedFlowKey(hint);
+
+    if (!flowKey) {
+      continue;
+    }
+
+    const current = groups.get(flowKey) ?? createMutableDerivedFlowGroupPreview(flowKey, hint);
+
+    addEventToDerivedFlowPreview(current, event, hint);
+    groups.set(flowKey, current);
+  }
+
+  return [...groups.values()]
+    .filter((group) => group.eventCount > 1)
+    .map((group): DerivedFlowGroupPreview => ({
+      correlationKind: group.correlationKind,
+      correlationValue: group.correlationValue,
+      eventCount: group.eventCount,
+      family: group.family,
+      firstEventId: group.firstEvent?.id ?? null,
+      flowKey: group.flowKey,
+      issueCount: group.issueCount,
+      methods: orderedSetValues(group.methods),
+      resourceId: group.resourceId,
+      routes: orderedSetValues(group.routes),
+      services: orderedSetValues(group.services),
+      sources: orderedSetValues(group.sources),
+      startMs: group.startMs,
+      endMs: group.endMs,
+    }))
+    .sort((left, right) => (
+      right.issueCount - left.issueCount
+      || right.eventCount - left.eventCount
+      || left.family.localeCompare(right.family)
+      || left.correlationValue.localeCompare(right.correlationValue)
+    ))
+    .slice(0, limit);
 }
 
 export function getDerivedFlowGroupForEvent(groups: DerivedFlowGroup[], selectedEvent: LogEvent | null) {

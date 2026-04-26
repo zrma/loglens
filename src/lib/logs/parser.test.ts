@@ -6,6 +6,9 @@ import {
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
+  buildDerivedFlowGroupForEvent,
+  buildTopDerivedFlowGroupPreviews,
+  buildTopTraceGroupPreviews,
   getRelatedEvents,
   getDerivedFlowGroupForEvent,
   buildTraceSourceDiff,
@@ -186,6 +189,31 @@ describe("parseLogContent", () => {
     ]));
     expect(hourlyChart.parsedCount).toBe(3000);
     expect(hourlyChart.data.reduce((total, point) => total + point.count, 0)).toBe(3000);
+  });
+
+  it("builds bounded large-session flow previews without materializing every group event id", async () => {
+    const session = await parseLogLineStream(generateMixedLargeJsonLines(3000), {
+      reportInterval: 1000,
+    });
+
+    const topTracePreviews = buildTopTraceGroupPreviews(session.events, 6);
+    const topFlowPreviews = buildTopDerivedFlowGroupPreviews(session.events, 6);
+    const selectedFlowGroup = buildDerivedFlowGroupForEvent(session.events, session.events[0] ?? null);
+
+    expect(topTracePreviews).toHaveLength(6);
+    expect(topTracePreviews.every((group) => group.firstEventId !== null)).toBe(true);
+    expect(topTracePreviews.every((group) => group.eventCount === 10)).toBe(true);
+    expect(topTracePreviews.every((group) => "eventIds" in group)).toBe(false);
+    expect(topFlowPreviews).toHaveLength(6);
+    expect(topFlowPreviews.every((group) => group.firstEventId !== null)).toBe(true);
+    expect(topFlowPreviews.every((group) => "eventIds" in group)).toBe(false);
+    expect(selectedFlowGroup).toMatchObject({
+      correlationKind: "request",
+      correlationValue: "req-large-0",
+      eventCount: 5,
+      family: "/checkout",
+    });
+    expect(selectedFlowGroup?.eventIds).toHaveLength(5);
   });
 
   it("filters and facets by arbitrary structured fields", () => {

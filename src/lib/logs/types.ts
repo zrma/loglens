@@ -139,6 +139,10 @@ export type TraceGroup = {
   endMs: number | null;
 };
 
+export type TraceGroupPreview = Omit<TraceGroup, "eventIds"> & {
+  firstEventId: string | null;
+};
+
 export type TraceSourceCoverage = {
   sourceId: string;
   sourceLabel: string;
@@ -209,6 +213,10 @@ export type DerivedFlowGroup = {
   issueCount: number;
   startMs: number | null;
   endMs: number | null;
+};
+
+export type DerivedFlowGroupPreview = Omit<DerivedFlowGroup, "eventIds"> & {
+  firstEventId: string | null;
 };
 
 export type SpanNode = {

@@ -23,17 +23,18 @@ import {
 } from "@/features/log-explorer/presentation";
 import {
   buildFacetCounts,
-  buildDerivedFlowGroups,
+  buildDerivedFlowGroupForEvent,
   buildFieldKeyCounts,
   buildFieldValueCounts,
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
+  buildTopDerivedFlowGroupPreviews,
+  buildTopTraceGroupPreviews,
   buildTraceSourceDiff,
   buildTraceGroups,
   eventMatchesLogFilters,
   filterLogEvents,
-  getDerivedFlowGroupForEvent,
   getRelatedEvents,
 } from "@/lib/logs/analysis";
 import { CANONICAL_LOG_ALIAS_FIELDS } from "@/lib/logs/aliases";
@@ -171,9 +172,8 @@ function App() {
   }, analysisDrillDownFilters), [analysisDrillDownFilters, events, fieldFilters, sharedFilters]);
   const eventsById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
   const traceGroups = useMemo(() => buildTraceGroups(events), [events]);
-  const filteredTraceGroups = useMemo(() => buildTraceGroups(filteredEvents), [filteredEvents]);
-  const derivedFlowGroups = useMemo(() => buildDerivedFlowGroups(events), [events]);
-  const filteredDerivedFlowGroups = useMemo(() => buildDerivedFlowGroups(filteredEvents), [filteredEvents]);
+  const topFilteredTraceGroups = useMemo(() => buildTopTraceGroupPreviews(filteredEvents, 4), [filteredEvents]);
+  const topDerivedFlowGroups = useMemo(() => buildTopDerivedFlowGroupPreviews(filteredEvents, 6), [filteredEvents]);
   const levelCounts = useMemo(() => buildLevelCounts(filteredEvents), [filteredEvents]);
   const serviceCounts = useMemo(
     () => buildFacetCounts(filteredEvents.map((event) => event.service), "미지정"),
@@ -256,8 +256,12 @@ function App() {
       : null
   ), [selectedEvent?.traceId, traceGroups]);
   const selectedDerivedFlowGroup = useMemo(
-    () => getDerivedFlowGroupForEvent(derivedFlowGroups, selectedEvent),
-    [derivedFlowGroups, selectedEvent],
+    () => (
+      shouldBuildEventDetails
+        ? buildDerivedFlowGroupForEvent(events, selectedEvent)
+        : null
+    ),
+    [events, selectedEvent, shouldBuildEventDetails],
   );
   const selectedTraceSourceDiff = useMemo(
     () => (
@@ -286,12 +290,8 @@ function App() {
     [events, selectedEvent?.traceId],
   );
   const topTraceGroups = useMemo(
-    () => (traceFilter === "all" ? traceGroups : filteredTraceGroups).slice(0, 6),
-    [filteredTraceGroups, traceFilter, traceGroups],
-  );
-  const topDerivedFlowGroups = useMemo(
-    () => filteredDerivedFlowGroups.slice(0, 6),
-    [filteredDerivedFlowGroups],
+    () => buildTopTraceGroupPreviews(traceFilter === "all" ? events : filteredEvents, 6),
+    [events, filteredEvents, traceFilter],
   );
   const servicesInSession = useMemo(
     () => new Set(events.map((event) => event.service).filter(Boolean)).size,
@@ -566,11 +566,11 @@ function App() {
             onSelectTraceGroup={(group) => {
               setTraceFilter(group.traceId);
               setActiveTab("events");
-              setSelectedEventId(group.eventIds[0] ?? null);
+              setSelectedEventId(group.firstEventId);
             }}
             onSelectDerivedFlowGroup={(group) => {
               setActiveTab("events");
-              setSelectedEventId(group.eventIds[0] ?? null);
+              setSelectedEventId(group.firstEventId);
             }}
           />
 
@@ -659,7 +659,7 @@ function App() {
                       requestCounts={requestCounts}
                       diagnosticCounts={diagnosticCounts}
                       filteredEventCount={filteredEvents.length}
-                      filteredTraceGroups={filteredTraceGroups}
+                      topTraceGroups={topFilteredTraceGroups}
                       onApplyDrillDownFilter={applyAnalysisDrillDownFilter}
                       onClearDrillDownFilters={clearAnalysisDrillDownFilters}
                       onRemoveDrillDownFilter={removeAnalysisDrillDownFilter}

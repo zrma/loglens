@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { FacetCount } from "@/lib/logs/analysis";
-import type { DerivedFlowGroup, FieldFilter, LogLevel, TraceGroup } from "@/lib/logs/types";
+import type { DerivedFlowGroupPreview, FieldFilter, LogLevel, TraceGroupPreview } from "@/lib/logs/types";
 import {
   EVENT_STREAM_BUILTIN_COLUMNS,
   type EventStreamBuiltinColumnId,
@@ -41,8 +41,8 @@ type SidebarSectionProps = {
   eventStreamBuiltinColumns: EventStreamBuiltinColumnId[];
   pinnedEventFieldColumns: string[];
   eventColumnFieldOptions: FacetCount[];
-  topDerivedFlowGroups: DerivedFlowGroup[];
-  topTraceGroups: TraceGroup[];
+  topDerivedFlowGroups: DerivedFlowGroupPreview[];
+  topTraceGroups: TraceGroupPreview[];
   onSearchTermChange: (value: string) => void;
   onLevelFilterChange: (value: LogLevel | "all") => void;
   onSourceFilterChange: (value: string | "all") => void;
@@ -61,8 +61,8 @@ type SidebarSectionProps = {
   onToggleBuiltinEventColumn: (columnId: EventStreamBuiltinColumnId) => void;
   onToggleEventFieldColumn: (fieldKey: string) => void;
   onResetEventColumns: () => void;
-  onSelectDerivedFlowGroup: (group: DerivedFlowGroup) => void;
-  onSelectTraceGroup: (group: TraceGroup) => void;
+  onSelectDerivedFlowGroup: (group: DerivedFlowGroupPreview) => void;
+  onSelectTraceGroup: (group: TraceGroupPreview) => void;
 };
 
 export function SidebarSection({
