@@ -165,11 +165,10 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture, 자율 실행 플레이북 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
 - PR/CI 피드백 루프는 문서화됐지만 GitHub 인증이나 PR 생성 권한은 실행 환경에 따라 별도 확인이 필요함
 - `jj`는 clone마다 `jj git init --colocate`를 한 번 해줘야 한다
-- `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
 ## 다음 우선순위
 
-상세 구현 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)를 기준으로 합니다.
+완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 후속 유지보수 작업은 [`docs/todo-maintenance-gc.md`](./todo-maintenance-gc.md)를 기준으로 진행합니다.
 
 ### 완료. Custom Alias Override UI
 
@@ -216,6 +215,16 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - trace/span 집계 edge case test 보강 완료
 - 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장 완료
 - 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강 완료
+
+### 2. 유지보수 GC
+
+작업 목록은 [`docs/todo-maintenance-gc.md`](./todo-maintenance-gc.md)에 둔다.
+
+- 미사용 `src/App.css` 템플릿 잔재 삭제 완료
+- README와 상태 문서의 대용량 최적화 설명 드리프트 정리 완료
+- 다음 배치에서 `src/App.tsx` 상태 관리 추가 분리 여부 재검토
+- 디자인 시스템 컴포넌트 사용 범위 재점검
+- 번들 split 이후 청크 크기와 lazy boundary 재점검
 
 ## 지금 당장 하지 않아도 되는 것
 
