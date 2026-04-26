@@ -394,6 +394,26 @@ run batch service....
     });
   });
 
+  it("gives session alias overrides priority over the selected preset", () => {
+    const session = parseLogContent(`
+{"L":"INFO","severityText":"ERROR","T":"2026-03-08T12:34:56.000Z","N":"preset-service","svcName":"override-service","M":"preset message","detail":"override message"}
+    `.trim(), {
+      aliasOverrides: {
+        level: ["severityText"],
+        message: ["detail"],
+        service: ["svcName"],
+      },
+      aliasPresetId: "zap-short-json",
+    });
+
+    expect(session.events[0]).toMatchObject({
+      level: "error",
+      message: "override message",
+      service: "override-service",
+      timestampText: "2026-03-08T12:34:56.000Z",
+    });
+  });
+
   it("parses numeric epoch timestamps and preserves object arrays as indexed fields", () => {
     const session = parseLogContent(`
 {"timestamp":"1741437296000123","level":"info","service":"batch-worker","message":"batch accepted","jobs":[{"id":"job-1","status":"queued"},{"id":"job-2","status":"done"}]}

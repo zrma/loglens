@@ -152,4 +152,61 @@ describe("App smoke", () => {
     expect(await screen.findByRole("tab", { name: /이벤트 스트림/i })).toBeInTheDocument();
     expect((await screen.findAllByText(/trace-checkout-4821/i)).length).toBeGreaterThan(0);
   });
+
+  it("applies custom alias overrides from the field mapping dialog", async () => {
+    const customAliasLog = JSON.stringify({
+      detail: "custom alias ui message",
+      flow: "trace-custom-ui",
+      requestKey: "req-custom-ui",
+      severityText: "ERROR",
+      svcName: "edge-custom-ui",
+      unit: "span-custom-ui",
+      when: "1741437296000123",
+    });
+
+    tauriMocks.openMock.mockResolvedValue("file:///tmp/custom-alias.log");
+    tauriMocks.readTextFileLinesMock.mockImplementation(async () => linesFromText(customAliasLog));
+
+    renderApp();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /로컬 로그 파일 열기/i }));
+    });
+
+    await waitFor(() => {
+      expect(tauriMocks.openMock).toHaveBeenCalledTimes(1);
+      expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledWith("/tmp/custom-alias.log");
+    });
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent("필터 결과 1개 이벤트");
+    });
+
+    expect(document.body).toHaveTextContent("서비스 0");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /필드 매핑/i }));
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: /필드 매핑/i });
+
+    await act(async () => {
+      fireEvent.change(within(dialog).getByLabelText("timestamp alias"), { target: { value: "when" } });
+      fireEvent.change(within(dialog).getByLabelText("level alias"), { target: { value: "severityText" } });
+      fireEvent.change(within(dialog).getByLabelText("service alias"), { target: { value: "svcName" } });
+      fireEvent.change(within(dialog).getByLabelText("message alias"), { target: { value: "detail" } });
+      fireEvent.change(within(dialog).getByLabelText("traceId alias"), { target: { value: "flow" } });
+      fireEvent.change(within(dialog).getByLabelText("spanId alias"), { target: { value: "unit" } });
+      fireEvent.change(within(dialog).getByLabelText("requestId alias"), { target: { value: "requestKey" } });
+      fireEvent.click(within(dialog).getByRole("button", { name: /현재 세션 다시 파싱/i }));
+    });
+
+    await waitFor(() => {
+      expect(tauriMocks.readTextFileLinesMock).toHaveBeenCalledTimes(2);
+    });
+    expect((await screen.findAllByText(/custom alias active/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/edge-custom-ui/i)).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent("서비스 1");
+    });
+  });
 });

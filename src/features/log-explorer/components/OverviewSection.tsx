@@ -8,8 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FieldAliasDialog } from "@/features/log-explorer/components/FieldAliasDialog";
 import { MetricCard, type MetricCardProps } from "@/features/log-explorer/presentation";
-import type { LogAliasPreset, LogAliasPresetId } from "@/lib/logs/aliases";
+import type { LogAliasPreset, LogAliasPresetId, LogFieldAliasOverrides } from "@/lib/logs/aliases";
 import type { LogSource, ParsedLogSession } from "@/lib/logs/types";
 
 type OverviewSectionProps = {
@@ -24,6 +25,8 @@ type OverviewSectionProps = {
   formatBadges: Array<{ label: string; count: number }>;
   metrics: MetricCardProps[];
   errorMessage: string | null;
+  aliasOverrides: LogFieldAliasOverrides;
+  activeAliasOverrideCount: number;
   parserPreset: LogAliasPreset;
   parserPresetId: LogAliasPresetId;
   parserPresetOptions: LogAliasPreset[];
@@ -37,6 +40,8 @@ type OverviewSectionProps = {
   } | null;
   onSelectLogFile: () => void;
   onLoadSampleSession: () => void;
+  onApplyAliasOverrides: (value: LogFieldAliasOverrides) => void;
+  onResetAliasOverrides: () => void;
   onParserPresetChange: (value: LogAliasPresetId) => void;
 };
 
@@ -52,12 +57,16 @@ export function OverviewSection({
   formatBadges,
   metrics,
   errorMessage,
+  aliasOverrides,
+  activeAliasOverrideCount,
   parserPreset,
   parserPresetId,
   parserPresetOptions,
   loadProgress,
   onSelectLogFile,
   onLoadSampleSession,
+  onApplyAliasOverrides,
+  onResetAliasOverrides,
   onParserPresetChange,
 }: OverviewSectionProps) {
   return (
@@ -82,7 +91,7 @@ export function OverviewSection({
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted p-4 sm:max-w-md">
+                <div className="flex flex-col gap-3 rounded-2xl border border-border bg-muted p-4 sm:max-w-xl">
                   <div className="flex items-center gap-3">
                     <span className="shrink-0 text-sm font-medium text-foreground">파서 프리셋:</span>
                     <Select
@@ -104,6 +113,21 @@ export function OverviewSection({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FieldAliasDialog
+                      aliasOverrides={aliasOverrides}
+                      disabled={Boolean(loadProgress)}
+                      hasSession={Boolean(session)}
+                      parserPreset={parserPreset}
+                      onApplyAliasOverrides={onApplyAliasOverrides}
+                      onResetAliasOverrides={onResetAliasOverrides}
+                    />
+                    {activeAliasOverrideCount > 0 && (
+                      <span className="rounded-full border border-primary bg-accent px-2.5 py-1 text-xs font-medium text-primary">
+                        custom alias active
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
                     {parserPreset.description}
@@ -205,6 +229,11 @@ export function OverviewSection({
                         {label} {count}
                       </span>
                     ))}
+                    {activeAliasOverrideCount > 0 && (
+                      <span className="rounded-full border border-primary bg-accent px-2.5 py-1 text-xs font-medium text-primary">
+                        custom alias active
+                      </span>
+                    )}
                   </div>
                 </div>
                 {sources.length > 1 && (
