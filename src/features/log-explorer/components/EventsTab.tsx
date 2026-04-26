@@ -8,8 +8,9 @@ import type {
   ParseIssue,
   SpanForest,
   SpanNode,
+  TraceSourceDiff,
+  TraceSourceDiffRow,
   TraceGroup,
-  TraceSourceCoverage,
 } from "@/lib/logs/types";
 import { cn } from "@/lib/utils";
 import { LevelBadge, formatTraceLabel } from "@/features/log-explorer/presentation";
@@ -23,7 +24,7 @@ type EventsTabProps = {
   traceFilter: string | "all";
   selectedEvent: LogEvent | null;
   selectedTraceGroup: TraceGroup | null;
-  selectedTraceSourceCoverage: TraceSourceCoverage[];
+  selectedTraceSourceDiff: TraceSourceDiff | null;
   selectedDerivedFlowGroup: DerivedFlowGroup | null;
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
@@ -72,6 +73,32 @@ function getDiagnosticSeverityTone(severity: ParseIssue["severity"]) {
 
 function formatDiagnosticSeverity(severity: ParseIssue["severity"]) {
   return severity.toUpperCase();
+}
+
+function formatTraceDiffBasis(diff: TraceSourceDiff) {
+  if (diff.basis.kind === "trace") {
+    return `${diff.basis.label}: ${formatTraceLabel(diff.basis.value)}`;
+  }
+
+  return `${diff.basis.label}: ${diff.basis.value}`;
+}
+
+function summarizeValues(values: string[], emptyLabel: string) {
+  if (values.length === 0) {
+    return emptyLabel;
+  }
+
+  const visibleValues = values.slice(0, 3).join(", ");
+  return values.length > 3 ? `${visibleValues} +${values.length - 3}` : visibleValues;
+}
+
+function buildMissingHintRows(row: TraceSourceDiffRow) {
+  return [
+    { label: "service", values: row.missingServices },
+    { label: "span", values: row.missingSpanIds },
+    { label: "route", values: row.missingRoutes },
+    { label: "method", values: row.missingMethods },
+  ].filter((hint) => hint.values.length > 0);
 }
 
 function SpanTopologyNode({
@@ -159,7 +186,7 @@ export function EventsTab({
   traceFilter,
   selectedEvent,
   selectedTraceGroup,
-  selectedTraceSourceCoverage,
+  selectedTraceSourceDiff,
   selectedDerivedFlowGroup,
   relatedEvents,
   spanForest,
@@ -339,7 +366,7 @@ export function EventsTab({
               </div>
 
               {/* 3. 분석 인사이트 (Trace & Flow) */}
-              {(spanForest || selectedDerivedFlowGroup) && (
+              {(spanForest || selectedDerivedFlowGroup || selectedTraceSourceDiff) && (
                 <div className="space-y-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">분석 정보</p>
                   
@@ -374,35 +401,97 @@ export function EventsTab({
                     </div>
                   )}
 
-                  {showSourceContext && selectedTraceSourceCoverage.length > 0 && (
+                  {showSourceContext && selectedTraceSourceDiff && selectedTraceSourceDiff.rows.length > 0 && (
                     <div className="rounded-2xl border border-border bg-muted p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-foreground">Source 커버리지</p>
-                        <span className="text-[10px] text-muted-foreground">{selectedTraceSourceCoverage.length} sources</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground">Trace Diff</p>
+                          <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
+                            {formatTraceDiffBasis(selectedTraceSourceDiff)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {selectedTraceSourceDiff.sourceCount} sources · {selectedTraceSourceDiff.eventCount} events
+                        </span>
                       </div>
                       <div className="mt-3 space-y-2">
-                        {selectedTraceSourceCoverage.map((source) => (
-                          <div
-                            key={source.sourceId}
-                            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-foreground">{source.sourceLabel}</p>
-                              <p className="mt-1 text-[10px] text-muted-foreground">
-                                {source.eventCount} events
-                                {source.issueCount > 0 ? ` · issue ${source.issueCount}` : ""}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 shrink-0 rounded-full border-primary bg-background px-3 text-[10px] font-bold text-primary"
-                              onClick={() => onApplySourceFilter(source.sourceId)}
+                        {selectedTraceSourceDiff.rows.map((source) => {
+                          const missingHints = buildMissingHintRows(source);
+
+                          return (
+                            <div
+                              key={source.sourceId}
+                              className={cn(
+                                "rounded-2xl border p-3",
+                                source.selected
+                                  ? "border-primary bg-accent"
+                                  : "border-border bg-card",
+                              )}
                             >
-                              이 소스
-                            </Button>
-                          </div>
-                        ))}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate text-xs font-semibold text-foreground">{source.sourceLabel}</p>
+                                    {source.selected && (
+                                      <span className="rounded-full border border-primary bg-background px-2 py-0.5 text-[9px] font-bold text-primary">
+                                        현재 소스
+                                      </span>
+                                    )}
+                                    {source.issueCount > 0 && (
+                                      <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-700">
+                                        issue {source.issueCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-[10px] text-muted-foreground">
+                                    {source.eventCount} events · {formatDuration(source.startMs, source.endMs)}
+                                  </p>
+                                </div>
+                                <div className="flex shrink-0 gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 rounded-full border-primary bg-background px-3 text-[10px] font-bold text-primary"
+                                    onClick={() => onApplySourceFilter(source.sourceId)}
+                                  >
+                                    이 소스
+                                  </Button>
+                                  {source.eventIds[0] && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 rounded-full border-border bg-background px-3 text-[10px] font-bold text-muted-foreground"
+                                      onClick={() => onSelectEvent(source.eventIds[0]!)}
+                                    >
+                                      첫 이벤트
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="mt-3 grid gap-2 text-[10px] text-muted-foreground">
+                                <div className="grid gap-1 rounded-xl border border-border bg-background/70 p-2">
+                                  <span>first {formatTimestamp(source.startMs)}</span>
+                                  <span>last {formatTimestamp(source.endMs)}</span>
+                                </div>
+                                <div className="grid gap-1 rounded-xl border border-border bg-background/70 p-2">
+                                  <span>services {summarizeValues(source.services, "none")}</span>
+                                  <span>spans {summarizeValues(source.spanIds, "none")}</span>
+                                  <span>routes {summarizeValues(source.routes, "none")}</span>
+                                </div>
+                                {missingHints.length > 0 && (
+                                  <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-2 text-amber-800">
+                                    <p className="font-bold">missing hints</p>
+                                    {missingHints.slice(0, 3).map((hint) => (
+                                      <p key={hint.label}>
+                                        {hint.label}: {summarizeValues(hint.values, "none")}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

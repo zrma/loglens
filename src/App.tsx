@@ -29,7 +29,7 @@ import {
   buildHourlyChartData,
   buildLevelCounts,
   buildSpanForest,
-  buildTraceSourceCoverage,
+  buildTraceSourceDiff,
   buildTraceGroups,
   filterLogEvents,
   getDerivedFlowGroupForEvent,
@@ -234,13 +234,13 @@ function App() {
       ? traceGroups.find((group) => group.traceId === selectedEvent.traceId) ?? null
       : null
   ), [selectedEvent?.traceId, traceGroups]);
-  const selectedTraceSourceCoverage = useMemo(
-    () => buildTraceSourceCoverage(events, selectedEvent?.traceId ?? null),
-    [events, selectedEvent?.traceId],
-  );
   const selectedDerivedFlowGroup = useMemo(
     () => getDerivedFlowGroupForEvent(derivedFlowGroups, selectedEvent),
     [derivedFlowGroups, selectedEvent],
+  );
+  const selectedTraceSourceDiff = useMemo(
+    () => buildTraceSourceDiff(events, selectedEvent, selectedDerivedFlowGroup),
+    [events, selectedDerivedFlowGroup, selectedEvent],
   );
   const relatedEvents = useMemo(() => {
     if (!selectedEvent) {
@@ -595,7 +595,7 @@ function App() {
                     traceFilter={traceFilter}
                     selectedEvent={selectedEvent}
                     selectedTraceGroup={selectedTraceGroup}
-                    selectedTraceSourceCoverage={selectedTraceSourceCoverage}
+                    selectedTraceSourceDiff={selectedTraceSourceDiff}
                     selectedDerivedFlowGroup={selectedDerivedFlowGroup}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
