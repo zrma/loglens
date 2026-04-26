@@ -28,7 +28,8 @@
 9. 같은 trace 안의 span을 상대 시간축 timeline으로 보여준다.
 10. Parser Diagnostics와 멀티라인 line range를 세션 요약, 분석 탭, 상세 패널에서 확인한다.
 11. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
-12. `필드 매핑` 다이얼로그에서는 canonical field alias를 보정하고 현재 세션을 다시 파싱한다.
+12. 분석 탭의 시간대, level, service, request, diagnostic 분포를 클릭하면 별도 drill-down 조건으로 이벤트 범위를 좁힌다.
+13. `필드 매핑` 다이얼로그에서는 canonical field alias를 보정하고 현재 세션을 다시 파싱한다.
 
 ## 런타임 구조
 
@@ -46,7 +47,7 @@
 - 구조화 이벤트 기준 상태 관리
 - 검색어/level/service/trace/request/issue 필터링
 - windowed 이벤트 스트림, 선택 이벤트 상세 패널, Parser Diagnostics, span topology, span timeline 렌더링
-- 시간대별 집계 차트와 분포 카드 렌더링
+- 시간대별 집계 차트, 분포 카드, analysis drill-down chip 렌더링
 - 이벤트/분석 탭 전환
 
 `App.tsx`는 상태와 데이터 파이프 조립을 맡고, 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
@@ -65,12 +66,12 @@
 
 - `session`: 파싱된 이벤트와 parser diagnostics를 담는 세션
 - `parserPresetId`, `aliasOverrides`
-- `searchTerm`, `levelFilter`, `serviceFilter`, `traceFilter`, `requestFilter`, `issuesOnly`
+- `searchTerm`, `levelFilter`, `serviceFilter`, `traceFilter`, `requestFilter`, `issuesOnly`, `analysisDrillDownFilters`
 - `selectedEventId`
 - `activeTab`
 - `errorMessage`
 
-데이터 흐름은 `파일 선택 -> 선택 파일 scope 허용 -> 라인 스트리밍 읽기 -> 이벤트 레코드 분리 -> preset/alias override 적용 -> 구조화 파싱 -> trace/span 집계 -> 필터 -> 탭 렌더링` 순서입니다.
+데이터 흐름은 `파일 선택 -> 선택 파일 scope 허용 -> 라인 스트리밍 읽기 -> 이벤트 레코드 분리 -> preset/alias override 적용 -> 구조화 파싱 -> trace/span 집계 -> sidebar 필터 -> analysis drill-down 필터 -> 탭 렌더링` 순서입니다.
 
 ## 폴더별 역할
 

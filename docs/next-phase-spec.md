@@ -193,6 +193,8 @@ type ParserDiagnostic = {
 
 ## 3. Analysis Drill-down 연결
 
+상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-analysis-drill-down.md`](./todo-analysis-drill-down.md)에 남긴다.
+
 ### 목표
 
 분석 탭의 차트와 요약 카드, facet, 이벤트 스트림을 서로 연결한다.

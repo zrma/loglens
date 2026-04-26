@@ -23,6 +23,7 @@
 - 이벤트 스트림 컬럼을 바꾸고 structured field를 컬럼으로 고정할 수 있다.
 - 검색어, level, source, service, trace, request, structured field facet 조건으로 이벤트를 필터링한다.
 - 인식 가능한 타임스탬프가 있는 로그에 대해 시간대별 분포를 시각화한다.
+- 분석 탭의 시간대, level, service, request, diagnostic 분포를 클릭해 이벤트 범위를 좁힌다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - trace가 없더라도 route/resource/request 단서로 derived flow를 묶어 본다.
 - 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
@@ -54,6 +55,7 @@
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
+- 분석 탭 drill-down filter chip, 개별 해제, 분석 조건만 해제
 - 선택한 파일만 Tauri 파일 시스템 scope에 동적으로 허용
 - 샘플 trace 세션 로드
 - 파서/trace 분석 smoke test
