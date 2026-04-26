@@ -32,6 +32,7 @@
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
 - 대용량 파서/분석 경계는 large-log fixture로 필터, 분포, 시간대 집계를 검증한다.
 - 대용량 세션의 상위 trace/derived-flow 목록은 bounded preview 경로로 계산한다.
+- 대용량 검증은 기본 gate의 빠른 regression과 opt-in 200k-line benchmark 후보로 분리한다.
 - 선택 파일 line-stream, fallback, scope failure, 대용량 UI windowing은 runtime smoke harness로 검증한다.
 
 ## 현재 구현 상태
@@ -145,6 +146,8 @@ pnpm check
 pnpm check:harness
 pnpm check:agent-gc
 pnpm check:runtime-smoke
+pnpm test:large-regression
+pnpm bench:large-session
 pnpm lint
 pnpm lint:js
 pnpm lint:rust
@@ -164,6 +167,8 @@ pnpm check:runtime-smoke
 ```
 
 이 명령은 Vitest 기반 `src/test/runtime-harness.test.tsx`와 Rust `allow_file_access` 테스트를 함께 실행합니다.
+
+대용량 경계는 빠른 회귀와 느린 후보를 분리합니다. `pnpm test:large-regression`은 기본 gate에 들어가는 3,000-event parser/runtime fixture를 실행하고, `pnpm bench:large-session`은 opt-in 200k-line parser/summary benchmark 후보를 실행합니다.
 
 ## VCS 워크플로
 

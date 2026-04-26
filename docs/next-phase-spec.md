@@ -308,7 +308,7 @@ type DrillDownFilter =
 
 ## 5. 대용량 세션 메모리 최적화
 
-상태: 2026-04-26 진행 중. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
 
 ### 목표
 
@@ -355,6 +355,7 @@ type DrillDownFilter =
 - 상세 패널이 닫혀 있거나 선택 이벤트가 없으면 관련 계산을 건너뛴다.
 - sidebar/analysis의 상위 trace/derived-flow 목록은 full group materialization 대신 표시 개수에 맞춘 preview 계산을 사용한다.
 - large fixture 전용 smoke benchmark를 추가한다.
+- 빠른 large regression과 opt-in 200k-line benchmark 후보를 분리한다.
 
 ### 수용 기준
 

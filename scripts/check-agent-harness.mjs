@@ -46,6 +46,18 @@ check("publish gate includes harness validation", () => {
   assert(packageJson.scripts.check.includes("pnpm check:agent-gc"), "pnpm check must run check:agent-gc.");
 });
 
+check("large-log fast regression and slow benchmark stay separated", () => {
+  const packageJson = JSON.parse(readText("package.json"));
+  const todo = readText("docs/todo-large-session-memory-optimization.md");
+  const benchmark = readText("src/lib/logs/large-session.benchmark.test.ts");
+
+  assert(packageJson.scripts["test:large-regression"]?.includes("parser.test.ts"), "package.json must keep a fast large regression script.");
+  assert(packageJson.scripts["bench:large-session"]?.includes("LOG_LENS_LARGE_BENCH=1"), "large benchmark must be opt-in through LOG_LENS_LARGE_BENCH.");
+  assert(benchmark.includes("LARGE_SESSION_BENCH_LINE_COUNT = 200_000"), "large benchmark candidate must preserve the 200k-line target.");
+  assert(benchmark.includes("describe.skip"), "large benchmark candidate must stay out of the default pnpm test path.");
+  assert(todo.includes("빠른 regression") && todo.includes("느린 benchmark"), "large-session todo must document the fast/slow fixture split.");
+});
+
 check("CI and pre-push use the same publish gate", () => {
   const workflow = readText(".github/workflows/ci.yml");
   const lefthook = readText("lefthook.yml");

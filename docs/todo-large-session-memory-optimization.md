@@ -12,8 +12,8 @@
 - [x] 선택 이벤트가 없거나 상세 패널에 필요하지 않은 trace/span/source diff 계산을 지연한다.
 - [x] sidebar top trace/derived flow 계산을 현재 필터 범위와 표시 개수에 맞춰 bounded path로 분리한다.
 - [x] field key/value facet 계산을 선택된 facet key 중심으로 좁히거나 cache한다.
-- [ ] large fixture smoke를 200k 라인 목표로 확장하기 전, 빠른 regression fixture와 느린 benchmark 후보를 분리한다.
-- [ ] 최적화 전후 기준을 docs/status.md 또는 이 문서에 남긴다.
+- [x] large fixture smoke를 200k 라인 목표로 확장하기 전, 빠른 regression fixture와 느린 benchmark 후보를 분리한다.
+- [x] 최적화 전후 기준을 docs/status.md 또는 이 문서에 남긴다.
 - [x] README, docs/status.md, docs/repository-overview.md, docs/next-phase-spec.md에 구현 상태를 반영한다.
 
 ## 수용 기준
@@ -41,10 +41,29 @@
 - 현재 재계산 경로는 기본 필터 결과(`filteredEvents`)를 중심으로 유지하되, sidebar와 analysis의 상위 trace/derived-flow 목록은 `buildTopTraceGroupPreviews()`와 `buildTopDerivedFlowGroupPreviews()`가 표시 개수만 반환한다. 선택 event 상세에서 필요한 derived-flow는 `buildDerivedFlowGroupForEvent()`로 해당 flow만 materialize한다.
 - field facet은 `buildFieldFacetSnapshot()`이 현재 검색/기본 필터/analysis drill-down을 만족하는 event를 한 번만 scan해 field key count와 선택 field value count를 함께 만든다. 선택된 facet key의 active filter는 value count에서만 제외해, 기존 drill-down UX를 유지하면서 `scopedEvents`와 `fieldFacetContextEvents` 중간 배열 생성을 없앴다.
 
+## Fast/slow fixture 분리
+
+- 빠른 regression: `pnpm test:large-regression`
+  - `src/lib/logs/parser.test.ts`의 3,000-event parser/analysis fixture
+  - `src/test/runtime-harness.test.tsx`의 3,000-event selected-file UI windowing fixture
+  - 기본 `pnpm test`와 `pnpm check`에 포함되는 범위
+- 느린 benchmark 후보: `pnpm bench:large-session`
+  - `src/lib/logs/large-session.benchmark.test.ts`의 200,000-line parser/derived summary 후보
+  - `LOG_LENS_LARGE_BENCH=1`일 때만 실행되어 기본 gate 시간을 늘리지 않는다.
+  - 아직 strict performance threshold는 두지 않고, 200k 라인 parser/summary path가 실행 가능한지와 deterministic count를 확인한다.
+
+## 최적화 기준
+
+- 최적화 전 기준: 이벤트 필터와 analysis drill-down이 별도 배열 경로로 나뉘고, field facet은 `scopedEvents`와 `fieldFacetContextEvents` 중간 배열을 따로 만든 뒤 key/value count를 계산했다. trace/derived-flow sidebar preview도 전체 group materialization에 가까운 경로를 사용했다.
+- 현재 기준: 최종 필터는 한 predicate path로 결합했고, field facet은 단일 snapshot scan으로 key/value count를 계산한다. trace/derived-flow sidebar preview는 bounded preview만 반환하고, 선택 이벤트의 derived-flow/detail/source diff는 필요한 경우에만 materialize한다.
+- 남은 병목: 전체 event 배열과 주요 analysis 집계는 여전히 메모리에 유지된다. 실제 브라우저/데스크톱 렌더링 시간과 heap 상한은 느린 benchmark 후보만으로는 측정하지 못한다.
+
 ## 검증
 
 - `pnpm test -- src/test/runtime-harness.test.tsx src/test/app.smoke.test.tsx`
 - `pnpm test -- src/lib/logs/parser.test.ts`
+- `pnpm test:large-regression`
+- `pnpm bench:large-session`
 - `pnpm lint:js`
 - `pnpm build`
 - `pnpm check`
@@ -55,3 +74,4 @@
 - 2026-04-26: `filterLogEvents`와 analysis drill-down을 한 predicate 경로로 결합해 최종 이벤트 필터 결과를 만들기 전 중간 배열 생성을 줄였다. Focused 검증은 `pnpm test -- src/lib/logs/parser.test.ts src/test/app.smoke.test.tsx`로 통과했다.
 - 2026-04-26: sidebar/analysis의 상위 trace와 derived-flow 목록을 bounded preview 함수로 분리하고, 선택 이벤트의 derived-flow만 lazy materialize하도록 좁혔다. Focused 검증은 `pnpm test -- src/lib/logs/parser.test.ts`로 확인한다.
 - 2026-04-26: field facet key/value count를 `buildFieldFacetSnapshot()` 단일 scan 경로로 묶고, 3,000-event fixture에서 선택 field facet의 기존 filter 제외 semantics를 확인했다. Focused 검증은 `pnpm test -- src/lib/logs/parser.test.ts`와 `pnpm lint:js`로 통과했다.
+- 2026-04-26: `pnpm test:large-regression`과 opt-in `pnpm bench:large-session`을 분리하고, 하네스가 fast/slow fixture 경계를 확인하도록 보강했다.

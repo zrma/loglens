@@ -14,6 +14,8 @@
     "lint:rust": "cd src-tauri && cargo clippy -- -D warnings",
     "format:rust": "cd src-tauri && cargo fmt --all",
     "lint": "pnpm lint:js && pnpm lint:rust",
+    "test:large-regression": "vitest run src/lib/logs/parser.test.ts src/test/runtime-harness.test.tsx",
+    "bench:large-session": "LOG_LENS_LARGE_BENCH=1 vitest run src/lib/logs/large-session.benchmark.test.ts",
     "check:runtime-smoke": "vitest run src/test/runtime-harness.test.tsx && cd src-tauri && cargo test allow_file_access",
     "check:harness": "node scripts/check-agent-harness.mjs",
     "check:agent-gc": "node scripts/check-agent-gc.mjs",
