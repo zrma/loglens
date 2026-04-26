@@ -147,6 +147,45 @@ export type TraceSourceCoverage = {
   services: string[];
 };
 
+export type TraceDiffBasisKind = "trace" | "request" | "derivedFlow";
+
+export type TraceDiffBasis = {
+  kind: TraceDiffBasisKind;
+  label: string;
+  value: string;
+};
+
+export type TraceSourceDiffRow = {
+  sourceId: string;
+  sourceLabel: string;
+  eventIds: string[];
+  eventCount: number;
+  issueCount: number;
+  selected: boolean;
+  startMs: number | null;
+  endMs: number | null;
+  services: string[];
+  spanIds: string[];
+  routes: string[];
+  methods: string[];
+  missingServices: string[];
+  missingSpanIds: string[];
+  missingRoutes: string[];
+  missingMethods: string[];
+};
+
+export type TraceSourceDiff = {
+  basis: TraceDiffBasis;
+  eventCount: number;
+  issueCount: number;
+  sourceCount: number;
+  services: string[];
+  spanIds: string[];
+  routes: string[];
+  methods: string[];
+  rows: TraceSourceDiffRow[];
+};
+
 export const DERIVED_FLOW_CORRELATION_KIND_VALUES = [
   "resource",
   "request",

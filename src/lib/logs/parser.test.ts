@@ -8,6 +8,7 @@ import {
   buildSpanForest,
   getRelatedEvents,
   getDerivedFlowGroupForEvent,
+  buildTraceSourceDiff,
   buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
@@ -305,6 +306,132 @@ describe("parseLogContent", () => {
         sourceLabel: "auth.log",
       }),
     ]);
+  });
+
+  it("builds a cross-file trace diff with missing span hints", () => {
+    const checkoutSession = parseLogContent(SAMPLE_LOG_CONTENT, {
+      source: {
+        id: "/tmp/checkout.log",
+        label: "checkout.log",
+        path: "/tmp/checkout.log",
+      },
+    });
+    const authSession = parseLogContent(`
+{"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
+    `.trim(), {
+      source: {
+        id: "/tmp/auth.log",
+        label: "auth.log",
+        path: "/tmp/auth.log",
+      },
+    });
+
+    const merged = mergeParsedSessions([checkoutSession, authSession]);
+    const selectedEvent = merged.events.find((event) => event.spanId === "span-pay") ?? null;
+    const diff = buildTraceSourceDiff(merged.events, selectedEvent);
+
+    expect(diff).not.toBeNull();
+    expect(diff?.basis).toMatchObject({
+      kind: "trace",
+      value: "trace-checkout-4821",
+    });
+    expect(diff?.eventCount).toBe(7);
+    expect(diff?.sourceCount).toBe(2);
+    expect(diff?.spanIds).toEqual(expect.arrayContaining(["span-root", "span-auth-extra"]));
+
+    const checkoutRow = diff?.rows.find((row) => row.sourceLabel === "checkout.log");
+    const authRow = diff?.rows.find((row) => row.sourceLabel === "auth.log");
+
+    expect(checkoutRow).toMatchObject({
+      eventCount: 6,
+      issueCount: 1,
+      selected: true,
+    });
+    expect(checkoutRow?.missingSpanIds).toContain("span-auth-extra");
+    expect(authRow).toMatchObject({
+      eventCount: 1,
+      issueCount: 0,
+      selected: false,
+    });
+    expect(authRow?.missingServices).toEqual(expect.arrayContaining(["payments-api", "checkout-service"]));
+    expect(authRow?.missingSpanIds).toContain("span-root");
+  });
+
+  it("uses request id before derived flow for trace diff fallback", () => {
+    const apiSession = parseLogContent(`
+{"timestamp":"2026-03-08T12:00:00.000Z","level":"info","service":"api-gateway","requestId":"req-no-trace","message":"transcribe created","method":"POST","path":"/v1/transcribe","transcription_id":"tr-9812"}
+    `.trim(), {
+      source: {
+        id: "/tmp/api.log",
+        label: "api.log",
+        path: "/tmp/api.log",
+      },
+    });
+    const workerSession = parseLogContent(`
+{"timestamp":"2026-03-08T12:00:02.000Z","level":"error","service":"worker","requestId":"req-no-trace","message":"job failed","method":"PATCH","path":"/v1/transcribe/tr-9812","status":"failed"}
+    `.trim(), {
+      source: {
+        id: "/tmp/worker.log",
+        label: "worker.log",
+        path: "/tmp/worker.log",
+      },
+    });
+
+    const merged = mergeParsedSessions([apiSession, workerSession]);
+    const selectedEvent = merged.events.find((event) => event.sourceLabel === "api.log") ?? null;
+    const flows = buildDerivedFlowGroups(merged.events);
+    const diff = buildTraceSourceDiff(
+      merged.events,
+      selectedEvent,
+      getDerivedFlowGroupForEvent(flows, selectedEvent),
+    );
+
+    expect(diff?.basis).toMatchObject({
+      kind: "request",
+      value: "req-no-trace",
+    });
+    expect(diff?.rows).toHaveLength(2);
+    expect(diff?.issueCount).toBe(1);
+    expect(diff?.rows.find((row) => row.sourceLabel === "api.log")?.missingServices).toEqual(["worker"]);
+    expect(diff?.rows.find((row) => row.sourceLabel === "worker.log")?.missingRoutes).toEqual(["/v1/transcribe"]);
+  });
+
+  it("falls back to derived flow diff when trace and request ids are absent", () => {
+    const apiSession = parseLogContent(`
+{"timestamp":"2026-03-08T12:00:00.000Z","level":"info","service":"api-gateway","message":"transcribe created","method":"POST","path":"/v1/transcribe","transcription_id":"tr-9911"}
+    `.trim(), {
+      source: {
+        id: "/tmp/api.log",
+        label: "api.log",
+        path: "/tmp/api.log",
+      },
+    });
+    const workerSession = parseLogContent(`
+{"timestamp":"2026-03-08T12:00:02.000Z","level":"info","service":"worker","message":"job completed","method":"PATCH","path":"/v1/transcribe/tr-9911","status":"completed"}
+    `.trim(), {
+      source: {
+        id: "/tmp/worker.log",
+        label: "worker.log",
+        path: "/tmp/worker.log",
+      },
+    });
+
+    const merged = mergeParsedSessions([apiSession, workerSession]);
+    const flows = buildDerivedFlowGroups(merged.events);
+    const selectedEvent = merged.events.find((event) => event.sourceLabel === "api.log") ?? null;
+    const diff = buildTraceSourceDiff(
+      merged.events,
+      selectedEvent,
+      getDerivedFlowGroupForEvent(flows, selectedEvent),
+    );
+
+    expect(diff?.basis.kind).toBe("derivedFlow");
+    expect(diff?.basis.value).toBe("/v1/transcribe resource:tr-9911");
+    expect(diff?.methods).toEqual(["PATCH", "POST"]);
+    expect(diff?.rows.map((row) => row.sourceLabel)).toEqual(["api.log", "worker.log"]);
+    expect(diff?.rows[0]?.selected).toBe(true);
+    expect(diff?.rows[0]?.missingMethods).toEqual(["PATCH"]);
+    expect(diff?.rows[1]?.missingMethods).toEqual(["POST"]);
   });
 
   it("extracts nested json fields and falls back to traceparent context", () => {
