@@ -145,6 +145,10 @@ function App() {
     session?.diagnostics.map((diagnostic) => DIAGNOSTIC_LABELS[diagnostic.kind]) ?? [],
     "없음",
   ), [session]);
+  const diagnosticSeverityCounts = useMemo(() => buildFacetCounts(
+    session?.diagnostics.map((diagnostic) => diagnostic.severity) ?? [],
+    "none",
+  ), [session]);
   const hourlyChart = useMemo(() => buildHourlyChartData(filteredEvents), [filteredEvents]);
   const serviceOptions = useMemo(
     () => buildFacetCounts(events.map((event) => event.service), "미지정"),
@@ -441,6 +445,8 @@ function App() {
           multilineCount={multilineCount}
           formatBadges={formatBadges}
           metrics={metrics}
+          diagnosticKindCounts={diagnosticCounts}
+          diagnosticSeverityCounts={diagnosticSeverityCounts}
           errorMessage={errorMessage}
           aliasOverrides={aliasOverrides}
           activeAliasOverrideCount={activeAliasOverrideCount}

@@ -13,6 +13,11 @@ import { MetricCard, type MetricCardProps } from "@/features/log-explorer/presen
 import type { LogAliasPreset, LogAliasPresetId, LogFieldAliasOverrides } from "@/lib/logs/aliases";
 import type { LogSource, ParsedLogSession } from "@/lib/logs/types";
 
+type CountPill = {
+  label: string;
+  count: number;
+};
+
 type OverviewSectionProps = {
   session: ParsedLogSession | null;
   sourceLocation: string | null;
@@ -24,6 +29,8 @@ type OverviewSectionProps = {
   multilineCount: number;
   formatBadges: Array<{ label: string; count: number }>;
   metrics: MetricCardProps[];
+  diagnosticKindCounts: CountPill[];
+  diagnosticSeverityCounts: CountPill[];
   errorMessage: string | null;
   aliasOverrides: LogFieldAliasOverrides;
   activeAliasOverrideCount: number;
@@ -45,6 +52,19 @@ type OverviewSectionProps = {
   onParserPresetChange: (value: LogAliasPresetId) => void;
 };
 
+function getDiagnosticSeverityTone(severity: string) {
+  switch (severity) {
+    case "error":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "warning":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "info":
+      return "border-cyan-200 bg-cyan-50 text-cyan-700";
+    default:
+      return "border-border bg-muted text-muted-foreground";
+  }
+}
+
 export function OverviewSection({
   session,
   sourceLocation,
@@ -56,6 +76,8 @@ export function OverviewSection({
   multilineCount,
   formatBadges,
   metrics,
+  diagnosticKindCounts,
+  diagnosticSeverityCounts,
   errorMessage,
   aliasOverrides,
   activeAliasOverrideCount,
@@ -247,6 +269,36 @@ export function OverviewSection({
                         {source.label} · {source.eventCount}
                       </span>
                     ))}
+                  </div>
+                )}
+                {session.diagnostics.length > 0 && (
+                  <div className="mt-3 grid gap-3 border-t border-border pt-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="size-3.5 text-amber-600" />
+                        <p className="text-xs font-semibold text-foreground">Parser Diagnostics</p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {diagnosticKindCounts.slice(0, 5).map(({ label, count }) => (
+                          <span
+                            key={label}
+                            className="max-w-full truncate rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                          >
+                            {label} {count}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-start gap-2 lg:justify-end">
+                      {diagnosticSeverityCounts.map(({ label, count }) => (
+                        <span
+                          key={label}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getDiagnosticSeverityTone(label)}`}
+                        >
+                          {label} {count}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

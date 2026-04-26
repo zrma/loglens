@@ -13,11 +13,11 @@
 - [x] key=value partial parse나 structured fallback 상황을 사용자가 이해할 수 있는 문구로 남긴다.
 - [x] alias override가 canonical field 추출에 쓰인 경우 diagnostic으로 노출한다.
 - [x] trace/span/request 같은 correlation field가 없을 때 탐색 한계와 override 힌트를 남긴다.
-- [ ] 세션 요약에서 diagnostic severity/kind 분포를 볼 수 있게 한다.
-- [ ] 이벤트 상세 상단에서 선택 이벤트 관련 diagnostics를 표시한다.
-- [ ] 분석 탭에서 diagnostic kind별 분포를 확인할 수 있게 한다.
+- [x] 세션 요약에서 diagnostic severity/kind 분포를 볼 수 있게 한다.
+- [x] 이벤트 상세 상단에서 선택 이벤트 관련 diagnostics를 표시한다.
+- [x] 분석 탭에서 diagnostic kind별 분포를 확인할 수 있게 한다.
 - [x] parser test에 timestamp missing/parse failed 구분, JSON fallback, alias override diagnostic 케이스를 추가한다.
-- [ ] App smoke test에 세분화된 parser diagnostics 노출 흐름을 추가한다.
+- [x] App smoke test에 세분화된 parser diagnostics 노출 흐름을 추가한다.
 
 ## 수용 기준
 

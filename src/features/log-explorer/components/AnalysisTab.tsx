@@ -159,9 +159,9 @@ export function AnalysisTab({
 
         <Card className="overflow-hidden border-border bg-card shadow-none">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl tracking-[-0.03em]">파서 노트</CardTitle>
+          <CardTitle className="text-xl tracking-[-0.03em]">Parser Diagnostics</CardTitle>
           <CardDescription className="leading-6">
-            파싱 과정에서 발생한 진단 요약
+            파싱 과정에서 발생한 diagnostic kind별 분포
           </CardDescription>
         </CardHeader>
           <CardContent className="space-y-4">
