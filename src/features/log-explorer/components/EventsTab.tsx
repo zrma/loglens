@@ -5,6 +5,7 @@ import type {
   DerivedFlowGroup,
   FieldFilter,
   LogEvent,
+  ParseIssue,
   SpanForest,
   SpanNode,
   TraceGroup,
@@ -54,6 +55,23 @@ function buildSpanBarStyle(node: SpanNode, group: TraceGroup | null) {
     left: `${Math.max(offset, 0)}%`,
     width: `${Math.min(width, 100 - Math.max(offset, 0))}%`,
   };
+}
+
+function getDiagnosticSeverityTone(severity: ParseIssue["severity"]) {
+  switch (severity) {
+    case "error":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "warning":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "info":
+      return "border-cyan-200 bg-cyan-50 text-cyan-700";
+    default:
+      return "border-border bg-muted text-muted-foreground";
+  }
+}
+
+function formatDiagnosticSeverity(severity: ParseIssue["severity"]) {
+  return severity.toUpperCase();
 }
 
 function SpanTopologyNode({
@@ -258,6 +276,31 @@ export function EventsTab({
                 </div>
               </div>
 
+              {selectedEvent.parseIssues.length > 0 && (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-800">이벤트 Diagnostics</p>
+                    <span className="text-[10px] font-medium text-amber-700">{selectedEvent.parseIssues.length} notes</span>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedEvent.parseIssues.map((issue, index) => (
+                      <div
+                        key={`${selectedEvent.id}-${issue.kind}-${index}`}
+                        className="rounded-xl border border-amber-200 bg-card px-3 py-2 text-[11px] leading-relaxed text-foreground"
+                      >
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getDiagnosticSeverityTone(issue.severity)}`}>
+                            {formatDiagnosticSeverity(issue.severity)}
+                          </span>
+                          <span className="font-mono text-[10px] text-muted-foreground">{issue.kind}</span>
+                        </div>
+                        <p>{issue.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 2. 주요 맥락 (Context) 및 필터 액션 */}
               <div className="space-y-4">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">컨텍스트 및 필터</p>
@@ -445,22 +488,6 @@ export function EventsTab({
                 </div>
               </div>
 
-              {/* 7. 분석 특이사항 */}
-              {selectedEvent.parseIssues.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground text-amber-700">분석 특이사항</p>
-                  <div className="space-y-2">
-                    {selectedEvent.parseIssues.map((issue, index) => (
-                      <div
-                        key={`${selectedEvent.id}-${issue.kind}-${index}`}
-                        className="rounded-xl border border-amber-200 bg-amber-50/50 px-3 py-2 text-[11px] leading-relaxed text-amber-800"
-                      >
-                        {issue.message}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card p-10 text-center">

@@ -72,6 +72,8 @@ describe("App smoke", () => {
     });
 
     expect(await screen.findByText(/Span 토폴로지/i)).toBeInTheDocument();
+    expect(await screen.findByText(/이벤트 Diagnostics/i)).toBeInTheDocument();
+    expect(await screen.findByText(/multiline_merged/i)).toBeInTheDocument();
     expect(await screen.findByText(/4줄을 하나의 이벤트로 병합했습니다/i)).toBeInTheDocument();
     expect(screen.getAllByText(/span-auth-root/i).length).toBeGreaterThan(0);
   });
@@ -120,6 +122,7 @@ describe("App smoke", () => {
     expect(analysisTab).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText(/시간대별 분포/i)).toBeInTheDocument();
     expect(await screen.findByText(/Level 분포/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/Parser Diagnostics/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Trace 요약/i)).toBeInTheDocument();
   });
 
