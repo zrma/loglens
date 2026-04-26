@@ -40,6 +40,7 @@ check("publish gate includes harness validation", () => {
   const packageJson = JSON.parse(readText("package.json"));
 
   assert(packageJson.scripts["check:harness"] === "node scripts/check-agent-harness.mjs", "package.json must define check:harness.");
+  assert(packageJson.scripts["check:runtime-smoke"]?.includes("src/test/runtime-harness.test.tsx"), "package.json must define a focused runtime smoke command.");
   assert(packageJson.scripts.check.includes("pnpm check:harness"), "pnpm check must run check:harness.");
 });
 
@@ -76,6 +77,17 @@ check("parser tests cover large-log analysis behavior", () => {
   assert(parserTest.includes("keeps large parsed sessions analyzable"), "Parser tests must exercise large parsed session analysis.");
   assert(parserTest.includes("buildHourlyChartData"), "Large-log tests must verify analysis chart counts.");
   assert(parserTest.includes("3000"), "Large-log fixture should stay large enough to catch scaling regressions.");
+});
+
+check("runtime smoke covers selected-file and large UI contracts", () => {
+  const runtimeSmoke = readText("src/test/runtime-harness.test.tsx");
+  const tauri = readText("src-tauri/src/lib.rs");
+
+  assert(runtimeSmoke.includes("renders a large selected file through the Tauri line stream without DOM blow-up"), "Runtime smoke must cover large selected-file rendering.");
+  assert(runtimeSmoke.includes("falls back to whole-file reading after a line-stream failure"), "Runtime smoke must cover whole-file fallback after line streaming fails.");
+  assert(runtimeSmoke.includes("surfaces scoped file access failures before any file read"), "Runtime smoke must cover scoped file access failures.");
+  assert(runtimeSmoke.includes("toBeLessThanOrEqual(24)"), "Runtime smoke must keep virtualized row count bounded for large sessions.");
+  assert(tauri.includes("allow_file_access_rejects_empty_paths"), "Rust file access tests must reject empty paths.");
 });
 
 check("status and next phase docs keep the autonomous backlog aligned", () => {

@@ -98,9 +98,15 @@ pnpm check
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
 
-`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, UI smoke coverage, large-log analysis fixture, ordered backlog, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
+`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, selected-file runtime smoke, UI smoke coverage, large-log analysis fixture, large UI windowing fixture, ordered backlog, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
 
 UI 비중이 큰 변경은 가능하면 앱을 실행해 변경된 흐름을 확인합니다. 별도 fixture가 필요하지 않다면 sample trace session을 기본 확인 대상으로 사용합니다.
+
+선택 파일 접근, line-stream fallback, scope failure, 대용량 UI windowing처럼 사용자가 직접 만져야만 발견되기 쉬운 경로는 focused runtime smoke로 먼저 확인할 수 있습니다.
+
+```bash
+pnpm check:runtime-smoke
+```
 
 ## 실패 복구
 

@@ -57,11 +57,16 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - jsdom 기반 App smoke test
   - sample session 기반 issue-only 필터와 분석 탭 전환 smoke test
   - Tauri 파일 선택/라인 스트리밍 경로 mock smoke test
+  - selected-file runtime smoke
+    - Tauri `allow_file_access` 호출 후 line-stream 읽기
+    - line-stream 실패 시 whole-file fallback
+    - scope 실패 시 파일 읽기 차단
+    - 3,000-event 대용량 UI windowing row bound
   - async line stream parser test
   - 대용량 분석 fixture 기반 필터/분포/시간대 집계 test
   - nested JSON / Go panic stack fixture test
 - 에이전트 하네스 검증
-  - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, UI smoke coverage, 대용량 분석 fixture, ordered backlog, 주요 문서 드리프트 확인
+  - `pnpm check:harness`로 AGENTS 지도, 운영 계약, 자체 리뷰 루프, publish/CI/pre-push gate, 파일 access scope, selected-file runtime smoke, UI smoke coverage, 대용량 분석 fixture, 대용량 UI windowing fixture, ordered backlog, 주요 문서 드리프트 확인
 - 번들 최적화
   - `AnalysisTab` lazy load 분리
   - 기존 chunk size warning 제거
@@ -109,9 +114,9 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - span timeline은 있지만 gantt 수준 상호작용 없음
   - trace 간 비교 없음
 - 테스트 범위가 아직 얕음
-  - 실제 파일 열기 플로우는 mock smoke test 수준만 있음
+  - 선택 파일 플로우는 runtime smoke로 보강됐지만, 실제 Tauri 데스크톱 창 자동화는 아직 없음
   - 필터 상호작용은 issue-only와 sample analysis smoke부터 보강된 상태
-  - 대용량 fixture는 parser/analysis count 중심이며 실제 UI 렌더링 fixture는 없음
+  - 대용량 fixture는 parser/analysis count와 UI windowing smoke 중심이며, 실제 브라우저/데스크톱 렌더링 성능 측정은 아직 없음
 
 ## 현재 리스크
 
@@ -119,8 +124,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 대용량 로그에서 전체 이벤트 배열과 전체 집계는 여전히 메모리에 유지됨
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도가 흔들릴 수 있음
 - custom alias override UI는 아직 없음
-- Tauri 실제 런타임 연동은 smoke test가 아니라 수동 확인 비중이 큼
-- 하네스 검증은 UI smoke와 대용량 분석 fixture 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
+- Tauri 실제 데스크톱 창 자동화는 아직 없고, 선택 파일 계약은 focused runtime smoke로 보강된 상태
+- 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
 - `jj`는 clone마다 `jj git init --colocate`를 한 번 해줘야 한다
 - `src/App.css` 같은 템플릿 잔재가 아직 남아 있음
 
@@ -184,3 +189,9 @@ pnpm check
 ```
 
 `pnpm check`는 `pnpm lint`, `pnpm check:harness`, `pnpm test`, `pnpm build`, `pnpm test:rust`를 순서대로 실행합니다. `lefthook pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
+
+선택 파일 런타임 계약만 빠르게 확인하려면 아래 명령을 사용합니다.
+
+```bash
+pnpm check:runtime-smoke
+```

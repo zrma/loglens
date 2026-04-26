@@ -29,6 +29,7 @@
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
 - 대용량 파서/분석 경계는 large-log fixture로 필터, 분포, 시간대 집계를 검증한다.
+- 선택 파일 line-stream, fallback, scope failure, 대용량 UI windowing은 runtime smoke harness로 검증한다.
 
 ## 현재 구현 상태
 
@@ -134,6 +135,7 @@ pnpm tauri build
 ```bash
 pnpm check
 pnpm check:harness
+pnpm check:runtime-smoke
 pnpm lint
 pnpm lint:js
 pnpm lint:rust
@@ -144,7 +146,15 @@ pnpm format:rust
 ```
 
 `pnpm check`는 `lint + test + build + cargo test`를 순서대로 실행합니다. `lefthook`의 `pre-push`와 GitHub Actions CI도 같은 명령을 사용합니다.
-이 명령에는 `pnpm check:harness`도 포함되며, 에이전트 운영 계약, 문서 지도, 자체 리뷰 루프, UI smoke coverage, 대용량 분석 fixture, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
+이 명령에는 `pnpm check:harness`도 포함되며, 에이전트 운영 계약, 문서 지도, 자체 리뷰 루프, UI smoke coverage, selected-file runtime smoke, 대용량 분석 fixture, 대용량 UI windowing fixture, 선택 파일 접근 경로가 현재 코드와 어긋나지 않는지 확인합니다.
+
+런타임에 가까운 선택 파일 경로만 빠르게 다시 확인하려면:
+
+```bash
+pnpm check:runtime-smoke
+```
+
+이 명령은 Vitest 기반 `src/test/runtime-harness.test.tsx`와 Rust `allow_file_access` 테스트를 함께 실행합니다.
 
 ## VCS 워크플로
 
