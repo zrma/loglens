@@ -38,6 +38,21 @@ function renderApp() {
   );
 }
 
+async function chooseSelectOption(label: RegExp, optionName: RegExp) {
+  await act(async () => {
+    fireEvent.pointerDown(screen.getByLabelText(label), {
+      button: 0,
+      ctrlKey: false,
+      pointerId: 1,
+      pointerType: "mouse",
+    });
+  });
+
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("option", { name: optionName }));
+  });
+}
+
 describe("App smoke", () => {
   beforeEach(() => {
     tauriMocks.invokeMock.mockReset();
@@ -220,6 +235,54 @@ describe("App smoke", () => {
     expect(document.body).toHaveTextContent("현재 소스");
     expect(document.body).toHaveTextContent("missing hints");
     expect(document.body).toHaveTextContent("span-auth-extra");
+  });
+
+  it("combines selected-file search, level, source, and field facet filters", async () => {
+    tauriMocks.openMock.mockResolvedValue([
+      "file:///tmp/checkout-filter.log",
+      "file:///tmp/auth-filter.log",
+    ]);
+    tauriMocks.readTextFileLinesMock
+      .mockResolvedValueOnce(linesFromText(`
+{"timestamp":"2026-03-08T10:15:01.000Z","level":"error","service":"api","traceId":"trace-filter-1","spanId":"span-filter-checkout","requestId":"req-filter-1","message":"checkout failed","route":"/checkout","provider":"stripe"}
+{"timestamp":"2026-03-08T10:15:02.000Z","level":"error","service":"api","traceId":"trace-filter-2","spanId":"span-filter-login","requestId":"req-filter-2","message":"login failed","route":"/login","provider":"stripe"}
+      `.trim()))
+      .mockResolvedValueOnce(linesFromText(`
+{"timestamp":"2026-03-08T10:15:03.000Z","level":"error","service":"auth","traceId":"trace-filter-3","spanId":"span-filter-auth","requestId":"req-filter-3","message":"login failed","route":"/login","provider":"internal"}
+      `.trim()));
+
+    renderApp();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /로컬 로그 파일 열기/i }));
+    });
+
+    expect(await screen.findByText(/필터 결과 3개 이벤트/i)).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(
+        await screen.findByPlaceholderText(/메시지, ID, 서비스명 검색/i),
+        { target: { value: "failed" } },
+      );
+    });
+    await chooseSelectOption(/로그 레벨 필터/i, /^ERROR$/i);
+    await chooseSelectOption(/소스 필터/i, /checkout-filter\.log \(2\)/i);
+    await chooseSelectOption(/필드 패싯 선택/i, /route \(2\)/i);
+
+    const checkoutValue = (await screen.findAllByText(/^\/checkout$/))[0];
+    const checkoutFacetCard = checkoutValue.closest("div")?.parentElement?.parentElement;
+
+    if (!checkoutFacetCard) {
+      throw new Error("Could not locate the /checkout field facet card.");
+    }
+
+    await act(async () => {
+      fireEvent.click(within(checkoutFacetCard).getByRole("button", { name: "포함" }));
+    });
+
+    expect(await screen.findByText(/필터 결과 1개 이벤트/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/checkout failed/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/login failed/i)).not.toBeInTheDocument();
   });
 
   it("applies custom alias overrides from the field mapping dialog", async () => {

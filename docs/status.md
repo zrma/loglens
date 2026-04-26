@@ -83,6 +83,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - opt-in 200k-line large session benchmark candidate
   - cross-file Trace Diff analysis fallback test
   - 다중 파일 세션 Trace Diff UI smoke test
+  - selected-file 검색/level/source/field facet 조합 UI smoke test
   - nested JSON / Go panic stack fixture test
   - timestamp missing/parse failed, JSON fallback, alias override diagnostic test
   - documented timestamp format regression test
@@ -213,7 +214,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 지원 timestamp 형식과 parse failure 규칙 문서화 완료: [`docs/log-format-support.md`](./log-format-support.md)
 - timestamp 변형과 parse failure 분류 parser test 보강 완료
 - trace/span 집계 edge case test 보강 완료
-- 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장
+- 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장 완료
 - 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강
 
 ## 지금 당장 하지 않아도 되는 것
