@@ -84,6 +84,7 @@
 - [`src-tauri`](../src-tauri): Tauri 설정과 Rust 엔트리포인트
 - [`public`](../public): 정적 에셋
 - [`docs/log-format-support.md`](./log-format-support.md): timestamp 지원 범위와 Parser Diagnostics 규칙
+- [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md): HTTP/B3 correlation header를 canonical field로 승격하는 후속 작업
 
 ## 현재 한계
 

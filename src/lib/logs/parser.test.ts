@@ -545,6 +545,28 @@ describe("parseLogContent", () => {
     });
   });
 
+  it("extracts common HTTP correlation headers from nested JSON and key-value logs", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:35:00.000Z","level":"info","message":"nested header correlation","headers":{"X-Request-ID":"req-header-1","X-B3-TraceId":"trace-header-1","X-B3-SpanId":"span-header-1","X-B3-ParentSpanId":"span-parent-1"}}
+timestamp=2026-03-08T12:35:01.000Z level=info msg="key value header correlation" x-request-id=req-header-2 x-b3-traceid=trace-header-2 x-b3-spanid=span-header-2 x-b3-parentspanid=span-parent-2
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      message: "nested header correlation",
+      parentSpanId: "span-parent-1",
+      requestId: "req-header-1",
+      spanId: "span-header-1",
+      traceId: "trace-header-1",
+    });
+    expect(session.events[1]).toMatchObject({
+      message: "key value header correlation",
+      parentSpanId: "span-parent-2",
+      requestId: "req-header-2",
+      spanId: "span-header-2",
+      traceId: "trace-header-2",
+    });
+  });
+
   it("parses zap-style short json keys used by pronaia logs", () => {
     const session = parseLogContent(`
 run batch service....
