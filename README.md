@@ -99,6 +99,8 @@
 
 다음 구현 배치의 상세 스펙은 [`docs/next-phase-spec.md`](./docs/next-phase-spec.md)에 정리했습니다.
 
+에이전트가 사용자 개입 없이 작업을 진행할 때의 운영 계약은 [`AGENTS.md`](./AGENTS.md)와 [`docs/agent-operating-contract.md`](./docs/agent-operating-contract.md)를 기준으로 합니다. repo-local 세부 워크플로는 [`.agents/skills/loglens/SKILL.md`](./.agents/skills/loglens/SKILL.md)에 둡니다.
+
 ## 실행
 
 ```bash
@@ -182,6 +184,7 @@ jj git push --remote origin -b master
 ## 개발자 메모
 
 - 현재 `README`는 "실제 구현된 기능" 기준으로 정리되어 있습니다.
+- 2026-04-26 기준으로 repo-local 에이전트 운영 계약과 LogLens 전용 스킬을 추가했습니다.
 - 2026-03-08 기준으로 JS audit 취약점은 전이 의존성 override까지 반영해 정리했습니다.
 - 2026-03-09 기준으로 저장소는 `jj git init --colocate` 상태이며, 로컬 훅은 `lefthook`으로 관리합니다.
 - 저장소 안에는 Tauri 기본 템플릿 흔적이 일부 남아 있으며, 대표적으로 [`src/App.css`](./src/App.css)는 현재 엔트리포인트에서 import되지 않습니다.

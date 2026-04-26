@@ -1,0 +1,4 @@
+interface:
+  display_name: "LogLens 프로젝트 워크플로"
+  short_description: "LogLens 전용 구현, 검증, 문서화, jj publish 흐름"
+  default_prompt: "$loglens 를 사용해서 LogLens 저장소의 현재 작업을 repo-local 운영 계약에 맞춰 구현, 검증, 문서화해줘."
