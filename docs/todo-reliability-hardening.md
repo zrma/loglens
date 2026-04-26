@@ -10,8 +10,8 @@ LogLens의 현재 MVP 기능을 더 넓은 실제 로그 입력과 반복 작업
 - [x] timestamp 변형과 parse failure 분류에 대한 parser test를 보강한다.
 - [x] trace/span/request/derived-flow 집계 edge case test를 확장한다.
 - [x] 실제 파일 열기 후 검색/level/source/field facet 조합 UI smoke를 추가한다.
-- [ ] 문서 freshness와 신뢰성 todo 링크를 하네스가 확인하게 한다.
-- [ ] README, docs/status.md, docs/roadmap.md, docs/repository-overview.md에 구현 상태를 반영한다.
+- [x] 문서 freshness와 신뢰성 todo 링크를 하네스가 확인하게 한다.
+- [x] README, docs/status.md, docs/roadmap.md, docs/repository-overview.md에 구현 상태를 반영한다.
 
 ## 수용 기준
 
@@ -45,3 +45,4 @@ LogLens의 현재 MVP 기능을 더 넓은 실제 로그 입력과 반복 작업
 - 2026-04-26: `docs/log-format-support.md`에 timestamp 후보/지원값/diagnostic 규칙을 문서화하고, parser test에 ISO/offset/slash/plain/numeric epoch timestamp 회귀 케이스를 추가했다.
 - 2026-04-26: 시간 순서가 뒤섞인 trace와 parent span이 누락된 span forest edge case를 parser/analysis test에 추가했다.
 - 2026-04-26: selected-file smoke에 검색어, level, source, field facet include 조합을 추가했다.
+- 2026-04-26: 하네스가 신뢰성 todo, timestamp 지원 문서, 주요 문서 링크, selected-file filter smoke 존재를 확인하도록 보강했다.
