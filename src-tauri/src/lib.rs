@@ -50,7 +50,7 @@ mod tests {
     use super::resolve_allowed_file_path;
 
     #[test]
-    fn resolves_regular_files_only() {
+    fn allow_file_access_resolves_regular_files_only() {
         let path = env::temp_dir().join(format!(
             "loglens-allow-file-access-{}.log",
             std::process::id()
@@ -67,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_directories() {
+    fn allow_file_access_rejects_directories() {
         let error = resolve_allowed_file_path(
             env::temp_dir()
                 .to_str()
@@ -76,5 +76,12 @@ mod tests {
         .expect_err("directories must be rejected");
 
         assert!(error.contains("일반 파일만 허용"));
+    }
+
+    #[test]
+    fn allow_file_access_rejects_empty_paths() {
+        let error = resolve_allowed_file_path("  ").expect_err("empty paths must be rejected");
+
+        assert!(error.contains("비어 있습니다"));
     }
 }

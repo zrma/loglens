@@ -83,7 +83,7 @@
 - span 관계 시각화는 기본 트리와 상대 timeline 수준이고, gantt 수준 상호작용은 아직 없다.
 - 파일 읽기는 라인 스트리밍이고 이벤트 목록은 windowed 렌더링이지만, 전체 이벤트/집계는 여전히 메모리에 유지한다.
 - parser note는 생겼지만, 포맷별 실패 원인 분류는 아직 거칠다.
-- 테스트는 parser/trace smoke와 jsdom 기반 파일 선택 UI smoke 수준이며, 실제 Tauri 런타임 파일 열기 검증은 아직 수동 확인 비중이 크다.
+- 테스트는 parser/trace smoke, jsdom 기반 파일 선택 UI smoke, selected-file runtime smoke, 3,000-event UI windowing smoke를 포함한다. 실제 Tauri 데스크톱 창 자동화는 아직 수동 확인 비중이 크다.
 
 ## 유지보수 관점에서 중요한 사실
 
