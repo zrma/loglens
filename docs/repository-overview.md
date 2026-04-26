@@ -26,7 +26,7 @@
 7. `이벤트` 탭에서 windowed 이벤트 목록과 상세 패널을 보여준다.
 8. 선택한 이벤트에 traceId가 있으면 관련 이벤트 흐름과 span topology를 묶어 보여준다.
 9. 같은 trace 안의 span을 상대 시간축 timeline으로 보여준다.
-10. parser note와 멀티라인 line range를 상세 패널에서 확인한다.
+10. Parser Diagnostics와 멀티라인 line range를 세션 요약, 분석 탭, 상세 패널에서 확인한다.
 11. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
 12. `필드 매핑` 다이얼로그에서는 canonical field alias를 보정하고 현재 세션을 다시 파싱한다.
 
@@ -45,7 +45,7 @@
 - parser preset과 세션 단위 field alias override 관리
 - 구조화 이벤트 기준 상태 관리
 - 검색어/level/service/trace/request/issue 필터링
-- windowed 이벤트 스트림, 선택 이벤트 상세 패널, parser note, span topology, span timeline 렌더링
+- windowed 이벤트 스트림, 선택 이벤트 상세 패널, Parser Diagnostics, span topology, span timeline 렌더링
 - 시간대별 집계 차트와 분포 카드 렌더링
 - 이벤트/분석 탭 전환
 
@@ -85,7 +85,7 @@
 - 파서는 JSON line, key=value, plain text timestamp prefix와 일부 stack trace heuristics까지만 안정적으로 지원한다.
 - span 관계 시각화는 기본 트리와 상대 timeline 수준이고, gantt 수준 상호작용은 아직 없다.
 - 파일 읽기는 라인 스트리밍이고 이벤트 목록은 windowed 렌더링이지만, 전체 이벤트/집계는 여전히 메모리에 유지한다.
-- parser note는 생겼지만, 포맷별 실패 원인 분류는 아직 거칠다.
+- Parser Diagnostics는 timestamp, JSON fallback, alias override, correlation 누락을 설명하지만, 지원 로그 포맷 자체는 아직 제한적이다.
 - 테스트는 parser/trace smoke, jsdom 기반 파일 선택 UI smoke, selected-file runtime smoke, 3,000-event UI windowing smoke를 포함한다. 실제 Tauri 데스크톱 창 자동화는 아직 수동 확인 비중이 크다.
 
 ## 유지보수 관점에서 중요한 사실

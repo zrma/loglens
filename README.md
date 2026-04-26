@@ -26,7 +26,7 @@
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - trace가 없더라도 route/resource/request 단서로 derived flow를 묶어 본다.
 - 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
-- 멀티라인 stack trace를 단일 이벤트로 병합하고 parser note를 남긴다.
+- 멀티라인 stack trace, timestamp, JSON fallback, alias override, correlation field 상태를 Parser Diagnostics로 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
 - 대용량 파서/분석 경계는 large-log fixture로 필터, 분포, 시간대 집계를 검증한다.
@@ -49,7 +49,7 @@
 - 이벤트 스트림 windowed/virtualized 렌더링
 - 이벤트 스트림 builtin/source/request/trace 컬럼 토글
 - structured field column pinning
-- parser note와 line range 표시
+- Parser Diagnostics severity/kind 분포와 이벤트별 line range 표시
 - Field Facets 기반 field key/value drill-down, 포함/제외 조건, 다중 조건 조합
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
 - `이벤트` / `분석` 탭 전환 UI
@@ -69,7 +69,7 @@
 
 현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
 
-현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, 세션 단위 custom alias override, `traceparent` fallback, 일부 multiline stack trace를 지원합니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
+현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, 세션 단위 custom alias override, `traceparent` fallback, 일부 multiline stack trace를 지원합니다. 파싱 과정에서 생기는 timestamp 누락/실패, JSON fallback, key=value partial parse, alias override 적용, correlation field 누락은 severity와 kind가 있는 Parser Diagnostics로 확인할 수 있습니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 
 ## 구조 요약
 
