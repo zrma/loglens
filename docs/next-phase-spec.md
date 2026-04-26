@@ -253,7 +253,7 @@ type DrillDownFilter =
 
 ## 4. Cross-file Trace Diff
 
-상태: 2026-04-26 계획 수립. 구현 세부 작업 목록은 [`docs/todo-cross-file-trace-diff.md`](./todo-cross-file-trace-diff.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-cross-file-trace-diff.md`](./todo-cross-file-trace-diff.md)에 남긴다.
 
 ### 목표
 

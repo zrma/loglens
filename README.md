@@ -26,7 +26,7 @@
 - 분석 탭의 시간대, level, service, request, diagnostic 분포를 클릭해 이벤트 범위를 좁힌다.
 - trace/span/request ID를 추출해 관련 이벤트를 묶고 span topology와 timeline을 재구성한다.
 - trace가 없더라도 route/resource/request 단서로 derived flow를 묶어 본다.
-- 선택한 trace가 어떤 source들에 걸쳐 퍼져 있는지 source coverage로 보여준다.
+- 선택한 trace/request/derived flow가 어떤 source에서 끊기거나 비는지 Trace Diff로 비교한다.
 - 멀티라인 stack trace, timestamp, JSON fallback, alias override, correlation field 상태를 Parser Diagnostics로 남긴다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
@@ -47,6 +47,7 @@
 - trace 내부 parent/child span topology 카드
 - trace 상대 시간축 기준 span timeline 카드
 - route/resource/request 기반 derived flow 그룹
+- cross-file Trace Diff 카드와 source별 missing hint
 - 이벤트 스트림 windowed/virtualized 렌더링
 - 이벤트 스트림 builtin/source/request/trace 컬럼 토글
 - structured field column pinning
@@ -64,7 +65,7 @@
 ### 아직 구현되지 않은 부분
 
 - 다양한 로그 포맷과 nested JSON에 대한 더 넓은 정규화
-- 여러 파일 동시 비교를 더 깊게 지원하는 세션 관리
+- trace 간 비교와 source diff를 더 깊게 지원하는 세션 관리
 - span timeline/gantt 수준의 더 정교한 시각화
 - 대용량 로그 대응 최적화
 - 실제 파일 열기 플로우와 필터 상호작용까지 포함한 더 넓은 fixture/test 세트
