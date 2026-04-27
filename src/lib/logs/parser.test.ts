@@ -594,6 +594,39 @@ timestamp=2026-03-08T12:36:01.000Z level=info msg="key value xray correlation" x
     ))).toBe(true);
   });
 
+  it("extracts OpenTelemetry-style log fields from nested JSON", () => {
+    const session = parseLogContent(`
+{"timeUnixNano":"1741437296000123456","severityText":"ERROR","body":{"stringValue":"checkout failed"},"resource":{"attributes":{"service.name":"checkout-api"}},"attributes":{"http.request_id":"req-otel-1"},"trace_id":"trace-otel-1","span_id":"span-otel-1"}
+{"observedTimeUnixNano":1741437297000000000,"severityNumber":13,"body":"rate limited","resource":{"attributes":{"service_name":"edge-gateway"}},"attributes":{"requestId":"req-otel-2"},"trace_id":"trace-otel-2","span_id":"span-otel-2"}
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      level: "error",
+      message: "checkout failed",
+      requestId: "req-otel-1",
+      service: "checkout-api",
+      spanId: "span-otel-1",
+      timestampMs: 1741437296000,
+      traceId: "trace-otel-1",
+    });
+    expect(session.events[1]).toMatchObject({
+      level: "warn",
+      message: "rate limited",
+      requestId: "req-otel-2",
+      service: "edge-gateway",
+      spanId: "span-otel-2",
+      timestampMs: 1741437297000,
+      traceId: "trace-otel-2",
+    });
+    expect(session.events.every((event) => (
+      !event.parseIssues.some((issue) => (
+        issue.kind === "timestamp_missing"
+        || issue.kind === "timestamp_parse_failed"
+        || issue.kind === "correlation_field_missing"
+      ))
+    ))).toBe(true);
+  });
+
   it("parses zap-style short json keys used by pronaia logs", () => {
     const session = parseLogContent(`
 run batch service....

@@ -15,6 +15,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - plain text timestamp prefix 일부
   - multiline stack trace 병합
   - nested JSON correlation field 추출
+  - OpenTelemetry-style field alias 추출
   - parser alias preset(`auto`, `default`, `zap-short-json`)
   - 세션 단위 custom alias override UI
   - severity/kind 기반 Parser Diagnostics
@@ -168,7 +169,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남긴다. HTTP/B3 correlation 첫 slice는 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 닫혀 있고, AWS X-Ray follow-up은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)에 닫혀 있다. 다음 parser compatibility 작업은 [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md)에서 진행한다.
+완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남긴다. HTTP/B3 correlation 첫 slice는 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 닫혀 있고, AWS X-Ray follow-up은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)에 닫혀 있다. OpenTelemetry parser compatibility 작업도 [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md)에 닫혀 있다.
 
 ### 완료. Custom Alias Override UI
 
@@ -247,8 +248,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 작업 목록은 [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md)에 둔다.
 
-- OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는다.
-- numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility를 고정한다.
+- OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는 기능 추가 완료
+- numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility 고정 완료
 
 ## 지금 당장 하지 않아도 되는 것
 
