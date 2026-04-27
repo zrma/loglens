@@ -88,6 +88,34 @@ function normalizeWhitespace(value: string) {
 function normalizeLevel(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase();
 
+  if (normalized && NUMERIC_TIMESTAMP_PATTERN.test(normalized)) {
+    const severityNumber = Number(normalized);
+
+    if (severityNumber >= 1 && severityNumber <= 4) {
+      return "trace";
+    }
+
+    if (severityNumber >= 5 && severityNumber <= 8) {
+      return "debug";
+    }
+
+    if (severityNumber >= 9 && severityNumber <= 12) {
+      return "info";
+    }
+
+    if (severityNumber >= 13 && severityNumber <= 16) {
+      return "warn";
+    }
+
+    if (severityNumber >= 17 && severityNumber <= 20) {
+      return "error";
+    }
+
+    if (severityNumber >= 21 && severityNumber <= 24) {
+      return "fatal";
+    }
+  }
+
   switch (normalized) {
     case "trace":
       return "trace";

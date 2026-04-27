@@ -6,12 +6,12 @@ OpenTelemetry/OTLP JSON 형태로 export된 로그 레코드에서 흔한 timest
 
 ## 구현 항목
 
-- [ ] `timeUnixNano`, `time_unix_nano`, `observedTimeUnixNano`, `observed_time_unix_nano`를 timestamp 후보로 인식한다.
-- [ ] `severityText`, `severity_text`, `severityNumber`, `severity_number`를 level 후보로 인식한다.
-- [ ] `body.stringValue`, `body`, `message` 계열을 message 후보로 인식한다.
-- [ ] `resource.attributes.service.name`과 `resource.attributes.service_name`을 service 후보로 인식한다.
-- [ ] `attributes.http.request_id`, `attributes.request_id`, `attributes.x-request-id`를 request ID 후보로 인식한다.
-- [ ] parser 회귀 테스트로 OTLP-style nested JSON 입력을 고정한다.
+- [x] `timeUnixNano`, `time_unix_nano`, `observedTimeUnixNano`, `observed_time_unix_nano`를 timestamp 후보로 인식한다.
+- [x] `severityText`, `severity_text`, `severityNumber`, `severity_number`를 level 후보로 인식한다.
+- [x] `body.stringValue`, `body`, `message` 계열을 message 후보로 인식한다.
+- [x] `resource.attributes.service.name`과 `resource.attributes.service_name`을 service 후보로 인식한다.
+- [x] `attributes.http.request_id`, `attributes.request_id`, `attributes.x-request-id`를 request ID 후보로 인식한다.
+- [x] parser 회귀 테스트로 OTLP-style nested JSON 입력을 고정한다.
 
 ## 비범위
 
@@ -30,3 +30,4 @@ OpenTelemetry/OTLP JSON 형태로 export된 로그 레코드에서 흔한 timest
 ## 진행 메모
 
 - 2026-04-27: X-Ray correlation follow-up 뒤의 parser compatibility milestone으로 분리했다.
+- 2026-04-27: OTLP-style timestamp/severity/body/resource/request aliases와 `severityNumber` 정규화를 추가하고 nested JSON 회귀 테스트로 고정했다.

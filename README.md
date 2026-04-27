@@ -43,7 +43,7 @@
 - `.log`, `.txt` 파일 다중 선택
 - 라인 스트리밍 기반 로컬 파일 읽기
 - 다중 파일 병합 세션과 source 표시/필터
-- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, alias preset(auto/default/zap-short-json), 세션 단위 custom alias override, zap-style short key(`T/L/N/M/rid`) 지원, `traceparent`와 `X-Amzn-Trace-Id` fallback, multiline stack trace 병합)
+- 구조화 이벤트 파싱(JSON line / key=value / plain text 일부, nested JSON field 추출, OpenTelemetry-style field alias, alias preset(auto/default/zap-short-json), 세션 단위 custom alias override, zap-style short key(`T/L/N/M/rid`) 지원, `traceparent`와 `X-Amzn-Trace-Id` fallback, multiline stack trace 병합)
 - 검색어, level, service, trace, request, structured field facet, issue-only 기반 필터링
 - 선택 이벤트 상세 패널
 - 관련 trace 이벤트 묶음 표시
@@ -77,7 +77,7 @@
 현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
 sidebar와 analysis의 상위 trace/derived-flow 목록은 표시 개수에 맞춘 preview 계산을 사용하고, 선택 이벤트의 derived-flow 상세만 필요할 때 materialize합니다.
 
-현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, alias preset, 세션 단위 custom alias override, `traceparent`와 `X-Amzn-Trace-Id` fallback, 일부 multiline stack trace를 지원합니다. 파싱 과정에서 생기는 timestamp 누락/실패, JSON fallback, key=value partial parse, alias override 적용, correlation field 누락은 severity와 kind가 있는 Parser Diagnostics로 확인할 수 있습니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
+현재 파서는 JSON line, key=value, plain text timestamp prefix, 일부 nested JSON correlation field, OpenTelemetry-style field alias, alias preset, 세션 단위 custom alias override, `traceparent`와 `X-Amzn-Trace-Id` fallback, 일부 multiline stack trace를 지원합니다. 파싱 과정에서 생기는 timestamp 누락/실패, JSON fallback, key=value partial parse, alias override 적용, correlation field 누락은 severity와 kind가 있는 Parser Diagnostics로 확인할 수 있습니다. 저장소 목적은 "로그 분석 워크벤치"에 가깝고, 현재 구현은 "구조화 로그 탐색 + span 관계 탐색 MVP" 단계입니다.
 
 ## 구조 요약
 
