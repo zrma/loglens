@@ -567,6 +567,33 @@ timestamp=2026-03-08T12:35:01.000Z level=info msg="key value header correlation"
     });
   });
 
+  it("extracts AWS X-Ray trace headers from nested JSON and key-value logs", () => {
+    const session = parseLogContent(`
+{"timestamp":"2026-03-08T12:36:00.000Z","level":"info","message":"nested xray correlation","headers":{"X-Amzn-Trace-Id":"Root=1-65f84c7a-12d6f0f0f2f0f2f0f2f0f2f0;Parent=53995c3f42cd8ad8;Sampled=1"}}
+timestamp=2026-03-08T12:36:01.000Z level=info msg="key value xray correlation" x-amzn-trace-id=Root=1-65f84c7b-aaaaaaaaaaaaaaaaaaaaaaaa;Parent=4d2c3b2a19080706;Sampled=0
+{"timestamp":"2026-03-08T12:36:02.000Z","level":"info","message":"explicit trace wins","traceId":"trace-explicit","spanId":"span-explicit","headers":{"X-Amzn-Trace-Id":"Root=1-65f84c7c-bbbbbbbbbbbbbbbbbbbbbbbb;Parent=1111111111111111;Sampled=1"}}
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      message: "nested xray correlation",
+      spanId: "53995c3f42cd8ad8",
+      traceId: "1-65f84c7a-12d6f0f0f2f0f2f0f2f0f2f0",
+    });
+    expect(session.events[1]).toMatchObject({
+      message: "key value xray correlation",
+      spanId: "4d2c3b2a19080706",
+      traceId: "1-65f84c7b-aaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    expect(session.events[2]).toMatchObject({
+      message: "explicit trace wins",
+      spanId: "span-explicit",
+      traceId: "trace-explicit",
+    });
+    expect(session.events.every((event) => (
+      !event.parseIssues.some((issue) => issue.kind === "correlation_field_missing")
+    ))).toBe(true);
+  });
+
   it("parses zap-style short json keys used by pronaia logs", () => {
     const session = parseLogContent(`
 run batch service....
