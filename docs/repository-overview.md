@@ -86,6 +86,7 @@
 - [`docs/log-format-support.md`](./log-format-support.md): timestamp 지원 범위와 Parser Diagnostics 규칙
 - [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md): HTTP/B3 correlation header를 canonical field로 승격하는 완료된 작업
 - [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md): AWS X-Ray trace header를 canonical trace/span fallback으로 승격한 완료된 작업
+- [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md): OpenTelemetry/OTLP-style JSON log field를 canonical field로 승격하는 후속 작업
 
 ## 현재 한계
 
