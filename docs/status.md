@@ -168,7 +168,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 후속 제품 확장은 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)부터 진행합니다.
+완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남긴다. HTTP/B3 correlation 첫 slice는 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 닫혀 있고, 다음 제품 확장은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)부터 진행한다.
 
 ### 완료. Custom Alias Override UI
 
@@ -235,6 +235,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - HTTP request ID와 B3 trace/span header alias 추가 완료
 - nested JSON과 key=value 입력 회귀 테스트 추가 완료
+
+### 4. AWS X-Ray correlation 규칙 확장
+
+작업 목록은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)에 둔다.
+
+- `X-Amzn-Trace-Id` 계열 header에서 `Root`와 `Parent`를 읽어 trace/span fallback으로 사용한다.
+- nested JSON과 key=value 입력 회귀 테스트로 AWS 로그 상관관계 인식을 고정한다.
 
 ## 지금 당장 하지 않아도 되는 것
 
