@@ -3,6 +3,7 @@ import type { LogFieldMap } from "@/lib/logs/types";
 export type LogAliasField =
   | "traceId"
   | "traceparent"
+  | "xrayTraceId"
   | "spanId"
   | "parentSpanId"
   | "requestId"
@@ -50,6 +51,12 @@ const BASE_LOG_FIELD_ALIASES: LogFieldAliases = {
     "x-b3-trace-id",
   ],
   traceparent: ["traceparent", "headers.traceparent", "context.traceparent"],
+  xrayTraceId: [
+    "x-amzn-trace-id",
+    "x-amzn-traceid",
+    "amzn-trace-id",
+    "aws.xray.trace_id",
+  ],
   spanId: [
     "spanId",
     "span_id",
@@ -142,6 +149,7 @@ function cloneAliasSet(aliases: LogFieldAliases): LogFieldAliases {
   return {
     traceId: [...aliases.traceId],
     traceparent: [...aliases.traceparent],
+    xrayTraceId: [...aliases.xrayTraceId],
     spanId: [...aliases.spanId],
     parentSpanId: [...aliases.parentSpanId],
     requestId: [...aliases.requestId],

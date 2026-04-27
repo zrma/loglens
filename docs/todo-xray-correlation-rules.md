@@ -6,11 +6,11 @@ AWS ALB, API Gateway, Lambda, 서비스 로그에서 흔히 보이는 `X-Amzn-Tr
 
 ## 구현 항목
 
-- [ ] JSON line과 nested JSON에서 `X-Amzn-Trace-Id` 계열 header field를 인식한다.
-- [ ] key=value 로그에서 `x-amzn-trace-id`와 `x-amzn-traceid` field를 인식한다.
-- [ ] `Root=...;Parent=...;Sampled=...` 값에서 `Root`를 `traceId`, `Parent`를 `spanId`로 추출한다.
-- [ ] 기존 `traceId` 또는 `spanId`가 명시되어 있으면 그 값을 우선하고, X-Ray header는 fallback으로만 사용한다.
-- [ ] parser 회귀 테스트로 nested JSON과 key=value 입력을 함께 고정한다.
+- [x] JSON line과 nested JSON에서 `X-Amzn-Trace-Id` 계열 header field를 인식한다.
+- [x] key=value 로그에서 `x-amzn-trace-id`와 `x-amzn-traceid` field를 인식한다.
+- [x] `Root=...;Parent=...;Sampled=...` 값에서 `Root`를 `traceId`, `Parent`를 `spanId`로 추출한다.
+- [x] 기존 `traceId` 또는 `spanId`가 명시되어 있으면 그 값을 우선하고, X-Ray header는 fallback으로만 사용한다.
+- [x] parser 회귀 테스트로 nested JSON과 key=value 입력을 함께 고정한다.
 
 ## 비범위
 
@@ -29,3 +29,4 @@ AWS ALB, API Gateway, Lambda, 서비스 로그에서 흔히 보이는 `X-Amzn-Tr
 ## 진행 메모
 
 - 2026-04-27: HTTP/B3 correlation header milestone 다음 작업으로 분리했다.
+- 2026-04-27: X-Ray header alias와 `Root`/`Parent` fallback parser를 추가하고, nested JSON/key=value 회귀 테스트로 고정했다.

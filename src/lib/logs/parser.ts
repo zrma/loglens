@@ -126,6 +126,36 @@ function extractTraceparentContext(value: string | null | undefined) {
   };
 }
 
+function extractXrayTraceContext(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parts = new Map<string, string>();
+
+  for (const part of value.split(";")) {
+    const [rawKey, ...rawValueParts] = part.split("=");
+    const key = rawKey?.trim().toLowerCase();
+    const partValue = rawValueParts.join("=").trim();
+
+    if (!key || !partValue) {
+      continue;
+    }
+
+    parts.set(key, partValue);
+  }
+
+  const traceId = parts.get("root") ?? null;
+  const spanId = parts.get("parent") ?? null;
+
+  return traceId || spanId
+    ? {
+      spanId,
+      traceId,
+    }
+    : null;
+}
+
 function normalizeEpochTimestamp(value: number) {
   if (!Number.isFinite(value)) {
     return null;
@@ -438,8 +468,9 @@ function createEvent(
   const traceContext = extractTraceparentContext(
     pickField(fieldLookup, aliases.traceparent) ?? headerLine.match(TRACEPARENT_PATTERN)?.[0] ?? null,
   );
-  const traceId = pickField(fieldLookup, aliases.traceId) ?? traceContext?.traceId ?? null;
-  const spanId = pickField(fieldLookup, aliases.spanId) ?? traceContext?.spanId ?? null;
+  const xrayTraceContext = extractXrayTraceContext(pickField(fieldLookup, aliases.xrayTraceId));
+  const traceId = pickField(fieldLookup, aliases.traceId) ?? traceContext?.traceId ?? xrayTraceContext?.traceId ?? null;
+  const spanId = pickField(fieldLookup, aliases.spanId) ?? traceContext?.spanId ?? xrayTraceContext?.spanId ?? null;
   const parentSpanId = pickField(fieldLookup, aliases.parentSpanId);
   const requestId = pickField(fieldLookup, aliases.requestId);
 
