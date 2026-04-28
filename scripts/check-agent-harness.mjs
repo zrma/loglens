@@ -24,7 +24,9 @@ check("AGENTS.md remains a short routing map", () => {
 
   assert(nonBlankLineCount <= 90, "AGENTS.md should stay concise; move detailed rules into docs/ or .agents/skills.");
   assert(agents.includes("docs/agent-operating-contract.md"), "AGENTS.md must route escalation rules to docs/agent-operating-contract.md.");
-  assert(agents.includes("docs/next-phase-spec.md"), "AGENTS.md must point broad work at docs/next-phase-spec.md.");
+  assert(agents.includes("docs/status.md"), "AGENTS.md must point broad work at docs/status.md.");
+  assert(agents.includes("docs/roadmap.md"), "AGENTS.md must point broad work at docs/roadmap.md.");
+  assert(agents.includes("docs/completed-milestones.md"), "AGENTS.md must point completed work history at docs/completed-milestones.md.");
 });
 
 check("agent operating contract defines autonomous escalation gates", () => {
@@ -48,14 +50,17 @@ check("publish gate includes harness validation", () => {
 
 check("large-log fast regression and slow benchmark stay separated", () => {
   const packageJson = JSON.parse(readText("package.json"));
-  const todo = readText("docs/todo-large-session-memory-optimization.md");
+  const completedMilestones = readText("docs/completed-milestones.md");
   const benchmark = readText("src/lib/logs/large-session.benchmark.test.ts");
 
   assert(packageJson.scripts["test:large-regression"]?.includes("parser.test.ts"), "package.json must keep a fast large regression script.");
   assert(packageJson.scripts["bench:large-session"]?.includes("LOG_LENS_LARGE_BENCH=1"), "large benchmark must be opt-in through LOG_LENS_LARGE_BENCH.");
   assert(benchmark.includes("LARGE_SESSION_BENCH_LINE_COUNT = 200_000"), "large benchmark candidate must preserve the 200k-line target.");
   assert(benchmark.includes("describe.skip"), "large benchmark candidate must stay out of the default pnpm test path.");
-  assert(todo.includes("빠른 regression") && todo.includes("느린 benchmark"), "large-session todo must document the fast/slow fixture split.");
+  assert(
+    completedMilestones.includes("빠른 regression") && completedMilestones.includes("느린 benchmark"),
+    "completed milestones must document the fast/slow fixture split.",
+  );
 });
 
 check("CI and pre-push use the same publish gate", () => {
@@ -105,20 +110,25 @@ check("runtime smoke covers selected-file and large UI contracts", () => {
   assert(tauri.includes("allow_file_access_rejects_empty_paths"), "Rust file access tests must reject empty paths.");
 });
 
-check("status and next phase docs keep the autonomous backlog aligned", () => {
+check("status, roadmap, and milestone docs keep the autonomous backlog aligned", () => {
   const agents = readText("AGENTS.md");
   const logFormatSupport = readText("docs/log-format-support.md");
   const status = readText("docs/status.md");
   const nextPhase = readText("docs/next-phase-spec.md");
   const roadmap = readText("docs/roadmap.md");
-  const reliabilityTodo = readText("docs/todo-reliability-hardening.md");
+  const completedMilestones = readText("docs/completed-milestones.md");
 
-  assert(agents.includes("docs/next-phase-spec.md"), "AGENTS.md must route broad work to docs/next-phase-spec.md.");
-  assert(status.includes("Custom Alias Override UI"), "docs/status.md must name the next autonomous implementation target.");
-  assert(status.includes("docs/todo-reliability-hardening.md"), "docs/status.md must link the active reliability todo.");
-  assert(roadmap.includes("docs/todo-reliability-hardening.md"), "docs/roadmap.md must link the active reliability todo.");
-  assert(nextPhase.includes("docs/todo-reliability-hardening.md"), "docs/next-phase-spec.md must route follow-up reliability work to the reliability todo.");
-  assert(reliabilityTodo.includes("docs/log-format-support.md"), "reliability todo must track timestamp support documentation.");
+  assert(agents.includes("docs/status.md"), "AGENTS.md must route broad work to docs/status.md.");
+  assert(agents.includes("docs/roadmap.md"), "AGENTS.md must route broad work to docs/roadmap.md.");
+  assert(status.includes("Custom Alias Override UI"), "docs/status.md must retain completed autonomous implementation history.");
+  assert(status.includes("docs/completed-milestones.md"), "docs/status.md must link completed milestone history.");
+  assert(roadmap.includes("docs/completed-milestones.md"), "docs/roadmap.md must link completed milestone history.");
+  assert(nextPhase.includes("docs/completed-milestones.md"), "docs/next-phase-spec.md must link completed milestone history.");
+  assert(completedMilestones.includes("docs/log-format-support.md"), "completed milestones must track timestamp support documentation.");
+  assert(
+    completedMilestones.includes("timestamp_missing") && completedMilestones.includes("timestamp_parse_failed"),
+    "completed milestones must preserve the timestamp diagnostic split.",
+  );
   assert(logFormatSupport.includes("timestamp_missing") && logFormatSupport.includes("timestamp_parse_failed"), "timestamp support docs must describe diagnostic split.");
   assert(nextPhase.includes("## 구현 순서"), "docs/next-phase-spec.md must preserve ordered implementation guidance.");
   assert(nextPhase.includes("1. custom alias override UI"), "docs/next-phase-spec.md must keep custom alias override first.");

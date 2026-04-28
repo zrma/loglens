@@ -20,7 +20,9 @@ description: "LogLens 전용 workflow. 이 저장소에서 Tauri/React 기반 lo
 - `docs/agent-operating-contract.md`
 - `docs/agent-autonomy-playbook.md`
 - `docs/status.md`
+- `docs/roadmap.md`
 - `docs/next-phase-spec.md`
+- `docs/completed-milestones.md`
 - `docs/repository-overview.md`
 
 현재 작업에 필요한 부분만 읽습니다.

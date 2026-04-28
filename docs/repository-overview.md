@@ -88,10 +88,7 @@ Session snapshot은 별도 경로입니다. export는 현재 parser preset, alia
 - [`src-tauri`](../src-tauri): Tauri 설정과 Rust 엔트리포인트
 - [`public`](../public): 정적 에셋
 - [`docs/log-format-support.md`](./log-format-support.md): timestamp 지원 범위와 Parser Diagnostics 규칙
-- [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md): HTTP/B3 correlation header를 canonical field로 승격하는 완료된 작업
-- [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md): AWS X-Ray trace header를 canonical trace/span fallback으로 승격한 완료된 작업
-- [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md): OpenTelemetry/OTLP-style JSON log field를 canonical field로 승격한 완료된 작업
-- [`docs/todo-session-snapshots.md`](./todo-session-snapshots.md): raw 로그 없는 로컬 분석 session snapshot export/import를 추가한 완료된 작업
+- [`docs/completed-milestones.md`](./completed-milestones.md): 닫힌 작업 단위의 완료 이력과 검증 기준
 
 ## 현재 한계
 
