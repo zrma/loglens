@@ -1,4 +1,5 @@
-import { AlertCircle, FileJson2, FolderOpen, ShieldCheck, Sparkles } from "lucide-react";
+import { type ChangeEvent, useRef } from "react";
+import { AlertCircle, Download, FileJson2, FolderOpen, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,11 +46,17 @@ type OverviewSectionProps = {
     eventCount: number;
     diagnosticCount: number;
   } | null;
+  snapshotMessage: {
+    kind: "error" | "success" | "warning";
+    text: string;
+  } | null;
   onSelectLogFile: () => void;
   onLoadSampleSession: () => void;
   onApplyAliasOverrides: (value: LogFieldAliasOverrides) => void;
   onResetAliasOverrides: () => void;
   onParserPresetChange: (value: LogAliasPresetId) => void;
+  onExportSessionSnapshot: () => void;
+  onImportSessionSnapshot: (file: File) => void | Promise<void>;
 };
 
 function getDiagnosticSeverityTone(severity: string) {
@@ -62,6 +69,17 @@ function getDiagnosticSeverityTone(severity: string) {
       return "border-cyan-200 bg-cyan-50 text-cyan-700";
     default:
       return "border-border bg-muted text-muted-foreground";
+  }
+}
+
+function getSnapshotMessageTone(kind: "error" | "success" | "warning") {
+  switch (kind) {
+    case "error":
+      return "border-destructive/20 bg-destructive/5 text-destructive";
+    case "warning":
+      return "border-amber-200 bg-amber-50 text-amber-800";
+    case "success":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 }
 
@@ -85,12 +103,28 @@ export function OverviewSection({
   parserPresetId,
   parserPresetOptions,
   loadProgress,
+  snapshotMessage,
   onSelectLogFile,
   onLoadSampleSession,
   onApplyAliasOverrides,
   onResetAliasOverrides,
   onParserPresetChange,
+  onExportSessionSnapshot,
+  onImportSessionSnapshot,
 }: OverviewSectionProps) {
+  const snapshotInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleSnapshotInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    void onImportSessionSnapshot(file);
+  };
+
   return (
     <>
       <section>
@@ -186,6 +220,36 @@ export function OverviewSection({
                   <FileJson2 className="mr-2 size-4 text-muted-foreground" />
                   데모 데이터로 체험하기
                 </Button>
+                <div className="grid w-full grid-cols-2 gap-2 sm:w-48 lg:w-56">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onExportSessionSnapshot}
+                    disabled={!session || Boolean(loadProgress)}
+                    className="h-10 rounded-xl border-border bg-background px-3 text-xs font-semibold"
+                  >
+                    <Download className="mr-1.5 size-3.5 text-muted-foreground" />
+                    Export
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => snapshotInputRef.current?.click()}
+                    disabled={!session || Boolean(loadProgress)}
+                    className="h-10 rounded-xl border-border bg-background px-3 text-xs font-semibold"
+                  >
+                    <Upload className="mr-1.5 size-3.5 text-muted-foreground" />
+                    Import
+                  </Button>
+                  <input
+                    ref={snapshotInputRef}
+                    aria-label="세션 snapshot 파일 선택"
+                    type="file"
+                    accept="application/json,.json"
+                    className="sr-only"
+                    onChange={handleSnapshotInputChange}
+                  />
+                </div>
               </div>
             </div>
 
@@ -212,6 +276,12 @@ export function OverviewSection({
                   <span>{loadProgress.eventCount.toLocaleString()} events</span>
                   <span>{loadProgress.diagnosticCount.toLocaleString()} notes</span>
                 </div>
+              </div>
+            )}
+
+            {snapshotMessage && (
+              <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${getSnapshotMessageTone(snapshotMessage.kind)}`}>
+                {snapshotMessage.text}
               </div>
             )}
 

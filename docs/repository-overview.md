@@ -31,6 +31,7 @@
 12. `분석` 탭에서는 인식 가능한 타임스탬프를 파싱해 시간대별 추이와 분포를 보여준다.
 13. 분석 탭의 시간대, level, service, request, diagnostic 분포를 클릭하면 별도 drill-down 조건으로 이벤트 범위를 좁힌다.
 14. `필드 매핑` 다이얼로그에서는 canonical field alias를 보정하고 현재 세션을 다시 파싱한다.
+15. `Export`/`Import` 컨트롤로 raw 로그 본문 없이 parser/view/filter 상태만 담은 로컬 JSON snapshot을 저장하거나 복원한다.
 
 ## 런타임 구조
 
@@ -52,8 +53,9 @@
 - 시간대별 집계 차트, 분포 카드, analysis drill-down chip 렌더링
 - sidebar/analysis 상위 trace/derived-flow 목록은 표시 개수에 맞춘 bounded preview로 계산
 - 이벤트/분석 탭 전환
+- raw 로그 본문을 저장하지 않는 session snapshot export/import
 
-`App.tsx`는 세션 로딩, 탭, 선택 이벤트 상태를 연결하고, 필터 상태는 `useLogExplorerFilters()`, 표시 설정은 `useLogExplorerViewConfig()`, 파생 view data는 `useLogExplorerViewModel()`이 맡습니다. 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
+`App.tsx`는 세션 로딩, 탭, 선택 이벤트 상태, session snapshot 적용 순서를 연결하고, 필터 상태는 `useLogExplorerFilters()`, 표시 설정은 `useLogExplorerViewConfig()`, 파생 view data는 `useLogExplorerViewModel()`이 맡습니다. 실제 렌더링 덩어리는 `src/features/log-explorer/components`로 분리되었습니다.
 
 ### Tauri / Rust
 
@@ -76,6 +78,8 @@
 
 데이터 흐름은 `파일 선택 -> 선택 파일 scope 허용 -> 라인 스트리밍 읽기 -> 이벤트 레코드 분리 -> preset/alias override 적용 -> 구조화 파싱 -> trace/span 집계 -> sidebar 필터 -> analysis drill-down 필터 -> 탭 렌더링` 순서입니다.
 
+Session snapshot은 별도 경로입니다. export는 현재 parser preset, alias override, 필터, analysis drill-down, event stream column, field visibility, active tab, source signature만 JSON으로 저장하고 raw log line이나 parsed event 전체는 저장하지 않습니다. import는 현재 로드된 세션에 이 상태를 적용하며, parser 설정이 다르면 같은 세션을 다시 파싱한 뒤 필터와 view 상태를 복원합니다.
+
 ## 폴더별 역할
 
 - [`src`](../src): React 애플리케이션 본체
@@ -87,6 +91,7 @@
 - [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md): HTTP/B3 correlation header를 canonical field로 승격하는 완료된 작업
 - [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md): AWS X-Ray trace header를 canonical trace/span fallback으로 승격한 완료된 작업
 - [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md): OpenTelemetry/OTLP-style JSON log field를 canonical field로 승격한 완료된 작업
+- [`docs/todo-session-snapshots.md`](./todo-session-snapshots.md): raw 로그 없는 로컬 분석 session snapshot export/import를 추가한 완료된 작업
 
 ## 현재 한계
 
@@ -94,6 +99,7 @@
 - span 관계 시각화는 기본 트리와 상대 timeline 수준이고, gantt 수준 상호작용은 아직 없다.
 - 파일 읽기는 라인 스트리밍이고 이벤트 목록은 windowed 렌더링이지만, 전체 이벤트/집계는 여전히 메모리에 유지한다. 다만 sidebar/analysis 상위 flow 목록과 선택 이벤트 derived-flow 상세는 bounded/lazy 경로로 분리되었다.
 - Trace Diff는 source별 coverage와 missing hint 중심이며 완전한 distributed trace 재구성은 아니다.
+- Session snapshot은 parser/view/filter 상태만 저장하며 raw 로그 본문, 자동 파일 재열기, 장기 인덱싱은 포함하지 않는다.
 - Parser Diagnostics는 timestamp, JSON fallback, alias override, correlation 누락을 설명하지만, 지원 로그 포맷 자체는 아직 제한적이다.
 - 테스트는 parser/trace smoke, jsdom 기반 파일 선택 UI smoke, selected-file runtime smoke, 3,000-event UI windowing smoke를 포함한다. 실제 Tauri 데스크톱 창 자동화는 아직 수동 확인 비중이 크다.
 
@@ -109,4 +115,5 @@
 - correlation ID를 포함한 더 풍부한 연결 규칙
 - 큰 파일 대응을 위한 스트리밍/가상화
 - span timeline/gantt 시각화
+- raw 로그를 포함하지 않는 bookmark/annotation 같은 분석 보조 상태
 - 실제 파일 열기/필터 상호작용을 포함한 UI 테스트와 fixture 확장

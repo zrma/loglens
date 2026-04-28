@@ -365,6 +365,7 @@ export function useLogExplorerViewModel({
 
   return {
     activeAliasOverrideCount,
+    applyViewSnapshot: viewConfig.applyViewSnapshot,
     diagnosticCounts,
     diagnosticSeverityCounts,
     eventColumnFieldOptions,

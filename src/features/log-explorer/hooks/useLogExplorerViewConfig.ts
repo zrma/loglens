@@ -5,6 +5,7 @@ import {
   normalizeBuiltinEventStreamColumns,
   type EventStreamBuiltinColumnId,
 } from "@/features/log-explorer/event-stream-columns";
+import type { LogExplorerViewSnapshot } from "@/features/log-explorer/session-snapshot";
 
 type FieldKeyOption = {
   label: string;
@@ -66,6 +67,17 @@ export function useLogExplorerViewConfig({
     setPinnedEventFieldColumns([]);
   }, []);
 
+  const applyViewSnapshot = useCallback((snapshot: LogExplorerViewSnapshot) => {
+    setHiddenFieldKeys([...snapshot.hiddenFieldKeys]);
+    setPinnedEventFieldColumns([...snapshot.pinnedEventFieldColumns]);
+    setEventStreamBuiltinColumns(
+      normalizeBuiltinEventStreamColumns(
+        snapshot.eventStreamBuiltinColumns,
+        snapshot.pinnedEventFieldColumns,
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     const availableFieldKeys = new Set(sessionFieldKeyOptions.map(({ label }) => label));
 
@@ -73,6 +85,7 @@ export function useLogExplorerViewConfig({
   }, [sessionFieldKeyOptions]);
 
   return {
+    applyViewSnapshot,
     eventStreamBuiltinColumns,
     eventStreamColumns,
     hiddenFieldKeys,

@@ -4,6 +4,7 @@ import {
   getAnalysisDrillDownId,
   upsertAnalysisDrillDownFilter,
 } from "@/features/log-explorer/analysis-drill-down";
+import type { LogExplorerFilterSnapshot } from "@/features/log-explorer/session-snapshot";
 import type { FieldFilter, LogFilters, LogLevel } from "@/lib/logs/types";
 
 type SharedLogFilters = Omit<LogFilters, "fieldFilters">;
@@ -65,6 +66,19 @@ export function useLogExplorerFilters() {
     setAnalysisDrillDownFilters([]);
   }, []);
 
+  const applyFilterSnapshot = useCallback((snapshot: LogExplorerFilterSnapshot) => {
+    setSearchTerm(snapshot.searchTerm);
+    setLevelFilter(snapshot.levelFilter);
+    setSourceFilter(snapshot.sourceFilter);
+    setServiceFilter(snapshot.serviceFilter);
+    setTraceFilter(snapshot.traceFilter);
+    setRequestFilter(snapshot.requestFilter);
+    setFieldFilters(snapshot.fieldFilters);
+    setFacetFieldKey(snapshot.facetFieldKey);
+    setIssuesOnly(snapshot.issuesOnly);
+    setAnalysisDrillDownFilters(snapshot.analysisDrillDownFilters);
+  }, []);
+
   const sharedFilters = useMemo<SharedLogFilters>(() => ({
     searchTerm: deferredSearchTerm,
     level: levelFilter,
@@ -100,6 +114,7 @@ export function useLogExplorerFilters() {
     setSourceFilter,
     setTraceFilter,
     addFieldFilter,
+    applyFilterSnapshot,
     sharedFilters,
     sourceFilter,
     traceFilter,
