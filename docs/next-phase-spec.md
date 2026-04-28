@@ -14,7 +14,7 @@
 4. cross-file trace diff
 5. 대용량 세션 메모리 최적화
 
-위 5개 항목은 2026-04-26 기준 구현 완료다. 후속 신뢰성 보강은 [`docs/todo-reliability-hardening.md`](./todo-reliability-hardening.md)를 기준으로 진행한다.
+위 5개 항목은 2026-04-26 기준 구현 완료다. 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둔다. 새 후속 작업은 [`docs/status.md`](./status.md)와 [`docs/roadmap.md`](./roadmap.md)에서 후보를 고른 뒤 필요한 경우 별도 작업 문서를 만든다.
 
 이 순서는 의도적으로 고정합니다. 1, 2가 먼저 안정되어야 3, 4의 상관관계 UX가 신뢰성을 가질 수 있고, 5는 앞선 기능을 실제 데이터 규모에서 버티게 만드는 단계입니다.
 
@@ -35,7 +35,7 @@
 
 ## 1. Custom Alias Override UI
 
-상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-custom-alias-override.md`](./todo-custom-alias-override.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 완료 요약은 [`docs/completed-milestones.md`](./completed-milestones.md)에 남긴다.
 
 ### 목표
 
@@ -123,7 +123,7 @@ type AliasOverrideMap = Partial<Record<CanonicalFieldKey, string[]>>;
 
 ## 2. Parser Diagnostics 강화
 
-상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-parser-diagnostics.md`](./todo-parser-diagnostics.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 완료 요약은 [`docs/completed-milestones.md`](./completed-milestones.md)에 남긴다.
 
 ### 목표
 
@@ -195,7 +195,7 @@ type ParserDiagnostic = {
 
 ## 3. Analysis Drill-down 연결
 
-상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-analysis-drill-down.md`](./todo-analysis-drill-down.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 완료 요약은 [`docs/completed-milestones.md`](./completed-milestones.md)에 남긴다.
 
 ### 목표
 
@@ -255,7 +255,7 @@ type DrillDownFilter =
 
 ## 4. Cross-file Trace Diff
 
-상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-cross-file-trace-diff.md`](./todo-cross-file-trace-diff.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 완료 요약은 [`docs/completed-milestones.md`](./completed-milestones.md)에 남긴다.
 
 ### 목표
 
@@ -310,7 +310,7 @@ type DrillDownFilter =
 
 ## 5. 대용량 세션 메모리 최적화
 
-상태: 2026-04-26 구현 완료. 구현 세부 작업 목록은 [`docs/todo-large-session-memory-optimization.md`](./todo-large-session-memory-optimization.md)에 남긴다.
+상태: 2026-04-26 구현 완료. 완료 요약은 [`docs/completed-milestones.md`](./completed-milestones.md)에 남긴다.
 
 ### 목표
 

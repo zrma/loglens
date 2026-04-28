@@ -16,7 +16,9 @@
 - `AGENTS.md`
 - 이 문서
 - `docs/status.md`
+- `docs/roadmap.md`
 - `docs/next-phase-spec.md`
+- `docs/completed-milestones.md`
 - `docs/repository-overview.md`
 - 로컬 코드, 테스트, 도구 출력
 
@@ -45,7 +47,7 @@
 2. **계획**
    - 단순 작업은 바로 진행합니다.
    - 여러 파일을 건드리거나 리스크가 있는 작업은 짧은 checklist를 두고 단계별로 갱신합니다.
-   - 사용자가 특정 bug나 feature가 아니라 넓은 진전을 요청했다면 `docs/next-phase-spec.md`를 ordered backlog로 사용합니다.
+   - 사용자가 특정 bug나 feature가 아니라 넓은 진전을 요청했다면 `docs/status.md`와 `docs/roadmap.md`에서 다음 후보를 고릅니다. `docs/next-phase-spec.md`는 완료된 MVP 배치의 수용 기준을 확인할 때 사용합니다.
 
 3. **구현**
    - 기존 React, TypeScript, Tailwind, shadcn/ui, Tauri, Rust 패턴을 따릅니다.
@@ -101,7 +103,7 @@ pnpm check
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
 
-`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, selected-file runtime smoke, UI smoke coverage, large-log analysis fixture, large UI windowing fixture, ordered backlog, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
+`pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, selected-file runtime smoke, UI smoke coverage, large-log analysis fixture, large UI windowing fixture, roadmap/status routing, 완료 마일스톤 이력, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
 
 `pnpm check:agent-gc`는 자율 실행 플레이북, PR/CI 피드백 루프, 품질 GC 기준, unresolved debt marker, 개인 절대 경로 누출을 확인합니다. 이 검증은 큰 제품 판단을 대신하지 않고, 반복되는 드리프트를 초기에 잡는 방어선입니다.
 

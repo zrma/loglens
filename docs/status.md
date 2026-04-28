@@ -177,7 +177,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-완료된 기능 마일스톤은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남긴다. HTTP/B3 correlation 첫 slice는 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 닫혀 있고, AWS X-Ray follow-up은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)에 닫혀 있다. OpenTelemetry parser compatibility 작업도 [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md)에 닫혀 있다.
+현재 active 작업 문서는 없습니다. 완료된 기능 마일스톤의 상세 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다. 새 작업을 시작할 때는 [`docs/roadmap.md`](./roadmap.md)의 후보를 작은 slice로 좁힙니다.
 
 ### 완료. Custom Alias Override UI
 
@@ -215,9 +215,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 파생 계산 캐시/지연 계산
 - 필터/집계 메모리 비용 절감
 
-### 1. 신뢰성 보강
-
-작업 목록은 [`docs/todo-reliability-hardening.md`](./todo-reliability-hardening.md)에 둔다.
+### 완료. 신뢰성 보강
 
 - 지원 timestamp 형식과 parse failure 규칙 문서화 완료: [`docs/log-format-support.md`](./log-format-support.md)
 - timestamp 변형과 parse failure 분류 parser test 보강 완료
@@ -225,47 +223,46 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 실제 파일 열기 플로우와 필터 상호작용 UI 테스트 확장 완료
 - 품질 GC와 하네스 기준을 반복 드리프트에 맞춰 보강 완료
 
-### 2. 유지보수 GC
-
-작업 목록은 [`docs/todo-maintenance-gc.md`](./todo-maintenance-gc.md)에 둔다.
+### 완료. 유지보수 GC
 
 - 미사용 `src/App.css` 템플릿 잔재 삭제 완료
 - README와 상태 문서의 대용량 최적화 설명 드리프트 정리 완료
-- `src/App.tsx` 필터 상태 분리 완료: [`docs/todo-app-state-split.md`](./todo-app-state-split.md)
+- `src/App.tsx` 필터 상태 분리 완료
 - `src/App.tsx` view configuration 상태 분리 완료
-- `src/App.tsx` 파생 계산 view model hook 분리 완료: [`docs/todo-derived-view-model-split.md`](./todo-derived-view-model-split.md)
-- 디자인 시스템 컴포넌트 사용 범위 재점검 완료: [`docs/todo-design-system-gc.md`](./todo-design-system-gc.md)
+- `src/App.tsx` 파생 계산 view model hook 분리 완료
+- 디자인 시스템 컴포넌트 사용 범위 재점검 완료
 - raw `<button>` explicit type 규칙을 `pnpm check:agent-gc`에 추가 완료
 - `pnpm check:bundle` 기반 JavaScript chunk size budget 확인 완료
 
-### 3. Correlation 규칙 확장
-
-작업 목록은 [`docs/todo-correlation-rules.md`](./todo-correlation-rules.md)에 둔다.
+### 완료. Correlation 규칙 확장
 
 - HTTP request ID와 B3 trace/span header alias 추가 완료
 - nested JSON과 key=value 입력 회귀 테스트 추가 완료
 
-### 4. AWS X-Ray correlation 규칙 확장
-
-작업 목록은 [`docs/todo-xray-correlation-rules.md`](./todo-xray-correlation-rules.md)에 둔다.
+### 완료. AWS X-Ray correlation 규칙 확장
 
 - `X-Amzn-Trace-Id` 계열 header에서 `Root`와 `Parent`를 읽어 trace/span fallback으로 사용하는 기능 추가 완료
 - nested JSON과 key=value 입력 회귀 테스트로 AWS 로그 상관관계 인식 고정 완료
 
-### 5. OpenTelemetry log field alias
-
-작업 목록은 [`docs/todo-otel-log-fields.md`](./todo-otel-log-fields.md)에 둔다.
+### 완료. OpenTelemetry log field alias
 
 - OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는 기능 추가 완료
 - numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility 고정 완료
 
 ### 완료. 분석 세션 snapshot
 
-작업 목록은 [`docs/todo-session-snapshots.md`](./todo-session-snapshots.md)에 둔다.
-
 - raw 로그 본문을 저장하지 않고 parser/view/filter 상태만 로컬 JSON snapshot으로 export/import하는 첫 slice 추가 완료
 - 같은 로그 세션에서 분석 관점을 복원하고 source signature mismatch를 warning으로 표시
 - 자동 파일 재열기, 파일 접근 범위 확대, 영구 preset 저장소는 첫 범위에서 제외
+
+### 다음 후보
+
+- 로그 포맷과 nested JSON 정규화 확대
+- trace 간 비교와 source diff를 더 깊게 지원하는 세션 관리
+- span timeline/gantt 수준 상호작용
+- 디스크 기반 인덱싱이나 SQLite 같은 장기 대용량 저장 경로
+- raw 로그 없는 bookmark/annotation 같은 분석 보조 상태
+- 실제 Tauri 데스크톱 창 자동화와 렌더링 성능 측정
 
 ## 지금 당장 하지 않아도 되는 것
 
