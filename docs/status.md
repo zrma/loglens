@@ -251,6 +251,14 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는 기능 추가 완료
 - numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility 고정 완료
 
+### 6. 분석 세션 snapshot
+
+작업 목록은 [`docs/todo-session-snapshots.md`](./todo-session-snapshots.md)에 둔다.
+
+- raw 로그 본문을 저장하지 않고 parser/view/filter 상태만 로컬 JSON snapshot으로 export/import한다.
+- 같은 로그 세션에서 분석 관점을 복원하는 첫 slice를 우선 구현한다.
+- 자동 파일 재열기, 파일 접근 범위 확대, 영구 preset 저장소는 첫 범위에서 제외한다.
+
 ## 지금 당장 하지 않아도 되는 것
 
 - Rust 분석 엔진화
