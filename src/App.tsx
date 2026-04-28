@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { BarChart3, FolderOpen, ListTree } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventsTab } from "@/features/log-explorer/components/EventsTab";
@@ -7,12 +7,38 @@ import { SidebarSection } from "@/features/log-explorer/components/SidebarSectio
 import { useLogSession } from "@/features/log-explorer/hooks/useLogSession";
 import { useLogExplorerFilters } from "@/features/log-explorer/hooks/useLogExplorerFilters";
 import { useLogExplorerViewModel } from "@/features/log-explorer/hooks/useLogExplorerViewModel";
+import {
+  buildLogSessionSnapshot,
+  compareSessionSnapshotCompatibility,
+  parseLogSessionSnapshotText,
+  stringifyLogSessionSnapshot,
+  type LogSessionSnapshot,
+} from "@/features/log-explorer/session-snapshot";
+import type { LogFieldAliasOverrides } from "@/lib/logs/aliases";
 import type { FieldFilter } from "@/lib/logs/types";
 
 const AnalysisTab = lazy(async () => {
   const module = await import("@/features/log-explorer/components/AnalysisTab");
   return { default: module.AnalysisTab };
 });
+
+type SnapshotMessage = {
+  kind: "error" | "success" | "warning";
+  text: string;
+};
+
+function getAliasOverrideSignature(overrides: LogFieldAliasOverrides) {
+  return JSON.stringify(
+    Object.entries(overrides)
+      .map(([field, aliases]) => [field, [...(aliases ?? [])].sort()] as const)
+      .sort(([leftField], [rightField]) => leftField.localeCompare(rightField)),
+  );
+}
+
+function createSessionSnapshotFileName() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `loglens-session-snapshot-${timestamp}.json`;
+}
 
 function App() {
   const {
@@ -23,6 +49,7 @@ function App() {
     parserPreset,
     parserPresetId,
     parserPresetOptions,
+    applyParserSettings,
     resetAliasOverrides,
     selectLogFile,
     setAliasOverrides,
@@ -33,6 +60,7 @@ function App() {
   } = useLogSession();
   const {
     analysisDrillDownFilters,
+    applyFilterSnapshot,
     applyAnalysisDrillDownFilter,
     clearAnalysisDrillDownFilters,
     clearFieldFilters,
@@ -65,6 +93,7 @@ function App() {
 
   const {
     activeAliasOverrideCount,
+    applyViewSnapshot,
     diagnosticCounts,
     diagnosticSeverityCounts,
     eventColumnFieldOptions,
@@ -138,9 +167,26 @@ function App() {
     addFieldFilterState(fieldKey, fieldValue, operator);
     setActiveTab("events");
   }, [addFieldFilterState]);
+  const [snapshotMessage, setSnapshotMessage] = useState<SnapshotMessage | null>(null);
+  const pendingSnapshotRef = useRef<LogSessionSnapshot | null>(null);
+
+  const applySnapshotState = useCallback((snapshot: LogSessionSnapshot) => {
+    applyFilterSnapshot(snapshot.filters);
+    applyViewSnapshot(snapshot.view);
+    setSelectedEventId(snapshot.view.selectedEventId);
+    setActiveTab(snapshot.view.activeTab);
+  }, [applyFilterSnapshot, applyViewSnapshot]);
 
   useEffect(() => {
     if (!session) {
+      return;
+    }
+
+    const pendingSnapshot = pendingSnapshotRef.current;
+
+    if (pendingSnapshot) {
+      pendingSnapshotRef.current = null;
+      applySnapshotState(pendingSnapshot);
       return;
     }
 
@@ -148,7 +194,7 @@ function App() {
     resetFieldVisibility();
     setSelectedEventId(preferredSessionEventId);
     setActiveTab("events");
-  }, [preferredSessionEventId, resetFieldVisibility, resetFilters, session]);
+  }, [applySnapshotState, preferredSessionEventId, resetFieldVisibility, resetFilters, session]);
 
   useEffect(() => {
     if (facetFieldKeyOptions.length === 0) {
@@ -173,6 +219,103 @@ function App() {
       setSelectedEventId(preferredFilteredEventId);
     }
   }, [hasSelectedEvent, preferredFilteredEventId, selectedEventId]);
+
+  const handleExportSessionSnapshot = useCallback(() => {
+    if (!session) {
+      setSnapshotMessage({ kind: "error", text: "세션을 먼저 로드한 뒤 snapshot을 export할 수 있습니다." });
+      return;
+    }
+
+    if (typeof URL.createObjectURL !== "function") {
+      setSnapshotMessage({ kind: "error", text: "현재 환경에서 snapshot 파일을 만들 수 없습니다." });
+      return;
+    }
+
+    const snapshot = buildLogSessionSnapshot({
+      activeTab,
+      aliasOverrides,
+      analysisDrillDownFilters,
+      eventStreamBuiltinColumns,
+      facetFieldKey,
+      fieldFilters,
+      hiddenFieldKeys,
+      issuesOnly,
+      levelFilter,
+      parserPresetId,
+      pinnedEventFieldColumns,
+      requestFilter,
+      searchTerm,
+      selectedEventId,
+      serviceFilter,
+      session,
+      sourceFilter,
+      traceFilter,
+    });
+    const snapshotUrl = URL.createObjectURL(new Blob(
+      [stringifyLogSessionSnapshot(snapshot)],
+      { type: "application/json" },
+    ));
+    const link = document.createElement("a");
+    link.href = snapshotUrl;
+    link.download = createSessionSnapshotFileName();
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(snapshotUrl);
+    setSnapshotMessage({ kind: "success", text: "세션 snapshot export를 준비했습니다." });
+  }, [
+    activeTab,
+    aliasOverrides,
+    analysisDrillDownFilters,
+    eventStreamBuiltinColumns,
+    facetFieldKey,
+    fieldFilters,
+    hiddenFieldKeys,
+    issuesOnly,
+    levelFilter,
+    parserPresetId,
+    pinnedEventFieldColumns,
+    requestFilter,
+    searchTerm,
+    selectedEventId,
+    serviceFilter,
+    session,
+    sourceFilter,
+    traceFilter,
+  ]);
+
+  const handleImportSessionSnapshot = useCallback(async (file: File) => {
+    if (!session) {
+      setSnapshotMessage({ kind: "error", text: "세션을 먼저 로드한 뒤 snapshot을 import할 수 있습니다." });
+      return;
+    }
+
+    const parsed = parseLogSessionSnapshotText(await file.text());
+
+    if (!parsed.ok) {
+      setSnapshotMessage({ kind: "error", text: parsed.error });
+      return;
+    }
+
+    const snapshot = parsed.snapshot;
+    const compatibility = compareSessionSnapshotCompatibility(session, snapshot);
+    const parserStateChanged = parserPresetId !== snapshot.parserPresetId
+      || getAliasOverrideSignature(aliasOverrides) !== getAliasOverrideSignature(snapshot.aliasOverrides);
+
+    if (parserStateChanged) {
+      pendingSnapshotRef.current = snapshot;
+      applyParserSettings(snapshot.parserPresetId, snapshot.aliasOverrides);
+    } else {
+      applySnapshotState(snapshot);
+    }
+
+    setSnapshotMessage({
+      kind: compatibility.level === "warning" ? "warning" : "success",
+      text: compatibility.level === "warning"
+        ? `세션 snapshot을 적용했습니다. ${compatibility.messages.join(" ")}`
+        : "세션 snapshot을 적용했습니다.",
+    });
+  }, [aliasOverrides, applyParserSettings, applySnapshotState, parserPresetId, session]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -199,11 +342,14 @@ function App() {
           parserPresetId={parserPresetId}
           parserPresetOptions={parserPresetOptions}
           loadProgress={loadProgress}
+          snapshotMessage={snapshotMessage}
           onSelectLogFile={selectLogFile}
           onLoadSampleSession={loadSampleSession}
           onApplyAliasOverrides={setAliasOverrides}
           onResetAliasOverrides={resetAliasOverrides}
           onParserPresetChange={setParserPresetId}
+          onExportSessionSnapshot={handleExportSessionSnapshot}
+          onImportSessionSnapshot={handleImportSessionSnapshot}
         />
 
         <section className="grid gap-6 min-[1560px]:grid-cols-[280px_minmax(0,1fr)]">

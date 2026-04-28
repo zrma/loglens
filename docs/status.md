@@ -65,6 +65,11 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - analysis drill-down filter chip
   - 차트/분포 클릭 기반 이벤트 범위 좁히기
   - 분석 조건 개별 해제와 분석 조건만 해제
+- 분석 세션 snapshot
+  - raw 로그 본문 없는 로컬 JSON export/import
+  - parser preset과 세션 alias override 복원
+  - filter, analysis drill-down, event stream column, field visibility, active tab 복원
+  - source signature mismatch warning
 - 샘플 trace 세션 fixture
 - 테스트
   - parser/analysis smoke test
@@ -85,6 +90,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
   - cross-file Trace Diff analysis fallback test
   - 다중 파일 세션 Trace Diff UI smoke test
   - selected-file 검색/level/source/field facet 조합 UI smoke test
+  - session snapshot export/import smoke test
   - nested JSON / Go panic stack fixture test
   - timestamp missing/parse failed, JSON fallback, alias override diagnostic test
   - documented timestamp format regression test
@@ -138,6 +144,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 같은 trace가 여러 source에 걸쳐 있는지 source별 event/duration/missing hint로 비교하기
 - trace가 없을 때 requestId 또는 derived flow 기준으로 source별 차이 비교하기
 - trace가 없어도 route/resource/request 기준으로 REST 흐름 묶어 보기
+- 현재 분석 관점을 raw 로그 본문 없이 JSON snapshot으로 export/import하기
 
 ## 아직 부족한 것
 
@@ -161,7 +168,8 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - 대용량 로그에서 렌더링/메모리 비용이 커질 수 있음
 - 대용량 로그에서 전체 이벤트 배열과 전체 집계는 여전히 메모리에 유지됨
 - 파서 heuristic이 강해서 예상 밖 포맷에서 필드 추출 정확도와 일부 diagnostic 분류가 흔들릴 수 있음
-- custom alias override는 현재 세션 단위이며 영구 저장이나 import/export는 아직 없음
+- custom alias override는 현재 세션 단위이며 session snapshot으로 복원할 수 있지만, 영구 preset 저장소는 아직 없음
+- session snapshot은 raw 로그 본문이나 parsed event 전체를 저장하지 않으므로 원본 로그를 다시 열지 않고 세션을 완전히 재현할 수는 없음
 - Tauri 실제 데스크톱 창 자동화는 아직 없고, 선택 파일 계약은 focused runtime smoke로 보강된 상태
 - 하네스 검증은 UI smoke, selected-file runtime smoke, 대용량 분석/UI fixture, 자율 실행 플레이북 존재까지 확인하지만, UI 동작 전체를 대신하지는 않음
 - PR/CI 피드백 루프는 문서화됐지만 GitHub 인증이나 PR 생성 권한은 실행 환경에 따라 별도 확인이 필요함
@@ -251,13 +259,13 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 - OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는 기능 추가 완료
 - numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility 고정 완료
 
-### 6. 분석 세션 snapshot
+### 완료. 분석 세션 snapshot
 
 작업 목록은 [`docs/todo-session-snapshots.md`](./todo-session-snapshots.md)에 둔다.
 
-- raw 로그 본문을 저장하지 않고 parser/view/filter 상태만 로컬 JSON snapshot으로 export/import한다.
-- 같은 로그 세션에서 분석 관점을 복원하는 첫 slice를 우선 구현한다.
-- 자동 파일 재열기, 파일 접근 범위 확대, 영구 preset 저장소는 첫 범위에서 제외한다.
+- raw 로그 본문을 저장하지 않고 parser/view/filter 상태만 로컬 JSON snapshot으로 export/import하는 첫 slice 추가 완료
+- 같은 로그 세션에서 분석 관점을 복원하고 source signature mismatch를 warning으로 표시
+- 자동 파일 재열기, 파일 접근 범위 확대, 영구 preset 저장소는 첫 범위에서 제외
 
 ## 지금 당장 하지 않아도 되는 것
 

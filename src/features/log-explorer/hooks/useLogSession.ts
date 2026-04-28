@@ -355,6 +355,19 @@ export function useLogSession() {
     setAliasOverrides({});
   }, [setAliasOverrides]);
 
+  const applyParserSettings = useCallback((nextPresetId: LogAliasPresetId, nextOverrides: LogFieldAliasOverrides) => {
+    setParserPresetIdState(nextPresetId);
+    setAliasOverridesState(nextOverrides);
+
+    const lastLoadRequest = lastLoadRequestRef.current;
+
+    if (!lastLoadRequest) {
+      return;
+    }
+
+    void reloadSession(lastLoadRequest, nextPresetId, nextOverrides);
+  }, [reloadSession]);
+
   const parserPreset = useMemo(
     () => getLogAliasPreset(parserPresetId),
     [parserPresetId],
@@ -369,6 +382,7 @@ export function useLogSession() {
     parserPresetId,
     parserPresetOptions: LOG_ALIAS_PRESETS,
     resetAliasOverrides,
+    applyParserSettings,
     selectLogFile,
     setAliasOverrides,
     setParserPresetId,

@@ -23,9 +23,9 @@
 
 - [x] snapshot JSON schema와 validator를 `src/features/log-explorer/`에 추가한다.
 - [x] 현재 session/filter/view state에서 snapshot을 만들고 안전하게 복원하는 helper test를 추가한다.
-- [ ] overview 영역에 snapshot export/import 컨트롤과 mismatch 상태 메시지를 추가한다.
-- [ ] sample session smoke test로 export/import 후 필터와 view state가 복원되는지 검증한다.
-- [ ] README, docs/status.md, docs/roadmap.md, docs/repository-overview.md에 지원 범위와 한계를 반영한다.
+- [x] overview 영역에 snapshot export/import 컨트롤과 mismatch 상태 메시지를 추가한다.
+- [x] sample session smoke test로 export/import 후 필터와 view state가 복원되는지 검증한다.
+- [x] README, docs/status.md, docs/roadmap.md, docs/repository-overview.md에 지원 범위와 한계를 반영한다.
 
 ## 수용 기준
 
@@ -55,3 +55,4 @@
 
 - 2026-04-28: 기존 reliability, maintenance, correlation, OpenTelemetry todo가 모두 닫힌 상태라 다음 중기 마일스톤을 로컬 분석 세션 snapshot으로 분리했다.
 - 2026-04-28: `session-snapshot.ts`에 schema/validator/export/import helper와 source signature compatibility check를 추가하고, helper 단위 테스트로 round-trip, invalid snapshot reject, mismatch warning을 고정했다.
+- 2026-04-28: Overview에 snapshot Export/Import 컨트롤을 추가하고, parser/view/filter 상태 복원과 Tauri file scope 비확장을 App smoke test로 고정했다. README와 상태 문서는 raw 로그 없는 snapshot 한계를 명시하도록 갱신했다.

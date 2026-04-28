@@ -341,4 +341,95 @@ describe("App smoke", () => {
       expect(document.body).toHaveTextContent("서비스 1");
     });
   });
+
+  it("exports and imports session snapshots without Tauri file scope changes", async () => {
+    const createObjectURLMock = vi.fn(() => "blob:loglens-session-snapshot");
+    const revokeObjectURLMock = vi.fn();
+    const anchorClickMock = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURLMock,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURLMock,
+    });
+
+    renderApp();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /데모 데이터로 체험하기/i }));
+    });
+
+    await act(async () => {
+      fireEvent.change(
+        await screen.findByPlaceholderText(/메시지, ID, 서비스명 검색/i),
+        { target: { value: "cache miss" } },
+      );
+    });
+    expect(await screen.findByText(/필터 결과 1개 이벤트/i)).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Export$/i }));
+    });
+
+    expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+    expect(anchorClickMock).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:loglens-session-snapshot");
+    expect(await screen.findByText(/세션 snapshot export를 준비했습니다/i)).toBeInTheDocument();
+
+    const snapshotText = JSON.stringify({
+      aliasOverrides: {},
+      createdAt: "2026-04-28T00:00:00.000Z",
+      filters: {
+        analysisDrillDownFilters: [],
+        facetFieldKey: "all",
+        fieldFilters: [],
+        issuesOnly: false,
+        levelFilter: "error",
+        requestFilter: "all",
+        searchTerm: "payment",
+        serviceFilter: "all",
+        sourceFilter: "all",
+        traceFilter: "all",
+      },
+      parserPresetId: "auto",
+      schema: "loglens.sessionSnapshot",
+      sourceSignature: {
+        diagnosticCount: 0,
+        eventCount: 11,
+        sourceCount: 1,
+        sources: [{ diagnosticCount: 0, eventCount: 11, label: "sample-trace-session.log" }],
+        timeRange: {
+          endMs: null,
+          startMs: null,
+        },
+      },
+      version: 1,
+      view: {
+        activeTab: "analysis",
+        eventStreamBuiltinColumns: ["time", "source", "message"],
+        hiddenFieldKeys: [],
+        pinnedEventFieldColumns: [],
+        selectedEventId: null,
+      },
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/세션 snapshot 파일 선택/i), {
+        target: {
+          files: [new File([snapshotText], "snapshot.json", { type: "application/json" })],
+        },
+      });
+    });
+
+    expect(tauriMocks.invokeMock).not.toHaveBeenCalled();
+    expect(tauriMocks.openMock).not.toHaveBeenCalled();
+    expect(tauriMocks.readTextFileLinesMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/세션 snapshot을 적용했습니다/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/메시지, ID, 서비스명 검색/i)).toHaveValue("payment");
+    expect(screen.getByRole("tab", { name: /연관 분석/i })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText(/시간대별 분포/i)).toBeInTheDocument();
+  });
 });

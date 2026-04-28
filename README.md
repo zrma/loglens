@@ -1,6 +1,6 @@
 # LogLens
 
-로컬 `.log`/`.txt` 파일을 데스크톱에서 열어 빠르게 훑고 검색하는 Tauri 기반 로그 워크벤치입니다. 장기적으로는 Kibana나 로컬 log explorer처럼 로그 탐색, 관계 추적, span/trace 시각화, 디버깅 보조에 초점을 둔 로컬 분석 도구를 목표로 합니다. 현재 저장소는 구조화 이벤트 추출, trace 탐색, 분석 drill-down, cross-file Trace Diff, 대용량 세션 기초 최적화까지 들어간 MVP 상태입니다.
+로컬 `.log`/`.txt` 파일을 데스크톱에서 열어 빠르게 훑고 검색하는 Tauri 기반 로그 워크벤치입니다. 장기적으로는 Kibana나 로컬 log explorer처럼 로그 탐색, 관계 추적, span/trace 시각화, 디버깅 보조에 초점을 둔 로컬 분석 도구를 목표로 합니다. 현재 저장소는 구조화 이벤트 추출, trace 탐색, 분석 drill-down, cross-file Trace Diff, 대용량 세션 기초 최적화, 로컬 분석 snapshot까지 들어간 MVP 상태입니다.
 
 ## 프로젝트 의도
 
@@ -28,6 +28,7 @@
 - trace가 없더라도 route/resource/request 단서로 derived flow를 묶어 본다.
 - 선택한 trace/request/derived flow가 어떤 source에서 끊기거나 비는지 Trace Diff로 비교한다.
 - 멀티라인 stack trace, timestamp, JSON fallback, alias override, correlation field 상태를 Parser Diagnostics로 남긴다.
+- 현재 분석 관점을 raw 로그 본문 없이 로컬 JSON snapshot으로 export/import한다.
 - 지원 timestamp 형식과 parse failure diagnostic 규칙은 문서로 확인할 수 있다.
 - 샘플 trace 세션을 불러와 UI를 바로 확인할 수 있다.
 - sample session 기반 issue-only 필터와 analysis tab 전환은 agent-legible smoke test로 검증한다.
@@ -57,6 +58,7 @@
 - Parser Diagnostics severity/kind 분포와 이벤트별 line range 표시
 - Field Facets 기반 field key/value drill-down, 포함/제외 조건, 다중 조건 조합
 - Field Lens 기반 field key 토글과 상세 패널 field filter 액션
+- parser/view/filter 상태를 담는 로컬 JSON session snapshot export/import
 - `이벤트` / `분석` 탭 전환 UI
 - 공통 로그 타임스탬프 형식 기반 시간대 집계
 - 분석 탭 drill-down filter chip, 개별 해제, 분석 조건만 해제
@@ -71,7 +73,7 @@
 - trace 간 비교와 source diff를 더 깊게 지원하는 세션 관리
 - span timeline/gantt 수준의 더 정교한 시각화
 - 디스크 기반 인덱싱이나 SQLite 같은 장기 대용량 저장 경로
-- trace 간 비교와 저장 가능한 분석 세션
+- raw 로그 본문까지 포함해 파일 재열기 없이 완전히 재현하는 저장 세션
 - 실제 Tauri 데스크톱 창 자동화와 브라우저/데스크톱 렌더링 성능 측정
 
 현재 이벤트 목록은 DOM 폭증을 막기 위해 windowed list로 렌더링되고, 파일 파싱은 `readTextFileLines()` 기반 라인 스트리밍 경로를 우선 사용합니다.
