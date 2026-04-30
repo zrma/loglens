@@ -17,6 +17,19 @@ parser는 아래 순서로 timestamp 후보를 찾는다.
 
 세션 alias override가 있으면 preset보다 먼저 적용된다.
 
+## Structured field 정규화
+
+JSON line은 nested object를 dotted field로 flatten한다. 예를 들어 `resource.attributes.service.name`은 같은 이름의 structured field로 보존되고, canonical alias lookup에서도 사용할 수 있다.
+
+OpenTelemetry-style attribute 배열도 같은 field map으로 정규화한다.
+
+- `resource.attributes: [{ key: "service.name", value: { stringValue: "api" } }]`
+  - `resource.attributes.service.name=api`
+  - 기존 indexed field인 `resource.attributes.0.key`, `resource.attributes.0.value.stringValue`도 함께 유지한다.
+- `attributes: [{ key: "http.request_id", value: { stringValue: "req-1" } }]`
+  - `attributes.http.request_id=req-1`
+- OTLP value는 `stringValue`, `intValue`, `doubleValue`, `boolValue`, `bytesValue`, `arrayValue.values`, `kvlistValue.values`를 문자열 field로 보존한다.
+
 ## 지원 timestamp 값
 
 현재 지원 범위는 JavaScript `Date.parse`와 numeric epoch normalization을 기준으로 한다.

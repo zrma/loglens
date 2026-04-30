@@ -177,7 +177,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-현재 active 작업 문서는 [`docs/todo-otlp-attribute-normalization.md`](./todo-otlp-attribute-normalization.md)입니다. 완료된 기능 마일스톤의 상세 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다. 새 작업을 시작할 때는 [`docs/roadmap.md`](./roadmap.md)의 후보를 작은 slice로 좁힙니다.
+현재 active 작업 문서는 없습니다. 완료된 기능 마일스톤의 상세 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다. 새 작업을 시작할 때는 [`docs/roadmap.md`](./roadmap.md)의 후보를 작은 slice로 좁힙니다.
 
 ### 완료. Custom Alias Override UI
 
@@ -248,6 +248,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 - OTLP-style JSON 로그의 timestamp, severity, body, resource/service, request ID field를 canonical field로 읽는 기능 추가 완료
 - numeric nanosecond timestamp와 nested resource attributes 회귀 테스트로 parser compatibility 고정 완료
+- OTLP `{ key, value }` attribute 배열을 dotted structured field로 정규화하고 service/request/trace/span 승격 회귀 테스트 추가 완료
 
 ### 완료. 분석 세션 snapshot
 
