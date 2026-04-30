@@ -9,6 +9,13 @@
 - PR/CI 피드백 루프, 데스크톱 검증, 품질 GC 절차는 `docs/agent-autonomy-playbook.md`를 따릅니다.
 - 사용자가 commit/push를 명시적으로 요청한 경우에는 새 위험이 드러나지 않는 한 다시 묻지 말고 검증, `jj describe`, bookmark 업데이트, `jj git push`까지 진행합니다.
 
+## OpenAI GPT-5.5 기준
+
+- OpenAI 모델/API/프롬프트/에이전트 기준을 바꿀 때는 `openai-docs` 스킬과 공식 OpenAI developer docs를 먼저 확인합니다.
+- 최신 OpenAI 기준을 요구받으면 `gpt-5.5`를 baseline으로 보되, 활성 model string과 직접 연결된 prompt/harness 문구만 좁게 갱신합니다.
+- GPT-5.5용 지침은 outcome-first로 작성합니다. 목표, 성공 기준, 허용되는 부작용, 검증 증거, 중단/에스컬레이션 조건, 출력 형태를 먼저 고정합니다.
+- reasoning/verbosity/Responses API/tool wiring은 현재 코드가 안전한 설정 지점을 노출할 때만 바꿉니다. API surface나 tool handler 변경이 필요하면 blocker로 기록합니다.
+
 ## 저장소 지도
 
 - `README.md`: 제품 의도, 현재 기능 목록, 실행 방법, VCS 기본 흐름
