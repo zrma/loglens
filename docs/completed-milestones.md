@@ -25,6 +25,11 @@
 - AWS X-Ray correlation: `X-Amzn-Trace-Id` 계열 header의 `Root`와 `Parent`를 trace/span fallback으로 사용하게 했다.
 - OpenTelemetry log field alias: `timeUnixNano`, `observedTimeUnixNano`, `severityText`, `severityNumber`, `body`, `resource.attributes.service.name`, request ID 계열 nested field를 canonical field 후보로 고정했다.
 
+## 2026-04-30 parser compatibility
+
+- OTLP attribute array normalization: `{ key, value }` 배열 형태의 `resource.attributes`와 `attributes`를 dotted structured field로 정규화해 service/request/trace/span canonical field 승격에 사용할 수 있게 했다.
+- 원본 구조 단서: attribute 배열의 indexed field도 유지해 상세 이벤트 패널에서 원래 shape를 계속 확인할 수 있게 했다.
+
 ## 2026-04-28 session snapshot
 
 - 분석 세션 snapshot: raw 로그 본문 없이 parser preset, session alias override, filter, analysis drill-down, event stream column, field visibility, active tab, source signature를 JSON으로 export/import하게 했다.

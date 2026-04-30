@@ -243,12 +243,113 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function stringifyPrimitive(value: unknown) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function getOtlpScalarValue(record: Record<string, unknown>) {
+  for (const key of ["stringValue", "string_value", "intValue", "int_value", "doubleValue", "double_value", "boolValue", "bool_value", "bytesValue", "bytes_value"]) {
+    if (Object.prototype.hasOwnProperty.call(record, key)) {
+      return stringifyPrimitive(record[key]);
+    }
+  }
+
+  return null;
+}
+
+function extractOtlpAnyValue(value: unknown): string | null {
+  const primitive = stringifyPrimitive(value);
+
+  if (primitive !== null) {
+    return primitive;
+  }
+
+  if (!isPlainRecord(value)) {
+    return null;
+  }
+
+  const scalar = getOtlpScalarValue(value);
+
+  if (scalar !== null) {
+    return scalar;
+  }
+
+  const arrayValue = value.arrayValue ?? value.array_value;
+  if (isPlainRecord(arrayValue) && Array.isArray(arrayValue.values)) {
+    const values = arrayValue.values
+      .map((item) => extractOtlpAnyValue(item))
+      .filter((item): item is string => item !== null);
+
+    return values.length > 0 ? values.join(", ") : null;
+  }
+
+  const kvListValue = value.kvlistValue ?? value.kvlist_value;
+  if (isPlainRecord(kvListValue) && Array.isArray(kvListValue.values)) {
+    const values = kvListValue.values
+      .map((item) => {
+        if (!isPlainRecord(item) || typeof item.key !== "string") {
+          return null;
+        }
+
+        const nestedValue = extractOtlpAnyValue(item.value);
+        return nestedValue === null ? null : `${item.key}=${nestedValue}`;
+      })
+      .filter((item): item is string => item !== null);
+
+    return values.length > 0 ? values.join(", ") : null;
+  }
+
+  return null;
+}
+
+function writeFieldIfAbsent(acc: LogFieldMap, key: string, value: string) {
+  if (!Object.prototype.hasOwnProperty.call(acc, key)) {
+    acc[key] = value;
+  }
+}
+
+function flattenOtlpAttributeValue(key: string, value: unknown, acc: LogFieldMap) {
+  const kvListValue = isPlainRecord(value) ? value.kvlistValue ?? value.kvlist_value : null;
+
+  if (isPlainRecord(kvListValue) && Array.isArray(kvListValue.values)) {
+    for (const item of kvListValue.values) {
+      if (!isPlainRecord(item) || typeof item.key !== "string") {
+        continue;
+      }
+
+      flattenOtlpAttributeValue(`${key}.${item.key}`, item.value, acc);
+    }
+  }
+
+  const extractedValue = extractOtlpAnyValue(value);
+  if (extractedValue !== null) {
+    writeFieldIfAbsent(acc, key, extractedValue);
+  }
+}
+
+function flattenOtlpAttributeArray(value: unknown[], prefix: string, acc: LogFieldMap) {
+  for (const item of value) {
+    if (!isPlainRecord(item) || typeof item.key !== "string" || !Object.prototype.hasOwnProperty.call(item, "value")) {
+      continue;
+    }
+
+    const fieldKey = prefix ? `${prefix}.${item.key}` : item.key;
+    flattenOtlpAttributeValue(fieldKey, item.value, acc);
+  }
+}
+
 function flattenObject(value: unknown, prefix = "", acc: LogFieldMap = {}) {
   if (value === null || value === undefined) {
     return acc;
   }
 
   if (Array.isArray(value)) {
+    flattenOtlpAttributeArray(value, prefix, acc);
+
     if (value.every((item) => item === null || item === undefined || !isPlainRecord(item))) {
       if (prefix) {
         acc[prefix] = value.map((item) => (item === null || item === undefined ? "" : String(item))).join(", ");

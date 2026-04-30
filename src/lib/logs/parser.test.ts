@@ -627,6 +627,43 @@ timestamp=2026-03-08T12:36:01.000Z level=info msg="key value xray correlation" x
     ))).toBe(true);
   });
 
+  it("normalizes OpenTelemetry attribute arrays into dotted fields", () => {
+    const session = parseLogContent(`
+{"timeUnixNano":"1741437298000123456","severityText":"INFO","body":{"stringValue":"attribute array event"},"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"checkout-api"}}]},"attributes":[{"key":"http.request_id","value":{"stringValue":"req-attr-1"}},{"key":"trace_id","value":{"stringValue":"trace-attr-1"}},{"key":"span_id","value":{"stringValue":"span-attr-1"}},{"key":"http.status_code","value":{"intValue":"503"}},{"key":"feature.flags","value":{"arrayValue":{"values":[{"stringValue":"new-checkout"},{"boolValue":true}]}}}]}
+{"timestamp":"2026-03-08T12:35:01.000Z","level":"info","body":{"stringValue":"nested kvlist attribute"},"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"worker"}}]},"attributes":[{"key":"http","value":{"kvlistValue":{"values":[{"key":"request_id","value":{"stringValue":"req-attr-2"}},{"key":"route","value":{"stringValue":"/checkout/:id"}}]}}}],"trace_id":"trace-attr-2","span_id":"span-attr-2"}
+    `.trim());
+
+    expect(session.events[0]).toMatchObject({
+      level: "info",
+      message: "attribute array event",
+      requestId: "req-attr-1",
+      service: "checkout-api",
+      spanId: "span-attr-1",
+      timestampMs: 1741437298000,
+      traceId: "trace-attr-1",
+    });
+    expect(session.events[0]?.fields["resource.attributes.service.name"]).toBe("checkout-api");
+    expect(session.events[0]?.fields["resource.attributes.0.key"]).toBe("service.name");
+    expect(session.events[0]?.fields["attributes.http.status_code"]).toBe("503");
+    expect(session.events[0]?.fields["attributes.feature.flags"]).toBe("new-checkout, true");
+    expect(session.events[1]).toMatchObject({
+      message: "nested kvlist attribute",
+      requestId: "req-attr-2",
+      service: "worker",
+      spanId: "span-attr-2",
+      traceId: "trace-attr-2",
+    });
+    expect(session.events[1]?.fields["attributes.http.request_id"]).toBe("req-attr-2");
+    expect(session.events[1]?.fields["attributes.http.route"]).toBe("/checkout/:id");
+    expect(session.events.every((event) => (
+      !event.parseIssues.some((issue) => (
+        issue.kind === "timestamp_missing"
+        || issue.kind === "timestamp_parse_failed"
+        || issue.kind === "correlation_field_missing"
+      ))
+    ))).toBe(true);
+  });
+
   it("parses zap-style short json keys used by pronaia logs", () => {
     const session = parseLogContent(`
 run batch service....
