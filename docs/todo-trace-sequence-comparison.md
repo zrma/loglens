@@ -5,6 +5,7 @@
 - Active milestone
 - Decision source: `docs/todo-next-product-milestones.md`의 추천 A를 채택한다.
 - First slice implemented: source별 bounded event sequence preview
+- Second slice implemented: sequence event route/method context badges
 
 ## 목표
 
@@ -20,7 +21,6 @@
 
 ## 다음 slice 후보
 
-- source별 sequence에서 service/route/method 차이를 직접 강조한다.
 - 선택 이벤트 위치 주변의 source-local window를 보여줄지, 항상 첫 이벤트 preview를 유지할지 결정한다.
 - sequence comparison을 analysis tab에도 요약으로 노출할지 결정한다.
 

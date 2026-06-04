@@ -236,6 +236,7 @@ describe("App smoke", () => {
     expect(document.body).toHaveTextContent("현재 소스");
     expect(document.body).toHaveTextContent("preview 5/6");
     expect(document.body).toHaveTextContent("token refreshed");
+    expect(document.body).toHaveTextContent("/checkout");
     expect(document.body).toHaveTextContent("missing hints");
     expect(document.body).toHaveTextContent("span-auth-extra");
   });

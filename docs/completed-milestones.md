@@ -39,6 +39,7 @@
 
 - Source sequence comparison: 기존 Trace Diff selection fallback(trace -> request -> derived flow)을 재사용해 source별 bounded event sequence preview를 추가했다.
 - UI 연결: 이벤트 상세 분석 패널에서 다중 source 세션의 Source Sequence 카드를 표시하고, preview event 클릭을 기존 이벤트 선택 흐름으로 연결했다.
+- Sequence context badges: Source Sequence event preview에 service와 함께 HTTP method/route badge를 표시해 source별 이벤트 흐름 차이를 더 빠르게 읽을 수 있게 했다.
 
 ## 대용량 검증 기준
 
