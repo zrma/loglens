@@ -32,7 +32,11 @@ OTLP attribute 배열 정규화까지 완료되면서 현재 active parser compa
 
 첫 slice는 `동일 request/trace 안에서 source별 event sequence를 나란히 비교하는 read-only panel`로 잡는 것이 안전하다. 저장 포맷, 파일 접근, parser preset, snapshot 경계를 바꾸지 않고 UI와 analysis helper만 좁게 확장할 수 있다.
 
-## 결정 필요
+## 결정
+
+2026-06-04에 추천안 A를 채택했다. 활성 구현 문서는 [`docs/todo-trace-sequence-comparison.md`](./todo-trace-sequence-comparison.md)이다.
+
+## 기존 선택지
 
 다음 중 하나를 선택해야 한다.
 
