@@ -578,6 +578,20 @@ export function EventsTab({
                                   <p className="mt-1 truncate text-[10px] font-semibold text-foreground">
                                     {event.service ?? "(서비스 미지정)"}
                                   </p>
+                                  {(event.method || event.route) && (
+                                    <div className="mt-1 flex min-w-0 flex-wrap gap-1">
+                                      {event.method && (
+                                        <span className="rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-[9px] font-bold text-muted-foreground">
+                                          {event.method}
+                                        </span>
+                                      )}
+                                      {event.route && (
+                                        <span className="max-w-full truncate rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-[9px] text-muted-foreground">
+                                          {event.route}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                   <p className="mt-1 line-clamp-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
                                     {event.message}
                                   </p>

@@ -1176,12 +1176,16 @@ export function buildTraceSourceDiff(
 }
 
 function createTraceSourceSequenceEvent(event: LogEvent): TraceSourceSequenceEvent {
+  const routeAndMethod = extractRouteAndMethod(event);
+
   return {
     eventId: event.id,
     lineNumber: event.lineNumber,
     level: event.level,
     message: event.message,
+    method: routeAndMethod.method,
     requestId: event.requestId,
+    route: normalizeRoutePath(routeAndMethod.route),
     service: event.service,
     spanId: event.spanId,
     timestampMs: event.timestampMs,

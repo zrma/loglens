@@ -197,6 +197,8 @@ export type TraceSourceSequenceEvent = {
   level: LogLevel;
   service: string | null;
   message: string;
+  method: string | null;
+  route: string | null;
   spanId: string | null;
   requestId: string | null;
 };

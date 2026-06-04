@@ -488,6 +488,7 @@ describe("parseLogContent", () => {
     });
     expect(authRow?.events[0]).toMatchObject({
       message: "token refreshed",
+      route: "/checkout",
       spanId: "span-auth-extra",
     });
   });
@@ -538,7 +539,11 @@ describe("parseLogContent", () => {
 
     expect(sequence?.basis.kind).toBe("request");
     expect(sequence?.rows.map((row) => row.sourceLabel)).toEqual(["api.log", "worker.log"]);
-    expect(sequence?.rows[0]?.events[0]?.message).toBe("transcribe created");
+    expect(sequence?.rows[0]?.events[0]).toMatchObject({
+      message: "transcribe created",
+      method: "POST",
+      route: "/v1/transcribe",
+    });
   });
 
   it("falls back to derived flow diff when trace and request ids are absent", () => {
