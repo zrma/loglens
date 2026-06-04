@@ -190,6 +190,35 @@ export type TraceSourceDiff = {
   rows: TraceSourceDiffRow[];
 };
 
+export type TraceSourceSequenceEvent = {
+  eventId: string;
+  lineNumber: number;
+  timestampMs: number | null;
+  level: LogLevel;
+  service: string | null;
+  message: string;
+  spanId: string | null;
+  requestId: string | null;
+};
+
+export type TraceSourceSequenceRow = {
+  sourceId: string;
+  sourceLabel: string;
+  eventCount: number;
+  previewLimit: number;
+  selected: boolean;
+  truncated: boolean;
+  events: TraceSourceSequenceEvent[];
+};
+
+export type TraceSourceSequence = {
+  basis: TraceDiffBasis;
+  eventCount: number;
+  sourceCount: number;
+  perSourceLimit: number;
+  rows: TraceSourceSequenceRow[];
+};
+
 export const DERIVED_FLOW_CORRELATION_KIND_VALUES = [
   "resource",
   "request",

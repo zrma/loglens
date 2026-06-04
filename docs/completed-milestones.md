@@ -35,6 +35,11 @@
 - 분석 세션 snapshot: raw 로그 본문 없이 parser preset, session alias override, filter, analysis drill-down, event stream column, field visibility, active tab, source signature를 JSON으로 export/import하게 했다.
 - 복원 경계: 같은 로그 세션에서는 분석 관점을 복원하고, source signature mismatch는 warning으로 표시한다. 자동 파일 재열기, 파일 접근 범위 확대, raw 로그 본문 저장은 범위에서 제외했다.
 
+## 2026-06-04 trace comparison depth
+
+- Source sequence comparison: 기존 Trace Diff selection fallback(trace -> request -> derived flow)을 재사용해 source별 bounded event sequence preview를 추가했다.
+- UI 연결: 이벤트 상세 분석 패널에서 다중 source 세션의 Source Sequence 카드를 표시하고, preview event 클릭을 기존 이벤트 선택 흐름으로 연결했다.
+
 ## 대용량 검증 기준
 
 - 빠른 regression: `pnpm test:large-regression`은 3,000-event parser/runtime fixture를 기본 gate에 유지한다.

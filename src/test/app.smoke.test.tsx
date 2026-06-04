@@ -231,8 +231,11 @@ describe("App smoke", () => {
     expect(await screen.findByRole("tab", { name: /이벤트 스트림/i })).toBeInTheDocument();
     expect((await screen.findAllByText(/trace-checkout-4821/i)).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Trace Diff/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Source Sequence/i)).toBeInTheDocument();
     expect(document.body).toHaveTextContent("2 sources · 7 events");
     expect(document.body).toHaveTextContent("현재 소스");
+    expect(document.body).toHaveTextContent("preview 5/6");
+    expect(document.body).toHaveTextContent("token refreshed");
     expect(document.body).toHaveTextContent("missing hints");
     expect(document.body).toHaveTextContent("span-auth-extra");
   });

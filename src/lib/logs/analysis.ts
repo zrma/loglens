@@ -11,6 +11,9 @@ import type {
   TraceDiffBasis,
   TraceSourceDiff,
   TraceSourceDiffRow,
+  TraceSourceSequence,
+  TraceSourceSequenceEvent,
+  TraceSourceSequenceRow,
   TraceGroup,
   TraceGroupPreview,
   TraceSourceCoverage,
@@ -91,6 +94,10 @@ type MutableTraceSourceDiffRow = Omit<
   routes: Set<string>;
   services: Set<string>;
   spanIds: Set<string>;
+};
+
+type MutableTraceSourceSequenceRow = Omit<TraceSourceSequenceRow, "events" | "truncated"> & {
+  events: TraceSourceSequenceEvent[];
 };
 
 const LEVEL_ORDER: LogLevel[] = ["fatal", "error", "warn", "info", "debug", "trace", "unknown"];
@@ -1165,6 +1172,86 @@ export function buildTraceSourceDiff(
     services: sortedSetValues(allServices),
     spanIds: sortedSetValues(allSpanIds),
     rows: materializedRows,
+  };
+}
+
+function createTraceSourceSequenceEvent(event: LogEvent): TraceSourceSequenceEvent {
+  return {
+    eventId: event.id,
+    lineNumber: event.lineNumber,
+    level: event.level,
+    message: event.message,
+    requestId: event.requestId,
+    service: event.service,
+    spanId: event.spanId,
+    timestampMs: event.timestampMs,
+  };
+}
+
+function compareSourceLocalOrder(left: LogEvent, right: LogEvent) {
+  if (left.sourceLabel !== right.sourceLabel) {
+    return left.sourceLabel.localeCompare(right.sourceLabel);
+  }
+
+  if (left.lineNumber !== right.lineNumber) {
+    return left.lineNumber - right.lineNumber;
+  }
+
+  const leftTime = left.timestampMs ?? Number.MAX_SAFE_INTEGER;
+  const rightTime = right.timestampMs ?? Number.MAX_SAFE_INTEGER;
+  return leftTime - rightTime;
+}
+
+export function buildTraceSourceSequence(
+  events: LogEvent[],
+  selectedEvent: LogEvent | null,
+  selectedDerivedFlowGroup: DerivedFlowGroup | null = null,
+  perSourceLimit = 5,
+): TraceSourceSequence | null {
+  const selection = getTraceDiffSelection(events, selectedEvent, selectedDerivedFlowGroup);
+
+  if (!selection || selection.events.length === 0 || perSourceLimit <= 0) {
+    return null;
+  }
+
+  const rows = new Map<string, MutableTraceSourceSequenceRow>();
+
+  for (const event of [...selection.events].sort(compareSourceLocalOrder)) {
+    const current = rows.get(event.sourceId) ?? {
+      sourceId: event.sourceId,
+      sourceLabel: event.sourceLabel,
+      eventCount: 0,
+      events: [],
+      previewLimit: perSourceLimit,
+      selected: event.sourceId === selectedEvent?.sourceId,
+    };
+
+    current.eventCount += 1;
+
+    if (current.events.length < perSourceLimit) {
+      current.events.push(createTraceSourceSequenceEvent(event));
+    }
+
+    rows.set(event.sourceId, current);
+  }
+
+  const materializedRows = [...rows.values()]
+    .map((row): TraceSourceSequenceRow => ({
+      ...row,
+      truncated: row.eventCount > row.events.length,
+    }))
+    .sort((left, right) => (
+      Number(right.selected) - Number(left.selected)
+      || right.eventCount - left.eventCount
+      || left.sourceLabel.localeCompare(right.sourceLabel)
+    ));
+
+  return {
+    basis: selection.basis,
+    eventCount: selection.events.length,
+    perSourceLimit,
+    rows: materializedRows,
+    sourceCount: materializedRows.length,
   };
 }
 

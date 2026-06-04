@@ -126,6 +126,7 @@ function App() {
     selectedEvent,
     selectedTraceGroup,
     selectedTraceSourceDiff,
+    selectedTraceSourceSequence,
     serviceCounts,
     serviceOptions,
     servicesInSession,
@@ -452,6 +453,7 @@ function App() {
                     selectedEvent={selectedEvent}
                     selectedTraceGroup={selectedTraceGroup}
                     selectedTraceSourceDiff={selectedTraceSourceDiff}
+                    selectedTraceSourceSequence={selectedTraceSourceSequence}
                     selectedDerivedFlowGroup={selectedDerivedFlowGroup}
                     relatedEvents={relatedEvents}
                     spanForest={spanForest}
