@@ -19,6 +19,7 @@ import {
   buildSpanForest,
   buildTopDerivedFlowGroupPreviews,
   buildTopTraceGroupPreviews,
+  buildTraceSourceSequence,
   buildTraceSourceDiff,
   buildTraceGroups,
   createLogEventMatcher,
@@ -230,6 +231,14 @@ export function useLogExplorerViewModel({
     ),
     [events, selectedDerivedFlowGroup, selectedEvent, shouldBuildEventDetails, showSourceContext],
   );
+  const selectedTraceSourceSequence = useMemo(
+    () => (
+      shouldBuildEventDetails && showSourceContext
+        ? buildTraceSourceSequence(events, selectedEvent, selectedDerivedFlowGroup)
+        : null
+    ),
+    [events, selectedDerivedFlowGroup, selectedEvent, shouldBuildEventDetails, showSourceContext],
+  );
   const relatedEvents = useMemo(() => {
     if (!selectedEvent) {
       return [];
@@ -399,6 +408,7 @@ export function useLogExplorerViewModel({
     selectedEvent,
     selectedTraceGroup,
     selectedTraceSourceDiff,
+    selectedTraceSourceSequence,
     serviceCounts,
     serviceOptions,
     servicesInSession,

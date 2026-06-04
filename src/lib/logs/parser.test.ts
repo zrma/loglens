@@ -14,6 +14,7 @@ import {
   getRelatedEvents,
   getDerivedFlowGroupForEvent,
   buildTraceSourceDiff,
+  buildTraceSourceSequence,
   buildTraceSourceCoverage,
   buildTraceGroups,
   filterLogEvents,
@@ -444,6 +445,53 @@ describe("parseLogContent", () => {
     expect(authRow?.missingSpanIds).toContain("span-root");
   });
 
+  it("builds bounded source sequence previews for a selected trace", () => {
+    const checkoutSession = parseLogContent(SAMPLE_LOG_CONTENT, {
+      source: {
+        id: "/tmp/checkout.log",
+        label: "checkout.log",
+        path: "/tmp/checkout.log",
+      },
+    });
+    const authSession = parseLogContent(`
+{"timestamp":"2026-03-08T10:15:01.500Z","level":"info","service":"auth-service","traceId":"trace-checkout-4821","spanId":"span-auth-extra","requestId":"req-77","message":"token refreshed","route":"/checkout"}
+    `.trim(), {
+      source: {
+        id: "/tmp/auth.log",
+        label: "auth.log",
+        path: "/tmp/auth.log",
+      },
+    });
+
+    const merged = mergeParsedSessions([checkoutSession, authSession]);
+    const selectedEvent = merged.events.find((event) => event.spanId === "span-pay") ?? null;
+    const sequence = buildTraceSourceSequence(merged.events, selectedEvent, null, 2);
+    const checkoutRow = sequence?.rows.find((row) => row.sourceLabel === "checkout.log");
+    const authRow = sequence?.rows.find((row) => row.sourceLabel === "auth.log");
+
+    expect(sequence?.basis).toMatchObject({
+      kind: "trace",
+      value: "trace-checkout-4821",
+    });
+    expect(sequence?.eventCount).toBe(7);
+    expect(checkoutRow).toMatchObject({
+      eventCount: 6,
+      selected: true,
+      truncated: true,
+    });
+    expect(checkoutRow?.events).toHaveLength(2);
+    expect(checkoutRow?.events.map((event) => event.lineNumber)).toEqual([1, 2]);
+    expect(authRow).toMatchObject({
+      eventCount: 1,
+      selected: false,
+      truncated: false,
+    });
+    expect(authRow?.events[0]).toMatchObject({
+      message: "token refreshed",
+      spanId: "span-auth-extra",
+    });
+  });
+
   it("uses request id before derived flow for trace diff fallback", () => {
     const apiSession = parseLogContent(`
 {"timestamp":"2026-03-08T12:00:00.000Z","level":"info","service":"api-gateway","requestId":"req-no-trace","message":"transcribe created","method":"POST","path":"/v1/transcribe","transcription_id":"tr-9812"}
@@ -481,6 +529,16 @@ describe("parseLogContent", () => {
     expect(diff?.issueCount).toBe(1);
     expect(diff?.rows.find((row) => row.sourceLabel === "api.log")?.missingServices).toEqual(["worker"]);
     expect(diff?.rows.find((row) => row.sourceLabel === "worker.log")?.missingRoutes).toEqual(["/v1/transcribe"]);
+
+    const sequence = buildTraceSourceSequence(
+      merged.events,
+      selectedEvent,
+      getDerivedFlowGroupForEvent(flows, selectedEvent),
+    );
+
+    expect(sequence?.basis.kind).toBe("request");
+    expect(sequence?.rows.map((row) => row.sourceLabel)).toEqual(["api.log", "worker.log"]);
+    expect(sequence?.rows[0]?.events[0]?.message).toBe("transcribe created");
   });
 
   it("falls back to derived flow diff when trace and request ids are absent", () => {

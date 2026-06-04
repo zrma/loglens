@@ -4,6 +4,7 @@
 
 - Active milestone
 - Decision source: `docs/todo-next-product-milestones.md`의 추천 A를 채택한다.
+- First slice implemented: source별 bounded event sequence preview
 
 ## 목표
 
@@ -11,11 +12,17 @@
 
 ## 첫 slice 범위
 
-- `src/lib/logs/`에 source별 event sequence preview helper를 추가한다.
-- traceId가 있으면 trace 기준, 없으면 requestId, 없으면 derived flow 기준으로 기존 diff fallback 순서를 따른다.
-- 각 source마다 최대 preview event 수를 제한해 대용량 세션에서 bounded 계산을 유지한다.
-- UI에는 선택된 trace/request/derived flow의 source별 sequence preview를 read-only로 표시한다.
-- event row 클릭은 기존 이벤트 선택 흐름으로 연결한다.
+- 완료. `src/lib/logs/`에 source별 event sequence preview helper를 추가했다.
+- 완료. traceId가 있으면 trace 기준, 없으면 requestId, 없으면 derived flow 기준으로 기존 diff fallback 순서를 따른다.
+- 완료. 각 source마다 최대 preview event 수를 제한해 대용량 세션에서 bounded 계산을 유지한다.
+- 완료. UI에는 선택된 trace/request/derived flow의 source별 sequence preview를 read-only로 표시한다.
+- 완료. event row 클릭은 기존 이벤트 선택 흐름으로 연결한다.
+
+## 다음 slice 후보
+
+- source별 sequence에서 service/route/method 차이를 직접 강조한다.
+- 선택 이벤트 위치 주변의 source-local window를 보여줄지, 항상 첫 이벤트 preview를 유지할지 결정한다.
+- sequence comparison을 analysis tab에도 요약으로 노출할지 결정한다.
 
 ## 비범위
 
@@ -26,11 +33,11 @@
 
 ## 수용 기준
 
-- 다중 source session에서 선택 trace/request/derived flow의 source별 event 순서를 볼 수 있다.
-- trace가 없는 로그는 requestId 또는 derived flow fallback으로 sequence panel을 볼 수 있다.
-- source별 preview는 bounded count를 넘지 않는다.
-- source sequence helper와 UI smoke test가 추가된다.
-- publish 전 `pnpm check`가 통과한다.
+- 완료. 다중 source session에서 선택 trace/request/derived flow의 source별 event 순서를 볼 수 있다.
+- 완료. trace가 없는 로그는 requestId 또는 derived flow fallback으로 sequence panel을 볼 수 있다.
+- 완료. source별 preview는 bounded count를 넘지 않는다.
+- 완료. source sequence helper와 UI smoke test가 추가된다.
+- 완료. publish 전 `pnpm check`가 통과한다.
 
 ## 검증
 

@@ -10,6 +10,7 @@ import type {
   SpanNode,
   TraceSourceDiff,
   TraceSourceDiffRow,
+  TraceSourceSequence,
   TraceGroup,
 } from "@/lib/logs/types";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ type EventsTabProps = {
   selectedEvent: LogEvent | null;
   selectedTraceGroup: TraceGroup | null;
   selectedTraceSourceDiff: TraceSourceDiff | null;
+  selectedTraceSourceSequence: TraceSourceSequence | null;
   selectedDerivedFlowGroup: DerivedFlowGroup | null;
   relatedEvents: LogEvent[];
   spanForest: SpanForest | null;
@@ -76,11 +78,15 @@ function formatDiagnosticSeverity(severity: ParseIssue["severity"]) {
 }
 
 function formatTraceDiffBasis(diff: TraceSourceDiff) {
-  if (diff.basis.kind === "trace") {
-    return `${diff.basis.label}: ${formatTraceLabel(diff.basis.value)}`;
+  return formatTraceBasis(diff.basis);
+}
+
+function formatTraceBasis(basis: TraceSourceDiff["basis"]) {
+  if (basis.kind === "trace") {
+    return `${basis.label}: ${formatTraceLabel(basis.value)}`;
   }
 
-  return `${diff.basis.label}: ${diff.basis.value}`;
+  return `${basis.label}: ${basis.value}`;
 }
 
 function summarizeValues(values: string[], emptyLabel: string) {
@@ -187,6 +193,7 @@ export function EventsTab({
   selectedEvent,
   selectedTraceGroup,
   selectedTraceSourceDiff,
+  selectedTraceSourceSequence,
   selectedDerivedFlowGroup,
   relatedEvents,
   spanForest,
@@ -366,7 +373,7 @@ export function EventsTab({
               </div>
 
               {/* 3. 분석 인사이트 (Trace & Flow) */}
-              {(spanForest || selectedDerivedFlowGroup || selectedTraceSourceDiff) && (
+              {(spanForest || selectedDerivedFlowGroup || selectedTraceSourceDiff || selectedTraceSourceSequence) && (
                 <div className="space-y-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">분석 정보</p>
                   
@@ -492,6 +499,93 @@ export function EventsTab({
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+
+                  {showSourceContext && selectedTraceSourceSequence && selectedTraceSourceSequence.rows.length > 0 && (
+                    <div className="rounded-2xl border border-border bg-muted p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground">Source Sequence</p>
+                          <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
+                            {formatTraceBasis(selectedTraceSourceSequence.basis)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {selectedTraceSourceSequence.sourceCount} sources · {selectedTraceSourceSequence.eventCount} events
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {selectedTraceSourceSequence.rows.map((source) => (
+                          <div
+                            key={source.sourceId}
+                            className={cn(
+                              "rounded-2xl border p-3",
+                              source.selected
+                                ? "border-primary bg-accent"
+                                : "border-border bg-card",
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="truncate text-xs font-semibold text-foreground">{source.sourceLabel}</p>
+                                  {source.selected && (
+                                    <span className="rounded-full border border-primary bg-background px-2 py-0.5 text-[9px] font-bold text-primary">
+                                      현재 소스
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-[10px] text-muted-foreground">
+                                  preview {source.events.length}/{source.eventCount}
+                                  {source.truncated ? ` · first ${source.previewLimit}` : ""}
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 shrink-0 rounded-full border-primary bg-background px-3 text-[10px] font-bold text-primary"
+                                onClick={() => onApplySourceFilter(source.sourceId)}
+                              >
+                                이 소스
+                              </Button>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              {source.events.map((event) => (
+                                <button
+                                  key={event.eventId}
+                                  type="button"
+                                  onClick={() => onSelectEvent(event.eventId)}
+                                  className="w-full rounded-xl border border-border bg-background/80 p-2 text-left transition hover:border-primary hover:bg-background"
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0 flex items-center gap-2">
+                                      <LevelBadge level={event.level} />
+                                      <span className="truncate text-[10px] font-medium text-muted-foreground">
+                                        line {event.lineNumber}
+                                      </span>
+                                      <span className="truncate text-[10px] font-medium text-muted-foreground">
+                                        {formatTimestamp(event.timestampMs)}
+                                      </span>
+                                    </div>
+                                    {event.spanId && (
+                                      <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 font-mono text-[9px] text-muted-foreground">
+                                        {event.spanId}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 truncate text-[10px] font-semibold text-foreground">
+                                    {event.service ?? "(서비스 미지정)"}
+                                  </p>
+                                  <p className="mt-1 line-clamp-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                                    {event.message}
+                                  </p>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
