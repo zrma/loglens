@@ -1,0 +1,12 @@
+allowBuilds:
+  esbuild: true
+  lefthook: true
+
+overrides:
+  "esbuild@<0.28.1": 0.28.1
+  glob: ^10.5.0
+  lodash: ^4.17.23
+  minimatch: ^9.0.7
+  rollup: ^4.59.0
+  "undici@>=7.0.0 <7.28.0": 7.28.0
+  "yaml@<2.8.1": 2.8.3
