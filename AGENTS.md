@@ -5,6 +5,7 @@
 ## 운영 계약
 
 - 기본값은 자율 실행입니다. 명시적 판단, 누락된 credential, 파괴적 작업, 저장소 맥락으로 추론할 수 없는 scope 선택이 필요한 경우에만 사용자에게 묻습니다.
+- 공통 하네스 인터페이스와 LogLens overlay는 `docs/agent-harness.md`를 따릅니다.
 - 에스컬레이션, 검증, 복구, publish 동작의 기준은 `docs/agent-operating-contract.md`를 따릅니다.
 - PR/CI 피드백 루프, 데스크톱 검증, 품질 GC 절차는 `docs/agent-autonomy-playbook.md`를 따릅니다.
 - 사용자가 commit/push를 명시적으로 요청한 경우에는 새 위험이 드러나지 않는 한 다시 묻지 말고 검증, `jj describe`, bookmark 업데이트, `jj git push`까지 진행합니다.
@@ -31,6 +32,7 @@ Baseline ID: `openai-gpt-5.6-2026-07-10`.
 ## 저장소 지도
 
 - `README.md`: 제품 의도, 현재 기능 목록, 실행 방법, VCS 기본 흐름
+- `docs/agent-harness.md`: 이 저장소의 canonical 하네스 구조와 LogLens project overlay
 - `docs/agent-autonomy-playbook.md`: end-to-end 실행, PR/CI 피드백, 품질 GC 절차
 - `docs/status.md`: 현재 구현 상태, 리스크, 다음 우선순위
 - `docs/roadmap.md`: 더 넓은 제품 방향과 다음 작업 후보

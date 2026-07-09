@@ -23,6 +23,7 @@ check("AGENTS.md remains a short routing map", () => {
   const nonBlankLineCount = agents.split("\n").filter((line) => line.trim()).length;
 
   assert(nonBlankLineCount <= 90, "AGENTS.md should stay concise; move detailed rules into docs/ or .agents/skills.");
+  assert(agents.includes("docs/agent-harness.md"), "AGENTS.md must route the common harness interface to docs/agent-harness.md.");
   assert(agents.includes("docs/agent-operating-contract.md"), "AGENTS.md must route escalation rules to docs/agent-operating-contract.md.");
   assert(agents.includes("docs/status.md"), "AGENTS.md must point broad work at docs/status.md.");
   assert(agents.includes("docs/roadmap.md"), "AGENTS.md must point broad work at docs/roadmap.md.");
@@ -41,7 +42,10 @@ check("agent operating contract defines autonomous escalation gates", () => {
 check("publish gate includes harness validation", () => {
   const packageJson = JSON.parse(readText("package.json"));
 
-  assert(packageJson.scripts["check:harness"] === "node scripts/check-agent-harness.mjs", "package.json must define check:harness.");
+  assert(
+    packageJson.scripts["check:harness"] === "scripts/check-agent-harness-interface.sh && node scripts/check-agent-harness.mjs",
+    "package.json must define the common and project-specific harness checks.",
+  );
   assert(packageJson.scripts["check:runtime-smoke"]?.includes("src/test/runtime-harness.test.tsx"), "package.json must define a focused runtime smoke command.");
   assert(packageJson.scripts["check:agent-gc"] === "node scripts/check-agent-gc.mjs", "package.json must define check:agent-gc.");
   assert(packageJson.scripts.check.includes("pnpm check:harness"), "pnpm check must run check:harness.");
