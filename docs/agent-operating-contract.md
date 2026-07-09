@@ -24,13 +24,14 @@
 
 기존 프로젝트 패턴에서 보수적인 선택을 할 수 있다면 선호 질문을 위해 멈추지 않습니다.
 
-## OpenAI GPT-5.5 기준
+## GPT-5.6 project overlay
 
-OpenAI 모델, API, 프롬프트, 에이전트 운영 기준을 갱신하는 작업에서는 `openai-docs` 스킬과 공식 OpenAI developer docs를 먼저 확인합니다. 최신 OpenAI 기준을 요구받은 경우 `gpt-5.5`를 baseline으로 삼되, 변경 범위는 활성 model string과 직접 연결된 prompt/harness 문구로 제한합니다.
+공통 모델, 프롬프트 예산, 권한, 지속 실행, 검증, 출력, Pro/PTC, 평가 기준은 루트 `AGENTS.md`의 `Agent Harness Baseline (GPT-5.6)`을 단일 기준으로 사용합니다.
 
-GPT-5.5용 지침은 절차를 길게 나열하기보다 outcome-first로 작성합니다. 목표, 성공 기준, 허용되는 부작용, 검증 증거, 중단/에스컬레이션 조건, 최종 출력 형태를 명확히 두고, 기존 LogLens 제품 계약과 파일 접근 trust boundary를 유지합니다.
-
-reasoning effort, verbosity, Responses API state, tool definitions, structured output contracts는 현재 코드가 안전한 설정 지점을 제공할 때만 조정합니다. API surface 변경, SDK migration, tool handler rewiring, schema 변경이 필요하면 이번 범위에 억지로 포함하지 말고 blocker 또는 별도 follow-up으로 기록합니다.
+- LogLens 변경은 사용자가 선택한 파일만 읽는 trust boundary와 local desktop workbench라는 제품 경계를 유지합니다.
+- 하네스 변경은 `pnpm check:harness`와 `pnpm check:agent-gc`로 문서/런타임 계약 drift를 확인하고, 실행 동작까지 바뀌면 `pnpm check`로 넓힙니다.
+- 활성 OpenAI 통합 지점이 확인되지 않으면 runtime model, reasoning, Responses API, Pro mode, PTC, tool handler, schema를 추가하거나 바꾸지 않습니다.
+- historical docs, examples, tests, eval baseline, provider 비교, fallback 경로는 명시 요청이 없으면 그대로 둡니다.
 
 ## 에스컬레이션 조건
 
