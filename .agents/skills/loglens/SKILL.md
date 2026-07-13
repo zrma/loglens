@@ -87,7 +87,7 @@ UI 비중이 큰 작업은 가능하면 앱을 실행하고 sample trace session
 ```bash
 jj status
 jj diff
-jj describe -m $'docs: summary\n\nCo-authored-by: Codex (AI-generated) <codex@1day1coding.com>'
+# 전역 vcs-jj attribution protocol로 change description을 설정하고 검증한다.
 jj bookmark set master -r @
 jj git push --remote origin -b master
 ```
