@@ -88,8 +88,8 @@ UI 비중이 큰 작업은 가능하면 앱을 실행하고 sample trace session
 jj status
 jj diff
 # 전역 vcs-jj attribution protocol로 change description을 설정하고 검증한다.
-jj bookmark set master -r @
-jj git push --remote origin -b master
+jj bookmark set main -r @
+jj git push --remote origin -b main
 ```
 
 Commit message는 scope 없는 `<type>: <summary>` 형식을 쓰고 Codex co-author trailer를 정확히 한 번 포함합니다.

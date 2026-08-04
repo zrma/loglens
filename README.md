@@ -186,7 +186,7 @@ pnpm check:runtime-smoke
 
 ```bash
 jj git init --colocate
-jj bookmark track master --remote origin
+jj bookmark track main --remote origin
 ```
 
 그 다음 기본 확인 명령은:
@@ -203,12 +203,12 @@ jj log -n 10
 jj describe -m "feat: summary"
 ```
 
-원격 `master`를 따라가는 기본 흐름은:
+원격 `main`을 따라가는 기본 흐름은:
 
 ```bash
 jj git fetch --remote origin
-jj bookmark set master -r @
-jj git push --remote origin -b master
+jj bookmark set main -r @
+jj git push --remote origin -b main
 ```
 
 로컬 빠른 방어선은 `lefthook pre-commit`, 무거운 검증은 `lefthook pre-push`와 GitHub Actions CI가 맡습니다.

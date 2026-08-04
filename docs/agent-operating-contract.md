@@ -153,8 +153,8 @@ pnpm check:runtime-smoke
 jj status
 jj diff
 jj describe -m $'docs: summary\n\nCo-authored-by: Codex (AI-generated) <codex@1day1coding.com>'
-jj bookmark set master -r @
-jj git push --remote origin -b master
+jj bookmark set main -r @
+jj git push --remote origin -b main
 ```
 
 Commit message 규칙:
