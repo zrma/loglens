@@ -112,7 +112,7 @@ sidebar와 analysis의 상위 trace/derived-flow 목록은 표시 개수에 맞�
 
 현재 구현 상태와 다음 우선순위를 한 장으로 보려면 [`docs/status.md`](./docs/status.md)를 참고하세요.
 
-완료된 MVP 구현 배치의 상세 스펙은 [`docs/next-phase-spec.md`](./docs/next-phase-spec.md)에 남겨 두었습니다.
+완료된 구현에서 유지할 의미와 제약은 [`docs/analysis-contract.md`](./docs/analysis-contract.md), 결과와 검증 범위는 [`docs/completed-milestones.md`](./docs/completed-milestones.md)에 이관했습니다.
 
 닫힌 작업 단위의 완료 이력은 [`docs/completed-milestones.md`](./docs/completed-milestones.md)에 둡니다.
 

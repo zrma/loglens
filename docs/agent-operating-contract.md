@@ -17,7 +17,7 @@
 - 이 문서
 - `docs/status.md`
 - `docs/roadmap.md`
-- `docs/next-phase-spec.md`
+- `docs/analysis-contract.md`
 - `docs/completed-milestones.md`
 - `docs/repository-overview.md`
 - 로컬 코드, 테스트, 도구 출력
@@ -57,7 +57,7 @@
    - 단순 작업은 바로 진행합니다.
    - milestone 또는 bounded specification은 todo spec으로 목적, 범위, 조건·관계와 완료 기준을 정립합니다. 누락·모순·미결정을 해소하고 구현 중 확인한 사실을 반영합니다.
    - 공통 spec 및 artifact 전환 기준은 `AGENTS.md`의 `Spec contract`, `Artifact closeout`과 `docs/agent-harness.md`의 실행 루프가 소유합니다.
-   - 사용자가 특정 bug나 feature가 아니라 넓은 진전을 요청했다면 `docs/status.md`와 `docs/roadmap.md`에서 다음 후보를 고릅니다. `docs/next-phase-spec.md`는 완료된 MVP 배치의 수용 기준을 확인할 때 사용합니다.
+   - 사용자가 특정 bug나 feature가 아니라 넓은 진전을 요청했다면 `docs/status.md`와 `docs/roadmap.md`에서 다음 후보를 고릅니다. `docs/analysis-contract.md`는 완료된 구현에서 유지할 의미와 제약을 확인할 때 사용합니다.
 
 3. **구현**
    - 기존 React, TypeScript, Tailwind, shadcn/ui, Tauri, Rust 패턴을 따릅니다.
@@ -67,7 +67,7 @@
    - parser, analysis, state, UI 동작을 바꾸면 해당 테스트를 추가하거나 갱신합니다.
 
 4. **문서화**
-   - 동작, workflow, 우선순위, 수용된 제약이 바뀌면 `README.md`, `docs/status.md`, `docs/roadmap.md`, `docs/next-phase-spec.md` 중 적절한 문서를 갱신합니다.
+   - 동작, workflow, 우선순위, 수용된 제약이 바뀌면 `README.md`, `docs/status.md`, `docs/roadmap.md`, `docs/analysis-contract.md` 중 적절한 문서를 갱신합니다.
    - 문서는 구현된 동작에 맞춰 유지합니다. 계획된 기능을 이미 shipping된 것처럼 쓰지 않습니다.
    - 완료 시 spec과 실제 결과·검증을 대조하고 유지할 결정 이유와 알려진 한계를 소유 문서에 이관한 뒤 todo spec과 질문 파일을 정리합니다. 원본 보존은 명시적인 추적·운영 필요가 있을 때만 선택합니다.
 

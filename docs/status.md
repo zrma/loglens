@@ -177,7 +177,7 @@ LogLens는 지금 `로컬 로그 파일 -> 구조화 이벤트 파싱 -> trace/s
 
 ## 다음 우선순위
 
-현재 active 작업 문서는 [`docs/todo-trace-sequence-comparison.md`](./todo-trace-sequence-comparison.md)입니다. 다음 product milestone 선택 근거는 [`docs/todo-next-product-milestones.md`](./todo-next-product-milestones.md)에 남깁니다. 완료된 기능 마일스톤의 상세 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남기고, 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다. 새 작업을 시작할 때는 [`docs/roadmap.md`](./roadmap.md)의 후보를 작은 slice로 좁힙니다.
+현재 active 작업 문서는 없습니다. Source Sequence의 bounded preview와 method/route context badge는 완료됐습니다. 유지할 파싱·분석·저장 계약은 [`docs/analysis-contract.md`](./analysis-contract.md), 선택 근거와 검증 결과는 [`docs/completed-milestones.md`](./completed-milestones.md)가 소유합니다. 다음 작업은 [`docs/roadmap.md`](./roadmap.md)의 후보를 좁혀 새 spec으로 정립합니다.
 
 ### 완료. Custom Alias Override UI
 

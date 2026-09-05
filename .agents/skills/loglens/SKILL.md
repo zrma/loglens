@@ -21,7 +21,7 @@ description: "LogLens 전용 workflow. 이 저장소에서 Tauri/React 기반 lo
 - `docs/agent-autonomy-playbook.md`
 - `docs/status.md`
 - `docs/roadmap.md`
-- `docs/next-phase-spec.md`
+- `docs/analysis-contract.md`
 - `docs/completed-milestones.md`
 - `docs/repository-overview.md`
 

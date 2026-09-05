@@ -56,3 +56,14 @@ pnpm check:runtime-smoke
 pnpm test:large-regression
 pnpm bench:large-session
 ```
+
+## Trace 비교 선택 근거와 완료 경계
+
+Source Sequence를 먼저 선택한 이유는 multi-file local debugging이 핵심 사용 흐름이고,
+기존 source diff 위에서 파일 접근·snapshot schema를 바꾸지 않는 읽기 전용 slice로
+검증할 수 있었기 때문이다. bounded preview와 context badge의 수용 기준은 구현과
+parser/UI smoke에 반영됐다. 선택 이벤트 주변 window, analysis tab 요약, cross-trace
+비교, timeline, annotation과 desktop 검증은 완료 범위에 포함하지 않는다.
+
+이전 MVP 구현 순서와 질문 문서의 유지할 계약은 `docs/analysis-contract.md`로 이관했다.
+완료된 작업 spec은 제거하며 미래 후보는 `docs/roadmap.md`에서 새 범위를 정할 때 연다.

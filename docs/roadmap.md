@@ -37,7 +37,7 @@ LogLens의 목표는 단순 파일 뷰어가 아니라, 로컬에서 바로 실�
 
 ## 최근 완료한 마일스톤
 
-완료된 MVP 구현 배치의 상세 스펙은 [`docs/next-phase-spec.md`](./next-phase-spec.md)에 남아 있고, 닫힌 작업 단위의 요약과 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다.
+완료된 MVP와 source sequence의 의미·제약은 [`docs/analysis-contract.md`](./analysis-contract.md), 결과와 검증 기준은 [`docs/completed-milestones.md`](./completed-milestones.md)에 둡니다.
 
 - Custom Alias Override UI
 - Parser Diagnostics 강화
@@ -53,7 +53,9 @@ LogLens의 목표는 단순 파일 뷰어가 아니라, 로컬에서 바로 실�
 
 새 구현을 시작할 때는 아래 후보 중 하나를 작은 slice로 좁히고, 작업 중 추적 문서가 필요할 때만 새 작업 문서를 만듭니다. 닫힌 작업 이력은 `docs/completed-milestones.md`에 요약합니다.
 
-현재 active milestone은 [`docs/todo-trace-sequence-comparison.md`](./todo-trace-sequence-comparison.md)입니다. milestone 선택 근거는 [`docs/todo-next-product-milestones.md`](./todo-next-product-milestones.md)에 남깁니다.
+현재 active milestone은 없습니다. source sequence preview와 context badge의 수용 기준은 완료됐습니다. 선택 근거는 `docs/completed-milestones.md`에 이관했으며, 다음 후보를 고르면 새로운 spec으로 범위를 고정합니다.
+
+- Source Sequence를 선택 이벤트 주변 window로 바꿀지, analysis tab 요약으로 확장할지 실제 비교 불편을 근거로 판단합니다.
 
 - 다양한 로그 포맷과 nested JSON 정규화 확대
 - trace 간 비교와 source diff를 더 깊게 지원하는 세션 관리

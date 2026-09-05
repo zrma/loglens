@@ -118,7 +118,7 @@ check("status, roadmap, and milestone docs keep the autonomous backlog aligned",
   const agents = readText("AGENTS.md");
   const logFormatSupport = readText("docs/log-format-support.md");
   const status = readText("docs/status.md");
-  const nextPhase = readText("docs/next-phase-spec.md");
+  const analysisContract = readText("docs/analysis-contract.md");
   const roadmap = readText("docs/roadmap.md");
   const completedMilestones = readText("docs/completed-milestones.md");
 
@@ -127,16 +127,15 @@ check("status, roadmap, and milestone docs keep the autonomous backlog aligned",
   assert(status.includes("Custom Alias Override UI"), "docs/status.md must retain completed autonomous implementation history.");
   assert(status.includes("docs/completed-milestones.md"), "docs/status.md must link completed milestone history.");
   assert(roadmap.includes("docs/completed-milestones.md"), "docs/roadmap.md must link completed milestone history.");
-  assert(nextPhase.includes("docs/completed-milestones.md"), "docs/next-phase-spec.md must link completed milestone history.");
+  assert(analysisContract.includes("docs/completed-milestones.md"), "analysis contract must link completed milestone evidence.");
   assert(completedMilestones.includes("docs/log-format-support.md"), "completed milestones must track timestamp support documentation.");
   assert(
     completedMilestones.includes("timestamp_missing") && completedMilestones.includes("timestamp_parse_failed"),
     "completed milestones must preserve the timestamp diagnostic split.",
   );
   assert(logFormatSupport.includes("timestamp_missing") && logFormatSupport.includes("timestamp_parse_failed"), "timestamp support docs must describe diagnostic split.");
-  assert(nextPhase.includes("## 구현 순서"), "docs/next-phase-spec.md must preserve ordered implementation guidance.");
-  assert(nextPhase.includes("1. custom alias override UI"), "docs/next-phase-spec.md must keep custom alias override first.");
-  assert(nextPhase.includes("수용 기준"), "docs/next-phase-spec.md must provide acceptance criteria for autonomous implementation.");
+  assert(analysisContract.includes("src/lib/logs/"), "analysis contract must route implementation authority to source.");
+  assert(analysisContract.includes("docs/roadmap.md"), "analysis contract must route future work to the current roadmap.");
 });
 
 check("agent autonomy playbook covers the full feedback loop", () => {
