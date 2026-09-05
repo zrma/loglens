@@ -47,7 +47,7 @@ LogLens는 local desktop log workbench입니다. 개발자가 외부 인프라 �
 
 ## 검증
 
-반복 중에는 focused check를 사용합니다.
+반복 중에는 아래 명령에서 변경된 표면에 해당하는 focused check만 선택합니다. 이 목록 전체를 매번 실행하지 않습니다.
 
 ```bash
 pnpm check:harness
@@ -66,7 +66,7 @@ Commit 또는 push 전에는 아래를 실행합니다.
 pnpm check
 ```
 
-UI 비중이 큰 작업은 가능하면 앱을 실행하고 sample trace session 또는 변경된 흐름을 확인합니다.
+사용자가 보는 UI 동작이 바뀌면 앱의 sample trace session 또는 변경된 흐름을 확인합니다. 스킬·문서만의 변경에 새로운 UI 테스트를 만들지 않습니다. 필수 gate가 통과하면 새 변경·실패·미해결 위험 없이 반복하지 않습니다.
 
 운영 계약, 문서 지도, 선택 파일 접근 경로를 바꾼 경우에는 `pnpm check:harness`를 먼저 실행해 repo-local 하네스가 드리프트하지 않는지 확인합니다.
 
@@ -76,9 +76,11 @@ UI 비중이 큰 작업은 가능하면 앱을 실행하고 sample trace session
 
 ## 자율성과 에스컬레이션
 
-기본값은 자율 진행입니다. 사용자는 `docs/agent-operating-contract.md`에 적힌 경우에만 호출합니다: 권한 누락, 요청되지 않은 파괴적 작업, 해결되지 않은 제품 판단 공백, 외부 비용/노출, 지침 충돌, 검증 차단.
+요청과 현재 repository contract로 결정할 수 있는 local 작업은 구현·검증까지 진행합니다. 제품 판단, 대상, 비용·노출 또는 권한에 실질적인 공백이 있을 때만 질문합니다. 승인이 빠진 단계 직전까지 diff와 검증을 준비하고, 이미 승인된 action/target을 다시 확인하지 않습니다.
 
-사용자가 commit/push를 요청했다면 로컬 검증을 끝내고, `jj` change description을 설정하고, target bookmark를 갱신하고, 새 민감/파괴 리스크가 드러나지 않는 한 추가 확인 없이 push합니다.
+스킬의 권장 절차를 새 승인 조건으로 해석하지 않습니다. 스킬 때문에 멈춘다면 해당 `SKILL.md` 링크와 정확한 문구를 인용해 실제 요구와 해석을 구분합니다. 명시된 모델은 보존하고, 실행 지침 갱신을 runtime model 변경으로 확대하지 않습니다.
+
+사용자가 push까지 요청했다면 로컬 검증을 끝내고 `jj` description·target bookmark·push와 remote/CI 결과까지 확인합니다. commit-only 요청은 local change와 새 empty working copy로 닫으며 default bookmark를 옮기지 않습니다.
 
 ## VCS
 
@@ -88,8 +90,9 @@ UI 비중이 큰 작업은 가능하면 앱을 실행하고 sample trace session
 jj status
 jj diff
 # 전역 vcs-jj attribution protocol로 change description을 설정하고 검증한다.
-jj bookmark set main -r @
-jj git push --remote origin -b main
+jj new
 ```
+
+승인된 publication일 때만 intended revision으로 target bookmark를 옮기고 push합니다. local closeout 명령 예시는 publication 권한을 만들지 않습니다.
 
 Commit message는 scope 없는 `<type>: <summary>` 형식을 쓰고 Codex co-author trailer를 정확히 한 번 포함합니다.
