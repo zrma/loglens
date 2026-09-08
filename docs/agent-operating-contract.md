@@ -24,9 +24,9 @@
 
 기존 프로젝트 패턴에서 보수적인 선택을 할 수 있다면 선호 질문을 위해 멈추지 않습니다.
 
-## GPT-5.6 project overlay
+## AI-first project overlay
 
-공통 모델, 프롬프트 예산, 권한, 지속 실행, 검증, 출력, Pro/PTC, 평가 기준은 루트 `AGENTS.md`의 `Agent Harness Baseline (GPT-5.6)`을 단일 기준으로 사용합니다.
+공통 stewardship, 권한, 지속 실행과 검증 기준은 루트 `AGENTS.md`의 `AI-first Core Contract`를, OpenAI 모델·프롬프트 지침은 `Capability Profile: openai-agent-guidance`를 단일 기준으로 사용합니다.
 
 - LogLens 변경은 사용자가 선택한 파일만 읽는 trust boundary와 local desktop workbench라는 제품 경계를 유지합니다.
 - 하네스 변경은 `pnpm check:harness`와 `pnpm check:agent-gc`로 문서/런타임 계약 drift를 확인하고, 실행 동작까지 바뀌면 `pnpm check`로 넓힙니다.
@@ -87,7 +87,7 @@
 
 publish 가능한 상태로 보기 전에 에이전트는 로컬에서 자체 리뷰 루프를 한 번 닫습니다.
 
-1. `jj diff`로 의도하지 않은 파일 변경, 민감 정보, unrelated churn이 없는지 확인합니다.
+1. `AGENTS.md`의 `Change review`에 따라 원래 spec 기준선, 이후 spec 변경, `jj diff`와 검증 evidence를 대조하고 의도하지 않은 변경, 민감 정보, unrelated churn이 없는지 확인합니다.
 2. 변경 범위에 맞는 focused check를 먼저 실행하고 실패하면 같은 루프 안에서 수정합니다.
 3. UI 흐름이 바뀌면 sample session 기반 smoke test나 수동 앱 확인으로 사용자가 볼 동작을 검증합니다.
 4. 대용량/성능 경계가 걸린 변경은 작은 fixture만 보지 말고 large-log fixture나 동등한 대체 검증을 실행합니다.
@@ -113,6 +113,8 @@ pnpm check
 ```
 
 `pnpm check`는 JavaScript lint, Rust clippy, Vitest, TypeScript/Vite build, Rust test를 실행합니다. `lefthook` pre-push와 GitHub Actions도 같은 명령을 사용합니다.
+
+`AGENTS.md`의 공통 생성 본문은 pinned source와 standalone digest 검사로 고정합니다. 짧은 지도 예산은 저장소가 소유하는 First Read·Repository Overlay의 기존 5개 nonblank 줄에 적용합니다. 상세 지침은 이 문서와 playbook에 둡니다.
 
 `pnpm check:harness`는 `pnpm check` 안에서 실행되며, 짧은 `AGENTS.md`, 에스컬레이션 계약, 자체 리뷰 루프, publish gate, CI/pre-push gate, 선택 파일 접근 scope, selected-file runtime smoke, UI smoke coverage, large-log analysis fixture, large UI windowing fixture, roadmap/status routing, 완료 마일스톤 이력, 현재 문서의 주요 런타임 설명이 서로 드리프트하지 않는지 확인합니다. 이 검증이 실패하면 먼저 문서나 코드 중 실제 source of truth를 맞춥니다.
 

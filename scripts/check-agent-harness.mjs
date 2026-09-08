@@ -20,9 +20,14 @@ function assert(condition, message) {
 
 check("AGENTS.md remains a short routing map", () => {
   const agents = readText("AGENTS.md");
-  const nonBlankLineCount = agents.split("\n").filter((line) => line.trim()).length;
+  // 고정된 framework 본문은 선행 standalone gate가 검증한다.
+  // v1.5.0의 전체 90줄 중 저장소가 소유한 5줄 예산을 유지한다.
+  const routing = ["agents-first-read.md", "agents-project.md"]
+    .map((name) => readText(`.ai-first/overlays/${name}`))
+    .join("\n");
+  const routingLineCount = routing.split("\n").filter((line) => line.trim()).length;
 
-  assert(nonBlankLineCount <= 90, "AGENTS.md should stay concise; move detailed rules into docs/ or .agents/skills.");
+  assert(routingLineCount <= 5, "Repository routing must stay within 5 nonblank lines; move detailed rules into docs/ or .agents/skills.");
   assert(agents.includes("docs/agent-harness.md"), "AGENTS.md must route the common harness interface to docs/agent-harness.md.");
   assert(agents.includes("docs/agent-operating-contract.md"), "AGENTS.md must route escalation rules to docs/agent-operating-contract.md.");
   assert(agents.includes("docs/status.md"), "AGENTS.md must point broad work at docs/status.md.");
