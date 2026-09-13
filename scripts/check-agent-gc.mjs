@@ -84,7 +84,7 @@ check("autonomy docs are discoverable from the routing map", () => {
   const contributing = readText("CONTRIBUTING.md");
 
   assert(agents.includes("docs/agent-autonomy-playbook.md"), "AGENTS.md must route agents to the autonomy playbook.");
-  assert(readme.includes("docs/agent-autonomy-playbook.md"), "README.md must link the autonomy playbook.");
+  assert(readme.includes("CONTRIBUTING.md"), "README.md must link the contributor routing map.");
   assert(contributing.includes("docs/agent-autonomy-playbook.md"), "CONTRIBUTING.md must link the autonomy playbook.");
 });
 

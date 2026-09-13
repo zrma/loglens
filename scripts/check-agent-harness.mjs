@@ -163,6 +163,7 @@ check("repository docs reflect the current streaming and windowing behavior", ()
   const repositoryOverview = readText("docs/repository-overview.md");
   const status = readText("docs/status.md");
   const readme = readText("README.md");
+  const contributing = readText("CONTRIBUTING.md");
 
   assert(repositoryOverview.includes("docs/log-format-support.md"), "docs/repository-overview.md must link log format support docs.");
   assert(repositoryOverview.includes("라인 스트리밍"), "docs/repository-overview.md must describe line streaming file loading.");
@@ -171,8 +172,8 @@ check("repository docs reflect the current streaming and windowing behavior", ()
   assert(status.includes("issue-only"), "docs/status.md must describe issue filter smoke coverage.");
   assert(status.includes("대용량 분석 fixture"), "docs/status.md must describe large analysis fixture coverage.");
   assert(readme.includes("docs/log-format-support.md"), "README.md must link log format support docs.");
-  assert(readme.includes("windowed"), "README.md must describe windowed event rendering.");
-  assert(readme.includes("agent-legible"), "README.md must describe agent-legible smoke coverage.");
+  assert(readme.includes("CONTRIBUTING.md"), "README.md must link the contributor verification guide.");
+  assert(contributing.includes("agent-legible"), "CONTRIBUTING.md must describe agent-legible smoke coverage.");
 });
 
 const failures = [];
